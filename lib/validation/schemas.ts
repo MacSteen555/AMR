@@ -72,7 +72,7 @@ export const createCompetitiveRunSchema = z.object({
 })
 
 export const createCheckoutSchema = z.object({
-  tier: z.enum(['PRO', 'ENTERPRISE']),
+  tier: z.enum(['PRO', 'BUSINESS', 'ENTERPRISE']),
 })
 
 export const createTopupSchema = z.object({

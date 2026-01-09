@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const body = await request.json()
     const data = runInsightsSchema.parse(body)
 
-    // Spend credits (requires PRO/ENTERPRISE)
+    // Spend credits (requires BUSINESS or higher)
     await spendCredits(
       params.teamId,
       user.id,
@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       'team',
       params.teamId,
       idempotencyKey,
-      { feature: 'insights' }
+      { requiredTier: 'BUSINESS' }
     )
 
     const supabase = createSupabaseServerClient()

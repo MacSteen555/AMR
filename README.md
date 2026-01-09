@@ -47,6 +47,7 @@ OPENAI_API_KEY=sk-...
 STRIPE_SECRET_KEY=sk_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PRO_PRICE_ID=price_...
+STRIPE_BUSINESS_PRICE_ID=price_...
 STRIPE_ENTERPRISE_PRICE_ID=price_...
 
 # Google OAuth
@@ -136,14 +137,14 @@ The database uses:
 - `GET /api/teams/:teamId/competitors` - List competitors
 - `POST /api/competitors/:competitorId/reviews/sync` - Sync competitor reviews
 
-### Insights (PRO/ENTERPRISE)
-- `POST /api/teams/:teamId/insights/run` - Run team insights (3 credits)
+### Insights
+- `POST /api/teams/:teamId/insights/run` - Run team insights (3 credits, requires BUSINESS+)
 - `GET /api/teams/:teamId/insights` - List team insights
-- `POST /api/locations/:locationId/insights/run` - Run location insights (3 credits)
+- `POST /api/locations/:locationId/insights/run` - Run location insights (3 credits, requires PRO+)
 - `GET /api/locations/:locationId/insights` - List location insights
 
-### Competitive Analysis (ENTERPRISE)
-- `POST /api/teams/:teamId/competitive-runs` - Create competitive run (5 credits)
+### Competitive Analysis (BUSINESS+)
+- `POST /api/teams/:teamId/competitive-runs` - Create competitive run (5 credits, requires BUSINESS+)
 - `GET /api/teams/:teamId/competitive-runs` - List competitive runs
 
 ### Billing
@@ -157,8 +158,9 @@ The database uses:
 
 - **Draft Generate**: 1 credit (FREE+)
 - **Draft Regenerate**: 1 credit (FREE+)
-- **Insights Run**: 3 credits (PRO/ENTERPRISE)
-- **Competitive Run**: 5 credits (ENTERPRISE)
+- **Location Insights Run**: 3 credits (PRO+)
+- **Team Insights Run**: 3 credits (BUSINESS+)
+- **Competitive Run**: 5 credits (BUSINESS+)
 
 ## Idempotency
 

@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const body = await request.json()
     const data = createCompetitiveRunSchema.parse(body)
 
-    // Spend credits (requires ENTERPRISE)
+    // Spend credits (requires BUSINESS or higher)
     await spendCredits(
       params.teamId,
       user.id,
@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       'team',
       params.teamId,
       idempotencyKey,
-      { feature: 'competitive' }
+      { requiredTier: 'BUSINESS' }
     )
 
     const supabase = createSupabaseServerClient()

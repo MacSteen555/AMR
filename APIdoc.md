@@ -603,13 +603,13 @@ Syncs competitor reviews from SerpAPI. Fetches up to 10 pages, filters to review
 
 ---
 
-## Insights (PRO/ENTERPRISE)
+## Insights
 
 ### Run Team Insights
 
 **POST** `/api/teams/:teamId/insights/run`
 
-Generates AI insights for all team locations. Costs 3 credits. Requires PRO or ENTERPRISE tier.
+Generates AI insights for all team locations. Costs 3 credits. Requires BUSINESS or higher tier.
 
 **Headers:**
 - `Idempotency-Key` (optional) - Prevents duplicate credit charges
@@ -646,7 +646,7 @@ Generates AI insights for all team locations. Costs 3 credits. Requires PRO or E
 ```
 
 **Errors:**
-- `402` - Insufficient credits or tier doesn't support insights
+- `402` - Insufficient credits or tier doesn't support team insights (requires BUSINESS+)
 
 ### List Team Insights
 
@@ -673,7 +673,9 @@ Lists all team-level insights.
 
 **POST** `/api/locations/:locationId/insights/run`
 
-Generates AI insights for a specific location. Costs 3 credits. Requires PRO or ENTERPRISE tier.
+Generates AI insights for a specific location. Costs 3 credits. Requires PRO, BUSINESS, or ENTERPRISE tier.
+
+**Note:** Location-level insights (single location) require PRO+. Team-level insights (all locations) require BUSINESS+.
 
 **Headers:**
 - `Idempotency-Key` (optional)
@@ -698,13 +700,13 @@ Lists all insights for a location.
 
 ---
 
-## Competitive Analysis (ENTERPRISE)
+## Competitive Analysis (BUSINESS+)
 
 ### Create Competitive Run
 
 **POST** `/api/teams/:teamId/competitive-runs`
 
-Generates competitive analysis comparing owned locations and competitors. Costs 5 credits. Requires ENTERPRISE tier.
+Generates competitive analysis comparing owned locations and competitors. Costs 5 credits. Requires BUSINESS or higher tier.
 
 **Headers:**
 - `Idempotency-Key` (optional)
@@ -745,7 +747,7 @@ Generates competitive analysis comparing owned locations and competitors. Costs 
 ```
 
 **Errors:**
-- `402` - Insufficient credits or tier doesn't support competitive analysis
+- `402` - Insufficient credits or tier doesn't support competitive analysis (requires BUSINESS+)
 
 ### List Competitive Runs
 
@@ -811,7 +813,7 @@ Creates a Stripe checkout session for subscription upgrade. Requires team admin.
 **Request Body:**
 ```json
 {
-  "tier": "PRO" // or "ENTERPRISE"
+  "tier": "PRO" // or "BUSINESS" or "ENTERPRISE"
 }
 ```
 
@@ -889,8 +891,9 @@ Handles Stripe webhook events. Verifies signature and ensures idempotency.
 |--------|---------|---------------|
 | Generate draft reply | 1 | FREE+ |
 | Regenerate draft | 1 | FREE+ |
-| Run insights (team/location) | 3 | PRO/ENTERPRISE |
-| Run competitive analysis | 5 | ENTERPRISE |
+| Run location insights (single location) | 3 | PRO+ |
+| Run team insights (all locations) | 3 | BUSINESS+ |
+| Run competitive analysis | 5 | BUSINESS+ |
 
 ---
 

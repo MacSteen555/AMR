@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
     const body = await request.json()
     const data = runInsightsSchema.parse(body)
 
-    // Spend credits (requires PRO/ENTERPRISE)
+    // Spend credits (requires PRO+ for single location insights)
     await spendCredits(
       location.team_id,
       user.id,

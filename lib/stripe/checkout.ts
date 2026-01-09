@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  */
 export async function createCheckoutSession(
   teamId: string,
-  tier: 'PRO' | 'ENTERPRISE',
+  tier: 'PRO' | 'BUSINESS' | 'ENTERPRISE',
   userId: string,
   successUrl: string,
   cancelUrl: string
@@ -52,7 +52,14 @@ export async function createCheckoutSession(
   }
 
   // Get price ID for tier (you'll need to configure these in Stripe)
-  const priceId = tier === 'PRO' ? process.env.STRIPE_PRO_PRICE_ID! : process.env.STRIPE_ENTERPRISE_PRICE_ID!
+  let priceId: string
+  if (tier === 'PRO') {
+    priceId = process.env.STRIPE_PRO_PRICE_ID!
+  } else if (tier === 'BUSINESS') {
+    priceId = process.env.STRIPE_BUSINESS_PRICE_ID!
+  } else {
+    priceId = process.env.STRIPE_ENTERPRISE_PRICE_ID!
+  }
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,

@@ -12,7 +12,7 @@ export type CreditEventType =
   | 'competitive_run'
   | 'refund'
 
-export type SubscriptionTier = 'FREE' | 'PRO' | 'ENTERPRISE'
+export type SubscriptionTier = 'FREE' | 'PRO' | 'BUSINESS' | 'ENTERPRISE'
 
 export interface TeamTier {
   tier: SubscriptionTier
@@ -144,7 +144,7 @@ export async function spendCredits(
 
   // Check tier requirements
   if (tierCheck?.requiredTier) {
-    const tierOrder: SubscriptionTier[] = ['FREE', 'PRO', 'ENTERPRISE']
+    const tierOrder: SubscriptionTier[] = ['FREE', 'PRO', 'BUSINESS', 'ENTERPRISE']
     const currentTierIndex = tierOrder.indexOf(tier.tier as SubscriptionTier)
     const requiredTierIndex = tierOrder.indexOf(tierCheck.requiredTier)
 

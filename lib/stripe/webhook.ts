@@ -191,20 +191,33 @@ async function updateTeamSubscription(teamId: string, subscription: Stripe.Subsc
   // Determine tier from price ID
   const priceId = subscription.items.data[0]?.price.id
   const isPro = priceId === process.env.STRIPE_PRO_PRICE_ID
+  const isBusiness = priceId === process.env.STRIPE_BUSINESS_PRICE_ID
   const isEnterprise = priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID
+
+  // Determine tier string
+  let tierString: string
+  if (isEnterprise) {
+    tierString = 'ENTERPRISE'
+  } else if (isBusiness) {
+    tierString = 'BUSINESS'
+  } else if (isPro) {
+    tierString = 'PRO'
+  } else {
+    tierString = 'FREE'
+  }
 
   // Get plan details
   const { data: plan } = await serviceClient
     .from('app.subscription_plans')
     .select('*')
-    .eq('tier', isEnterprise ? 'ENTERPRISE' : isPro ? 'PRO' : 'FREE')
+    .eq('tier', tierString)
     .single()
 
   await serviceClient
     .from('app.team_subscriptions')
     .upsert({
       team_id: teamId,
-      tier: (isEnterprise ? 'ENTERPRISE' : isPro ? 'PRO' : 'FREE') as any,
+      tier: tierString as any,
       status: subscription.status === 'active' ? 'active' : ('past_due' as any),
       stripe_subscription_id: subscription.id,
       current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
