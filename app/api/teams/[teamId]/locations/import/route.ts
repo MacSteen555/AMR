@@ -34,7 +34,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
       // Create location
       const { data: location, error: locError } = await serviceClient
-        .from('app.locations')
+        .schema('app')
+        .from('locations')
         .insert({
           team_id: params.teamId,
           google_location_id: googleLocationId,
@@ -56,7 +57,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       if (locError) {
         // May already exist, try to get it
         const { data: existing } = await serviceClient
-          .from('app.locations')
+          .schema('app')
+          .from('locations')
           .select('*')
           .eq('team_id', params.teamId)
           .eq('google_location_id', googleLocationId)
@@ -70,7 +72,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       }
 
       // Grant access to importer
-      await serviceClient.from('app.location_access').insert({
+      await serviceClient.schema('app').from('location_access').insert({
         team_id: params.teamId,
         location_id: location.id,
         user_id: user.id,

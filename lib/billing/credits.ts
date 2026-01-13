@@ -27,7 +27,7 @@ export async function getTeamTier(teamId: string): Promise<TeamTier> {
   const supabase = createSupabaseServerClient()
 
   const { data: subscription, error } = await supabase
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('tier, insights_enabled, competitive_enabled')
     .eq('team_id', teamId)
     .single()
@@ -55,7 +55,7 @@ export async function getBalance(teamId: string): Promise<number> {
   const supabase = createSupabaseServerClient()
 
   const { data: balance, error } = await supabase
-    .from('app.team_credit_balances')
+    .schema('app').from('team_credit_balances')
     .select('balance')
     .eq('team_id', teamId)
     .single()
@@ -63,7 +63,7 @@ export async function getBalance(teamId: string): Promise<number> {
   if (error || !balance) {
     // If no balance record exists, calculate from transactions
     const { data: transactions } = await supabase
-      .from('app.team_credit_transactions')
+      .schema('app').from('team_credit_transactions')
       .select('amount')
       .eq('team_id', teamId)
 
@@ -96,7 +96,7 @@ export async function spendCredits(
   // Check idempotency if key provided
   if (idempotencyKey) {
     const { data: existing } = await serviceClient
-      .from('app.idempotency_keys')
+      .schema('app').from('idempotency_keys')
       .select('*')
       .eq('user_id', userId)
       .eq('key', idempotencyKey)
@@ -133,7 +133,7 @@ export async function spendCredits(
   // 4. Update idempotency key
 
   const { data: tier, error: tierError } = await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('tier, insights_enabled, competitive_enabled')
     .eq('team_id', teamId)
     .single()
@@ -175,7 +175,7 @@ export async function spendCredits(
       .update(JSON.stringify({ teamId, eventType, amount, referenceType, referenceId }))
       .digest('hex')
 
-    await serviceClient.from('app.idempotency_keys').upsert({
+    await serviceClient.schema('app').from('idempotency_keys').upsert({
       user_id: userId,
       team_id: teamId,
       key: idempotencyKey,
@@ -187,7 +187,7 @@ export async function spendCredits(
 
   // Insert credit transaction (negative amount = spend)
   const { error: transactionError } = await serviceClient
-    .from('app.team_credit_transactions')
+    .schema('app').from('team_credit_transactions')
     .insert({
       team_id: teamId,
       event_type: eventType,
@@ -202,7 +202,7 @@ export async function spendCredits(
     // Update idempotency to failed
     if (idempotencyKey) {
       await serviceClient
-        .from('app.idempotency_keys')
+        .schema('app').from('idempotency_keys')
         .update({ status: 'failed', error: { message: transactionError.message } })
         .eq('user_id', userId)
         .eq('key', idempotencyKey)
@@ -213,7 +213,7 @@ export async function spendCredits(
   // Update idempotency to completed
   if (idempotencyKey) {
     await serviceClient
-      .from('app.idempotency_keys')
+      .schema('app').from('idempotency_keys')
       .update({ status: 'completed', response: { success: true } })
       .eq('user_id', userId)
       .eq('key', idempotencyKey)
@@ -229,7 +229,7 @@ export async function grantMonthlyCredits(teamId: string): Promise<void> {
   const serviceClient = createSupabaseServiceRoleClient()
 
   const { data: subscription, error } = await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('monthly_credits')
     .eq('team_id', teamId)
     .single()
@@ -238,7 +238,7 @@ export async function grantMonthlyCredits(teamId: string): Promise<void> {
     return // No monthly credits to grant
   }
 
-  await serviceClient.from('app.team_credit_transactions').insert({
+  await serviceClient.schema('app').from('team_credit_transactions').insert({
     team_id: teamId,
     event_type: 'monthly_grant',
     amount: subscription.monthly_credits,

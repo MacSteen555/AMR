@@ -15,7 +15,8 @@ export async function PATCH(
     const supabase = createSupabaseServerClient()
 
     const { error } = await supabase
-      .from('app.team_memberships')
+      .schema('app')
+      .from('team_memberships')
       .update({ role: data.role })
       .eq('team_id', params.teamId)
       .eq('user_id', params.userId)

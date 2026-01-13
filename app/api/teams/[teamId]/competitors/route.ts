@@ -9,7 +9,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const supabase = createSupabaseServerClient()
 
     const { data: competitors } = await supabase
-      .from('app.competitors')
+      .schema('app')
+      .from('competitors')
       .select('*')
       .eq('team_id', params.teamId)
       .is('deleted_at', null)
@@ -30,7 +31,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const supabase = createSupabaseServerClient()
 
     const { data: competitor, error } = await supabase
-      .from('app.competitors')
+      .schema('app')
+      .from('competitors')
       .insert({
         team_id: params.teamId,
         name: data.name,

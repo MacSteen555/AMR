@@ -8,19 +8,22 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const supabase = createSupabaseServerClient()
 
     const { data: subscription } = await supabase
-      .from('app.team_subscriptions')
+      .schema('app')
+      .from('team_subscriptions')
       .select('*')
       .eq('team_id', params.teamId)
       .single()
 
     const { data: balance } = await supabase
-      .from('app.team_credit_balances')
+      .schema('app')
+      .from('team_credit_balances')
       .select('balance')
       .eq('team_id', params.teamId)
       .single()
 
     const { data: topupProducts } = await supabase
-      .from('app.credit_topup_products')
+      .schema('app')
+      .from('credit_topup_products')
       .select('*')
       .eq('is_active', true)
 

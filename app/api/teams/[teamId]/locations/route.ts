@@ -8,7 +8,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const supabase = createSupabaseServerClient()
 
     const { data: locations } = await supabase
-      .from('app.locations')
+      .schema('app')
+      .from('locations')
       .select('*')
       .eq('team_id', params.teamId)
       .is('deleted_at', null)

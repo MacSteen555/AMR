@@ -20,7 +20,7 @@ export async function handleStripeWebhook(
 
   // Check idempotency
   const { data: existing } = await serviceClient
-    .from('app.stripe_events')
+    .schema('app').from('stripe_events')
     .select('event_id')
     .eq('event_id', event.id)
     .single()
@@ -30,7 +30,7 @@ export async function handleStripeWebhook(
   }
 
   // Record event
-  await serviceClient.from('app.stripe_events').insert({
+  await serviceClient.schema('app').from('stripe_events').insert({
     event_id: event.id,
     payload: event,
   })
@@ -83,14 +83,14 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (priceId) {
       const { data: product } = await serviceClient
-        .from('app.credit_topup_products')
+        .schema('app').from('credit_topup_products')
         .select('credits')
         .eq('stripe_price_id', priceId)
         .eq('is_active', true)
         .single()
 
       if (product) {
-        await serviceClient.from('app.team_credit_transactions').insert({
+        await serviceClient.schema('app').from('team_credit_transactions').insert({
           team_id: teamId,
           event_type: 'topup',
           amount: product.credits,
@@ -107,7 +107,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const serviceClient = createSupabaseServiceRoleClient()
 
   const { data: teamSub } = await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('team_id')
     .eq('stripe_customer_id', customerId)
     .single()
@@ -122,14 +122,14 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const serviceClient = createSupabaseServiceRoleClient()
 
   const { data: teamSub } = await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('team_id')
     .eq('stripe_customer_id', customerId)
     .single()
 
   if (teamSub) {
     await serviceClient
-      .from('app.team_subscriptions')
+      .schema('app').from('team_subscriptions')
       .update({
         tier: 'FREE',
         status: 'canceled',
@@ -149,7 +149,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   const serviceClient = createSupabaseServiceRoleClient()
 
   const { data: teamSub } = await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('team_id')
     .eq('stripe_customer_id', customerId)
     .single()
@@ -165,14 +165,14 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   const serviceClient = createSupabaseServiceRoleClient()
 
   const { data: teamSub } = await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .select('team_id')
     .eq('stripe_customer_id', customerId)
     .single()
 
   if (teamSub) {
     await serviceClient
-      .from('app.team_subscriptions')
+      .schema('app').from('team_subscriptions')
       .update({
         status: 'past_due',
       })
@@ -208,13 +208,13 @@ async function updateTeamSubscription(teamId: string, subscription: Stripe.Subsc
 
   // Get plan details
   const { data: plan } = await serviceClient
-    .from('app.subscription_plans')
+    .schema('app').from('subscription_plans')
     .select('*')
     .eq('tier', tierString)
     .single()
 
   await serviceClient
-    .from('app.team_subscriptions')
+    .schema('app').from('team_subscriptions')
     .upsert({
       team_id: teamId,
       tier: tierString as any,

@@ -51,54 +51,92 @@ export function googleOAuthStart(): { url: string; codeVerifier: string; state: 
 /**
  * Exchanges authorization code for tokens and creates Supabase session.
  * Stores refresh token encrypted in app.google_tokens.
+ * Returns the Supabase user ID after signing in.
  */
 export async function googleOAuthCallback(
   code: string,
-  codeVerifier: string,
-  userId: string
-): Promise<{ idToken: string; refreshToken: string }> {
-  const { tokens } = await oauth2Client.getToken({
+  codeVerifier: string
+): Promise<{ idToken: string; refreshToken: string; supabaseUserId: string }> {
+  // Create a new OAuth2 client instance to ensure clean state
+  const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+  
+  const { tokens: finalTokens } = await client.getToken({
     code,
-    code_verifier: codeVerifier,
+    codeVerifier,
   })
 
-  if (!tokens.id_token) {
+  if (!finalTokens.id_token) {
     throw new Error('No ID token received from Google')
   }
 
-  if (!tokens.refresh_token) {
+  if (!finalTokens.refresh_token) {
     throw new Error('No refresh token received from Google')
   }
 
   // Get user info from Google
-  oauth2Client.setCredentials(tokens)
-  const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client })
+  client.setCredentials(finalTokens)
+  const oauth2 = google.oauth2({ version: 'v2', auth: client })
   const { data: userInfo } = await oauth2.userinfo.get()
 
-  // Sign in to Supabase with Google ID token
+  // Sign in to Supabase with Google ID token (this creates the session)
+  // Use server client so cookies are set via storage adapter
   const supabase = createSupabaseServerClient()
   const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
     provider: 'google',
-    token: tokens.id_token,
+    token: finalTokens.id_token,
   })
 
   if (authError || !authData.user) {
     throw new Error(`Failed to sign in to Supabase: ${authError?.message}`)
   }
 
-  // Upsert user identity
+  if (!authData.session) {
+    throw new Error('No session created after sign in')
+  }
+
+  const supabaseUserId = authData.user.id
+
+  // Ensure app user exists
   const serviceClient = createSupabaseServiceRoleClient()
+  
+  // Check if app user exists, create if not
+  const { data: existingUser } = await serviceClient
+    .schema('app')
+    .from('users')
+    .select('*')
+    .eq('id', supabaseUserId)
+    .single()
+
+  if (!existingUser) {
+    // Create app user
+    const { error: userError } = await serviceClient
+      .schema('app')
+      .from('users')
+      .insert({
+        id: supabaseUserId,
+        email: authData.user.email || userInfo.email || '',
+        display_name: authData.user.user_metadata?.display_name || userInfo.name || null,
+        avatar_url: authData.user.user_metadata?.avatar_url || userInfo.picture || null,
+      })
+
+    if (userError) {
+      throw new Error(`Failed to create app user: ${userError.message}`)
+    }
+  }
+
+  // Upsert user identity
   const providerUserId = userInfo.id || userInfo.sub || ''
 
   const { data: identity, error: identityError } = await serviceClient
-    .from('app.user_identities')
+    .schema('app')
+    .from('user_identities')
     .upsert(
       {
-        user_id: userId,
+        user_id: supabaseUserId,
         provider: 'google',
         provider_user_id: providerUserId,
         provider_email: userInfo.email || '',
-        token_expires_at: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
+        token_expires_at: finalTokens.expiry_date ? new Date(finalTokens.expiry_date).toISOString() : null,
       },
       {
         onConflict: 'provider,provider_user_id',
@@ -111,24 +149,19 @@ export async function googleOAuthCallback(
     throw new Error(`Failed to upsert user identity: ${identityError?.message}`)
   }
 
-  // Encrypt refresh token using pgcrypto (via raw SQL)
-  const { data: encryptedData, error: encryptError } = await serviceClient.rpc('pgp_sym_encrypt', {
-    plaintext: tokens.refresh_token,
-    psw: encryptionSecret,
-  })
+  // Encrypt refresh token using Node.js crypto
+  const { encrypt } = await import('@/lib/crypto/encrypt')
+  const encryptedToken = encrypt(finalTokens.refresh_token)
 
-  if (encryptError) {
-    throw new Error(`Failed to encrypt token: ${encryptError.message}`)
-  }
-
-  // Store encrypted token
+  // Store encrypted token as text (base64-encoded)
   const { error: tokenError } = await serviceClient
-    .from('app.google_tokens')
+    .schema('app')
+    .from('google_tokens')
     .upsert(
       {
         user_identity_id: identity.id,
-        encrypted_refresh_token: encryptedData, // bytea from pgp_sym_encrypt
-        scopes: tokens.scope?.split(' ') || [],
+        encrypted_refresh_token: encryptedToken, // Store as text instead of bytea
+        scopes: finalTokens.scope?.split(' ') || [],
       },
       {
         onConflict: 'user_identity_id',
@@ -140,8 +173,9 @@ export async function googleOAuthCallback(
   }
 
   return {
-    idToken: tokens.id_token,
-    refreshToken: tokens.refresh_token,
+    idToken: finalTokens.id_token,
+    refreshToken: finalTokens.refresh_token,
+    supabaseUserId,
   }
 }
 

@@ -9,7 +9,8 @@ export async function GET() {
 
     // Get teams with memberships
     const { data: memberships } = await supabase
-      .from('app.team_memberships')
+      .schema('app')
+      .from('team_memberships')
       .select('*, team:teams(*)')
       .eq('user_id', user.id)
 
@@ -23,13 +24,15 @@ export async function GET() {
     const teamsWithBilling = await Promise.all(
       teams.map(async (team) => {
         const { data: subscription } = await supabase
-          .from('app.team_subscriptions')
+          .schema('app')
+          .from('team_subscriptions')
           .select('*')
           .eq('team_id', team.id)
           .single()
 
         const { data: balance } = await supabase
-          .from('app.team_credit_balances')
+          .schema('app')
+          .from('team_credit_balances')
           .select('balance')
           .eq('team_id', team.id)
           .single()

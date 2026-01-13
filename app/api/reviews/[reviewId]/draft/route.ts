@@ -18,7 +18,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     // Get review with location
     const { data: review } = await supabase
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .select('*, location:locations!inner(team_id, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language)')
       .eq('id', params.reviewId)
       .single()
@@ -57,7 +58,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     // Save draft
     await serviceClient
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .update({
         draft_text: draftText,
         draft_updated_at: new Date().toISOString(),
@@ -67,7 +69,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       .eq('id', params.reviewId)
 
     // Save draft history
-    await serviceClient.from('app.review_drafts').insert({
+    await serviceClient.schema('app').from('review_drafts').insert({
       review_id: params.reviewId,
       author_user_id: user.id,
       content: draftText,
@@ -93,7 +95,8 @@ export async function PATCH(request: Request, { params }: { params: { reviewId: 
 
     // Verify access
     const { data: review } = await supabase
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .select('location_id')
       .eq('id', params.reviewId)
       .single()
@@ -104,7 +107,8 @@ export async function PATCH(request: Request, { params }: { params: { reviewId: 
 
     // Update draft
     await serviceClient
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .update({
         draft_text: data.draft_text,
         draft_updated_at: new Date().toISOString(),

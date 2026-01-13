@@ -12,7 +12,8 @@ export async function GET() {
 
     // Get user's Google identity
     const { data: identity } = await supabase
-      .from('app.user_identities')
+      .schema('app')
+      .from('user_identities')
       .select('id')
       .eq('user_id', user.id)
       .eq('provider', 'google')
@@ -35,7 +36,8 @@ export async function GET() {
 
         // Upsert entitlement
         await serviceClient
-          .from('app.google_location_entitlements')
+          .schema('app')
+          .from('google_location_entitlements')
           .upsert(
             {
               user_identity_id: identity.id,

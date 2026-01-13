@@ -18,7 +18,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     // Get location
     const { data: location } = await supabase
-      .from('app.locations')
+      .schema('app')
+      .from('locations')
       .select('google_location_id, google_account_hint')
       .eq('id', params.locationId)
       .single()
@@ -45,7 +46,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
         const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
 
         await serviceClient
-          .from('app.google_reviews')
+          .schema('app')
+          .from('google_reviews')
           .upsert(
             {
               location_id: params.locationId,
@@ -74,7 +76,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     // Update location sync status
     await serviceClient
-      .from('app.locations')
+      .schema('app')
+      .from('locations')
       .update({
         last_google_sync_at: new Date().toISOString(),
         last_google_sync_status: 'success',

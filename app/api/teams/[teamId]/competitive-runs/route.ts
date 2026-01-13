@@ -35,7 +35,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Get owned location reviews
     const { data: ownedLocations } = await supabase
-      .from('app.locations')
+      .schema('app')
+      .from('locations')
       .select('id, name')
       .in('id', data.owned_location_ids)
       .eq('team_id', params.teamId)
@@ -43,7 +44,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const ownedLocationReviews = await Promise.all(
       (ownedLocations || []).map(async (loc) => {
         const { data: reviews } = await supabase
-          .from('app.google_reviews')
+          .schema('app')
+          .from('google_reviews')
           .select('rating, comment')
           .eq('location_id', loc.id)
           .gte('review_date', data.period_start)
@@ -58,7 +60,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Get competitor reviews
     const { data: competitors } = await supabase
-      .from('app.competitors')
+      .schema('app')
+      .from('competitors')
       .select('id, name')
       .in('id', data.competitor_ids)
       .eq('team_id', params.teamId)
@@ -66,7 +69,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const competitorReviews = await Promise.all(
       (competitors || []).map(async (comp) => {
         const { data: reviews } = await supabase
-          .from('app.competitor_reviews')
+          .schema('app')
+          .from('competitor_reviews')
           .select('rating, comment')
           .eq('competitor_id', comp.id)
           .gte('review_date', data.period_start)
@@ -89,7 +93,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Save competitive run
     const { data: run, error } = await serviceClient
-      .from('app.competitive_runs')
+      .schema('app')
+      .from('competitive_runs')
       .insert({
         team_id: params.teamId,
         created_by_user_id: user.id,
@@ -126,7 +131,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const supabase = createSupabaseServerClient()
 
     const { data: runs } = await supabase
-      .from('app.competitive_runs')
+      .schema('app')
+      .from('competitive_runs')
       .select('*')
       .eq('team_id', params.teamId)
       .order('created_at', { ascending: false })

@@ -35,7 +35,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     // Get reviews for location in period
     const { data: reviews } = await supabase
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .select('rating, comment, review_date')
       .eq('location_id', params.locationId)
       .gte('review_date', data.period_start)
@@ -43,7 +44,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     // Get location name
     const { data: loc } = await supabase
-      .from('app.locations')
+      .schema('app')
+      .from('locations')
       .select('name')
       .eq('id', params.locationId)
       .single()
@@ -62,7 +64,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     // Save insights
     const { data: insight, error } = await serviceClient
-      .from('app.insights')
+      .schema('app')
+      .from('insights')
       .insert({
         team_id: location.team_id,
         location_id: params.locationId,
@@ -98,7 +101,8 @@ export async function GET(request: Request, { params }: { params: { locationId: 
     const supabase = createSupabaseServerClient()
 
     const { data: insights } = await supabase
-      .from('app.insights')
+      .schema('app')
+      .from('insights')
       .select('*')
       .eq('location_id', params.locationId)
       .order('generated_at', { ascending: false })

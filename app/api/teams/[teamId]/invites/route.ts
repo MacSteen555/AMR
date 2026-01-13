@@ -21,7 +21,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
 
     const { data: invite, error } = await supabase
-      .from('app.team_invites')
+      .schema('app')
+      .from('team_invites')
       .insert({
         team_id: params.teamId,
         invited_email: data.email,

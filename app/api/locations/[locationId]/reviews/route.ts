@@ -14,7 +14,8 @@ export async function GET(request: Request, { params }: { params: { locationId: 
     const supabase = createSupabaseServerClient()
 
     let query = supabase
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .select('*')
       .eq('location_id', params.locationId)
       .order('review_date', { ascending: false })

@@ -101,7 +101,8 @@ Ensure the following migrations are applied to your Supabase database:
 The database uses:
 - Schema: `app` for application tables
 - Schema: `authz` for RLS helper functions
-- Extensions: `pgcrypto` (encryption), `citext` (case-insensitive emails)
+- Extensions: `citext` (case-insensitive emails)
+- Encryption: AES-256-GCM via Node.js (not pgcrypto)
 
 ## API Routes
 
@@ -193,7 +194,7 @@ npm start
 ## Security Notes
 
 - Never log tokens or sensitive data
-- Refresh tokens are encrypted using `pgcrypto` before storage
+- Refresh tokens are encrypted using AES-256-GCM (Node.js crypto) before storage
 - RLS policies enforce data isolation at the database level
 - Use service role client only for webhooks and background jobs
 - All API routes validate authentication and authorization

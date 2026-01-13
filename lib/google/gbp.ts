@@ -1,12 +1,5 @@
 import { google } from 'googleapis'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
-import crypto from 'crypto'
-
-const encryptionSecret = process.env.TOKEN_ENCRYPTION_SECRET!
-
-if (!encryptionSecret) {
-  throw new Error('Missing TOKEN_ENCRYPTION_SECRET')
-}
 
 /**
  * Gets an authenticated OAuth2 client for a user.
@@ -16,7 +9,7 @@ export async function getOAuth2ClientForUser(userId: string): Promise<google.aut
 
   // Get user identity and encrypted token
   const { data: identity, error: identityError } = await serviceClient
-    .from('app.user_identities')
+    .schema('app').from('user_identities')
     .select('*, google_tokens!inner(*)')
     .eq('user_id', userId)
     .eq('provider', 'google')
@@ -26,34 +19,20 @@ export async function getOAuth2ClientForUser(userId: string): Promise<google.aut
     throw new Error('Google identity or token not found')
   }
 
-  // Decrypt refresh token
-  // Note: You may need to create a database function for decryption:
-  // CREATE OR REPLACE FUNCTION app.decrypt_token(encrypted_data bytea, secret text)
-  // RETURNS text AS $$
-  //   SELECT pgp_sym_decrypt(encrypted_data, secret)::text;
-  // $$ LANGUAGE sql;
-  let decryptedToken: string
-
-  const { data: decryptResult, error: decryptError } = await serviceClient.rpc('app.decrypt_token', {
-    encrypted_data: identity.google_tokens.encrypted_refresh_token,
-    secret: encryptionSecret,
-  })
-
-  if (decryptError || !decryptResult) {
-    // Fallback: try direct RPC if function doesn't exist
-    const { data: fallbackResult, error: fallbackError } = await serviceClient.rpc('pgp_sym_decrypt', {
-      encrypted_data: identity.google_tokens.encrypted_refresh_token,
-      psw: encryptionSecret,
-    })
-
-    if (fallbackError || !fallbackResult) {
-      throw new Error('Failed to decrypt refresh token. Ensure pgcrypto functions are available.')
-    }
-
-    decryptedToken = typeof fallbackResult === 'string' ? fallbackResult : Buffer.from(fallbackResult).toString('utf-8')
+  // Decrypt refresh token using Node.js crypto
+  const { decrypt } = await import('@/lib/crypto/encrypt')
+  const encryptedToken = identity.google_tokens.encrypted_refresh_token
+  
+  // Handle both text and bytea formats (for backward compatibility)
+  let encryptedString: string
+  if (typeof encryptedToken === 'string') {
+    encryptedString = encryptedToken
   } else {
-    decryptedToken = typeof decryptResult === 'string' ? decryptResult : decryptResult.toString()
+    // Convert bytea to base64 string
+    encryptedString = Buffer.from(encryptedToken).toString('base64')
   }
+  
+  const decryptedToken = decrypt(encryptedString)
 
   // Create OAuth2 client and refresh access token
   const oauth2Client = new google.auth.OAuth2(

@@ -35,7 +35,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Get all reviews for team locations in period
     const { data: reviews } = await supabase
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .select('rating, comment, review_date, location:locations!inner(team_id, name)')
       .eq('locations.team_id', params.teamId)
       .gte('review_date', data.period_start)
@@ -54,7 +55,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Save insights
     const { data: insight, error } = await serviceClient
-      .from('app.insights')
+      .schema('app')
+      .from('insights')
       .insert({
         team_id: params.teamId,
         location_id: null,
@@ -90,7 +92,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const supabase = createSupabaseServerClient()
 
     const { data: insights } = await supabase
-      .from('app.insights')
+      .schema('app')
+      .from('insights')
       .select('*')
       .eq('team_id', params.teamId)
       .is('location_id', null)

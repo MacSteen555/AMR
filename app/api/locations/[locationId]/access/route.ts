@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     const supabase = createSupabaseServerClient()
 
-    const { error } = await supabase.from('app.location_access').upsert(
+    const { error } = await supabase.schema('app').from('location_access').upsert(
       {
         team_id: location.team_id,
         location_id: params.locationId,

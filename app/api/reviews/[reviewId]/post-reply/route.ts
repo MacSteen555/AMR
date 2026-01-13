@@ -20,7 +20,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     // Get review with location
     const { data: review } = await supabase
-      .from('app.google_reviews')
+      .schema('app')
+      .from('google_reviews')
       .select('*, location:locations!inner(google_location_id, google_account_hint)')
       .eq('id', params.reviewId)
       .single()
@@ -38,7 +39,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     // Get user identity for Google API
     const { data: identity } = await supabase
-      .from('app.user_identities')
+      .schema('app')
+      .from('user_identities')
       .select('id')
       .eq('user_id', user.id)
       .eq('provider', 'google')
@@ -66,7 +68,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
       // Update review
       await serviceClient
-        .from('app.google_reviews')
+        .schema('app')
+        .from('google_reviews')
         .update({
           reply_status: 'posted',
           replied_at: new Date().toISOString(),
@@ -82,7 +85,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
       // Update review status (keep draft)
       await serviceClient
-        .from('app.google_reviews')
+        .schema('app')
+        .from('google_reviews')
         .update({
           reply_status: 'post_failed',
         })
@@ -90,7 +94,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     }
 
     // Always record attempt
-    await serviceClient.from('app.reply_post_attempts').insert({
+    await serviceClient.schema('app').from('reply_post_attempts').insert({
       review_id: params.reviewId,
       attempted_by_user_id: user.id,
       used_identity_id: identity.id,

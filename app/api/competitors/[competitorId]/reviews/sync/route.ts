@@ -13,7 +13,8 @@ export async function POST(request: Request, { params }: { params: { competitorI
 
     // Get competitor
     const { data: competitor } = await supabase
-      .from('app.competitors')
+      .schema('app')
+      .from('competitors')
       .select('place_id, team_id')
       .eq('id', params.competitorId)
       .single()
@@ -33,7 +34,8 @@ export async function POST(request: Request, { params }: { params: { competitorI
 
     // Update competitor sync status
     await serviceClient
-      .from('app.competitors')
+      .schema('app')
+      .from('competitors')
       .update({
         last_serp_sync_at: new Date().toISOString(),
         last_serp_sync_status: 'success',

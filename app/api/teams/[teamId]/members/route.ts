@@ -8,7 +8,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const supabase = createSupabaseServerClient()
 
     const { data: memberships } = await supabase
-      .from('app.team_memberships')
+      .schema('app')
+      .from('team_memberships')
       .select('*, user:users(id, email, display_name, avatar_url)')
       .eq('team_id', params.teamId)
 

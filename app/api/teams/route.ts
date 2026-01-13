@@ -9,7 +9,8 @@ export async function GET() {
     const supabase = createSupabaseServerClient()
 
     const { data: memberships } = await supabase
-      .from('app.team_memberships')
+      .schema('app')
+      .from('team_memberships')
       .select('*, team:teams(*)')
       .eq('user_id', user.id)
 
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
 
     // Create team
     const { data: team, error: teamError } = await supabase
-      .from('app.teams')
+      .schema('app')
+      .from('teams')
       .insert({
         name: data.name,
         slug,
@@ -57,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     // Create admin membership
-    const { error: membershipError } = await supabase.from('app.team_memberships').insert({
+    const { error: membershipError } = await supabase.schema('app').from('team_memberships').insert({
       team_id: team.id,
       user_id: user.id,
       role: 'admin',
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     // Initialize team subscription (FREE tier)
-    const { error: subError } = await supabase.from('app.team_subscriptions').insert({
+    const { error: subError } = await supabase.schema('app').from('team_subscriptions').insert({
       team_id: team.id,
       tier: 'FREE',
       status: 'active',

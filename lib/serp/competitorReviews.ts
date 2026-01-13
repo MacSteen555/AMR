@@ -61,7 +61,7 @@ export async function fetchCompetitorReviews(
 
       // Upsert competitor review
       const { error } = await serviceClient
-        .from('app.competitor_reviews')
+        .schema('app').from('competitor_reviews')
         .upsert(
           {
             competitor_id: competitorId,

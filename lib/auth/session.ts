@@ -49,7 +49,8 @@ export async function ensureAppUserFromSupabaseAuth(): Promise<AppUser> {
 
   // Check if user exists
   const { data: existingUser } = await serviceClient
-    .from('app.users')
+    .schema('app')
+    .from('users')
     .select('*')
     .eq('id', authUser.id)
     .single()
@@ -60,7 +61,8 @@ export async function ensureAppUserFromSupabaseAuth(): Promise<AppUser> {
 
   // Create new user
   const { data: newUser, error: insertError } = await serviceClient
-    .from('app.users')
+    .schema('app')
+    .from('users')
     .insert({
       id: authUser.id,
       email: authUser.email!,

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { googleOAuthCallback } from '@/lib/auth/google'
-import { ensureAppUserFromSupabaseAuth } from '@/lib/auth/session'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -27,21 +26,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing code verifier' }, { status: 400 })
     }
 
-    // Ensure user exists
-    const user = await ensureAppUserFromSupabaseAuth()
+    // Exchange code for tokens and sign in to Supabase
+    // This creates the Supabase session and app user
+    const result = await googleOAuthCallback(code, codeVerifier)
 
-    // Exchange code for tokens
-    await googleOAuthCallback(code, codeVerifier, user.id)
-
-    // Clear cookies
+    // Clear OAuth cookies
     cookieStore.delete('oauth_state')
     cookieStore.delete('oauth_code_verifier')
 
     // Redirect to app
+    // The Supabase session cookies should be set by the storage adapter
     const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     redirect(`${redirectUrl}/dashboard`)
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    // Redirect to login with error message
+    const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    redirect(`${redirectUrl}/login?error=${encodeURIComponent(error.message)}`)
   }
 }
 

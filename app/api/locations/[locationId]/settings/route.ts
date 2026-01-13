@@ -17,7 +17,8 @@ export async function PATCH(request: Request, { params }: { params: { locationId
     const supabase = createSupabaseServerClient()
 
     const { error } = await supabase
-      .from('app.locations')
+      .schema('app')
+      .from('locations')
       .update(data)
       .eq('id', params.locationId)
 

@@ -10,7 +10,8 @@ export async function requireTeamMember(teamId: string) {
   const supabase = createSupabaseServerClient()
 
   const { data: membership, error } = await supabase
-    .from('app.team_memberships')
+    .schema('app')
+    .from('team_memberships')
     .select('*')
     .eq('team_id', teamId)
     .eq('user_id', user.id)
@@ -47,7 +48,8 @@ export async function requireLocationAccess(locationId: string) {
 
   // Check if user can access location (via RLS or explicit check)
   const { data: location, error: locationError } = await supabase
-    .from('app.locations')
+    .schema('app')
+    .from('locations')
     .select('*, team:teams!inner(id)')
     .eq('id', locationId)
     .single()
@@ -58,7 +60,8 @@ export async function requireLocationAccess(locationId: string) {
 
   // Check team membership
   const { data: membership } = await supabase
-    .from('app.team_memberships')
+    .schema('app')
+    .from('team_memberships')
     .select('role')
     .eq('team_id', location.team.id)
     .eq('user_id', user.id)
@@ -71,7 +74,8 @@ export async function requireLocationAccess(locationId: string) {
     }
 
     const { data: access } = await supabase
-      .from('app.location_access')
+      .schema('app')
+      .from('location_access')
       .select('can_manage')
       .eq('location_id', locationId)
       .eq('user_id', user.id)
