@@ -2,28 +2,28 @@ import { NextResponse } from 'next/server'
 import { googleOAuthStart } from '@/lib/auth/google'
 import { cookies } from 'next/headers'
 
+/**
+ * Initiates Google OAuth flow
+ * Returns authorization URL and stores PKCE parameters in cookies
+ */
 export async function GET() {
   try {
     const { url, codeVerifier, state } = googleOAuthStart()
 
-    // Store code verifier and state in httpOnly cookie
+    // Store PKCE parameters in secure httpOnly cookies
     const cookieStore = cookies()
-    cookieStore.set('oauth_code_verifier', codeVerifier, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       maxAge: 600, // 10 minutes
-    })
-    cookieStore.set('oauth_state', state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600,
-    })
+    }
+
+    cookieStore.set('oauth_code_verifier', codeVerifier, cookieOptions)
+    cookieStore.set('oauth_state', state, cookieOptions)
 
     return NextResponse.json({ url })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-

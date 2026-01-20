@@ -8,3 +8,5 @@ export function appTable(client: SupabaseClient, tableName: string) {
   return client.schema('app').from(tableName)
 }
 
+
+

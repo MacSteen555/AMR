@@ -1,181 +1,174 @@
 import { google } from 'googleapis'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { encrypt } from '@/lib/crypto/encrypt'
 import crypto from 'crypto'
 
-const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID!
-const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET!
-const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
-const encryptionSecret = process.env.TOKEN_ENCRYPTION_SECRET!
+// Environment variables
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID!
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET!
+const REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI || `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/google/callback`
 
-if (!clientId || !clientSecret || !encryptionSecret) {
-  throw new Error('Missing Google OAuth or encryption environment variables')
+if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+  throw new Error('Missing Google OAuth credentials')
 }
 
-const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+// Required scopes for Google Business Profile API
+const REQUIRED_SCOPES = [                                                                                                                                               
+  'https://www.googleapis.com/auth/business.manage',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+]
 
 /**
- * Generates PKCE code verifier and challenge for OAuth flow.
- */
-export function generatePKCE() {
-  const codeVerifier = crypto.randomBytes(32).toString('base64url')
-  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
-  return { codeVerifier, codeChallenge }
-}
-
-/**
- * Generates the Google OAuth authorization URL with PKCE and required scopes.
+ * Step 1: Start OAuth Flow
+ * Generates authorization URL with PKCE for security
  */
 export function googleOAuthStart(): { url: string; codeVerifier: string; state: string } {
-  const { codeVerifier, codeChallenge } = generatePKCE()
+  // Generate PKCE code verifier and challenge
+  const codeVerifier = crypto.randomBytes(32).toString('base64url')
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
+  
+  // Generate state for CSRF protection
   const state = crypto.randomBytes(16).toString('hex')
 
-  const scopes = [
-    'https://www.googleapis.com/auth/business.manage',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-  ]
+  // Create OAuth2 client
+  const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI)
 
-  const url = oauth2Client.generateAuthUrl({
-    access_type: 'offline', // Required for refresh token
-    prompt: 'consent', // Force consent screen to get refresh token
-    scope: scopes,
+  // Generate authorization URL (with PKCE)
+  const authUrlParams: any = {
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: REQUIRED_SCOPES,
     state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
-  })
+  }
+  
+  const url = oauth2Client.generateAuthUrl(authUrlParams)
 
   return { url, codeVerifier, state }
 }
 
 /**
- * Exchanges authorization code for tokens and creates Supabase session.
- * Stores refresh token encrypted in app.google_tokens.
- * Returns the Supabase user ID after signing in.
+ * Step 2: Handle OAuth Callback
+ * Exchanges authorization code for tokens, creates session, stores user data
  */
 export async function googleOAuthCallback(
   code: string,
   codeVerifier: string
-): Promise<{ idToken: string; refreshToken: string; supabaseUserId: string }> {
-  // Create a new OAuth2 client instance to ensure clean state
-  const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+): Promise<{ supabaseUserId: string }> {
+  // ============================================
+  // 1. Exchange code for tokens
+  // ============================================
+  const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI)
   
-  const { tokens: finalTokens } = await client.getToken({
+  const { tokens } = await oauth2Client.getToken({
     code,
     codeVerifier,
   })
 
-  if (!finalTokens.id_token) {
-    throw new Error('No ID token received from Google')
+  if (!tokens.id_token || !tokens.refresh_token) {
+    throw new Error('Missing required tokens from Google')
   }
 
-  if (!finalTokens.refresh_token) {
-    throw new Error('No refresh token received from Google')
-  }
+  // ============================================
+  // 2. Get user info from Google
+  // ============================================
+  oauth2Client.setCredentials(tokens)
+  const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client })
+  const { data: googleUser } = await oauth2.userinfo.get()
 
-  // Get user info from Google
-  client.setCredentials(finalTokens)
-  const oauth2 = google.oauth2({ version: 'v2', auth: client })
-  const { data: userInfo } = await oauth2.userinfo.get()
-
-  // Sign in to Supabase with Google ID token (this creates the session)
-  // Use server client so cookies are set via storage adapter
+  // ============================================
+  // 3. Create Supabase session
+  // ============================================
   const supabase = createSupabaseServerClient()
+  
+  // First, sign out any existing session to avoid refresh token conflicts
+  await supabase.auth.signOut()
+  
+  // Now create a fresh session with the ID token
   const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
     provider: 'google',
-    token: finalTokens.id_token,
+    token: tokens.id_token,
   })
 
-  if (authError || !authData.user) {
-    throw new Error(`Failed to sign in to Supabase: ${authError?.message}`)
+  if (authError || !authData.user || !authData.session) {
+    throw new Error(`Failed to create Supabase session: ${authError?.message}`)
   }
 
-  if (!authData.session) {
-    throw new Error('No session created after sign in')
-  }
+  const userId = authData.user.id
 
-  const supabaseUserId = authData.user.id
-
-  // Ensure app user exists
+  // ============================================
+  // 4. Create app user (if doesn't exist)
+  // ============================================
   const serviceClient = createSupabaseServiceRoleClient()
   
-  // Check if app user exists, create if not
   const { data: existingUser } = await serviceClient
     .schema('app')
     .from('users')
-    .select('*')
-    .eq('id', supabaseUserId)
-    .single()
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
 
   if (!existingUser) {
-    // Create app user
-    const { error: userError } = await serviceClient
+    const { error: createUserError } = await serviceClient
       .schema('app')
       .from('users')
       .insert({
-        id: supabaseUserId,
-        email: authData.user.email || userInfo.email || '',
-        display_name: authData.user.user_metadata?.display_name || userInfo.name || null,
-        avatar_url: authData.user.user_metadata?.avatar_url || userInfo.picture || null,
+        id: userId,
+        email: authData.user.email || googleUser.email || '',
+        display_name: googleUser.name || null,
+        avatar_url: googleUser.picture || null,
       })
 
-    if (userError) {
-      throw new Error(`Failed to create app user: ${userError.message}`)
+    if (createUserError) {
+      throw new Error(`Failed to create user: ${createUserError.message}`)
     }
   }
 
-  // Upsert user identity
-  const providerUserId = userInfo.id || userInfo.sub || ''
-
+  // ============================================
+  // 5. Store Google identity
+  // ============================================
   const { data: identity, error: identityError } = await serviceClient
     .schema('app')
     .from('user_identities')
     .upsert(
       {
-        user_id: supabaseUserId,
+        user_id: userId,
         provider: 'google',
-        provider_user_id: providerUserId,
-        provider_email: userInfo.email || '',
-        token_expires_at: finalTokens.expiry_date ? new Date(finalTokens.expiry_date).toISOString() : null,
+        provider_user_id: (googleUser.id || (googleUser as any).sub || '') as string,
+        provider_email: googleUser.email || '',
+        token_expires_at: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
       },
-      {
-        onConflict: 'provider,provider_user_id',
-      }
+      { onConflict: 'provider,provider_user_id' }
     )
-    .select()
+    .select('id')
     .single()
 
   if (identityError || !identity) {
-    throw new Error(`Failed to upsert user identity: ${identityError?.message}`)
+    throw new Error(`Failed to store identity: ${identityError?.message}`)
   }
 
-  // Encrypt refresh token using Node.js crypto
-  const { encrypt } = await import('@/lib/crypto/encrypt')
-  const encryptedToken = encrypt(finalTokens.refresh_token)
+  // ============================================
+  // 6. Encrypt and store refresh token
+  // ============================================
+  const encryptedToken = encrypt(tokens.refresh_token)
 
-  // Store encrypted token as text (base64-encoded)
   const { error: tokenError } = await serviceClient
     .schema('app')
     .from('google_tokens')
     .upsert(
       {
         user_identity_id: identity.id,
-        encrypted_refresh_token: encryptedToken, // Store as text instead of bytea
-        scopes: finalTokens.scope?.split(' ') || [],
+        encrypted_refresh_token: encryptedToken,
+        scopes: tokens.scope?.split(' ') || [],
       },
-      {
-        onConflict: 'user_identity_id',
-      }
+      { onConflict: 'user_identity_id' }
     )
 
   if (tokenError) {
-    throw new Error(`Failed to store encrypted token: ${tokenError.message}`)
+    throw new Error(`Failed to store token: ${tokenError.message}`)
   }
 
-  return {
-    idToken: finalTokens.id_token,
-    refreshToken: finalTokens.refresh_token,
-    supabaseUserId,
-  }
+  return { supabaseUserId: userId }
 }
-

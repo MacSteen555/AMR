@@ -1,28 +1,26 @@
 import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm'
-const KEY_LENGTH = 32
 const IV_LENGTH = 16
 const TAG_LENGTH = 16
+const ENCRYPTION_SECRET = process.env.TOKEN_ENCRYPTION_SECRET!
 
-const encryptionSecret = process.env.TOKEN_ENCRYPTION_SECRET!
-
-if (!encryptionSecret) {
+if (!ENCRYPTION_SECRET) {
   throw new Error('Missing TOKEN_ENCRYPTION_SECRET')
 }
 
 // Derive a consistent 32-byte key from the secret
-const getKey = (): Buffer => {
-  return crypto.createHash('sha256').update(encryptionSecret).digest()
+function getKey(): Buffer {
+  return crypto.createHash('sha256').update(ENCRYPTION_SECRET).digest()
 }
 
 /**
- * Encrypts a string and returns a base64-encoded string containing IV + encrypted data + auth tag
+ * Encrypts a string using AES-256-GCM
+ * Returns base64-encoded string: [IV + encrypted_data + auth_tag]
  */
 export function encrypt(plaintext: string): string {
   const key = getKey()
   const iv = crypto.randomBytes(IV_LENGTH)
-  
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv)
   
   let encrypted = cipher.update(plaintext, 'utf8', 'hex')
@@ -30,7 +28,7 @@ export function encrypt(plaintext: string): string {
   
   const tag = cipher.getAuthTag()
   
-  // Combine IV + encrypted data + tag into a single string
+  // Combine IV + encrypted data + tag
   const combined = Buffer.concat([
     iv,
     Buffer.from(encrypted, 'hex'),
@@ -47,7 +45,7 @@ export function decrypt(encryptedData: string): string {
   const key = getKey()
   const combined = Buffer.from(encryptedData, 'base64')
   
-  // Extract IV, encrypted data, and tag
+  // Extract IV, encrypted data, and auth tag
   const iv = combined.subarray(0, IV_LENGTH)
   const tag = combined.subarray(combined.length - TAG_LENGTH)
   const encrypted = combined.subarray(IV_LENGTH, combined.length - TAG_LENGTH)
@@ -60,4 +58,3 @@ export function decrypt(encryptedData: string): string {
   
   return decrypted
 }
-
