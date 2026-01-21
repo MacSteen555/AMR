@@ -65,12 +65,17 @@ export function useAuth() {
     router.push('/login')
   }
 
+  const refresh = async () => {
+    await checkAuth()
+  }
+
   return {
     user,
     teams,
     loading,
     error,
     checkAuth,
+    refresh,
     logout,
   }
 }

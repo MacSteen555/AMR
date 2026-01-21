@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import { createTeamSchema } from '@/lib/validation/schemas'
 
 export async function GET() {
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
 
-    // Create team
+    // Create team (RLS should allow any authenticated user to create)
     const { data: team, error: teamError } = await supabase
       .schema('app')
       .from('teams')
@@ -58,23 +58,30 @@ export async function POST(request: Request) {
       throw new Error(`Failed to create team: ${teamError?.message}`)
     }
 
-    // Create admin membership
-    const { error: membershipError } = await supabase.schema('app').from('team_memberships').insert({
-      team_id: team.id,
-      user_id: user.id,
-      role: 'admin',
-    })
+    // Create admin membership (RLS should allow inserting your own membership)
+    const { error: membershipError } = await supabase
+      .schema('app')
+      .from('team_memberships')
+      .insert({
+        team_id: team.id,
+        user_id: user.id,
+        role: 'admin',
+      })
 
     if (membershipError) {
       throw new Error(`Failed to create membership: ${membershipError.message}`)
     }
 
-    // Initialize team subscription (FREE tier)
-    const { error: subError } = await supabase.schema('app').from('team_subscriptions').insert({
-      team_id: team.id,
-      tier: 'FREE',
-      status: 'active',
-    })
+    // Initialize team subscription (use service role for system operation)
+    const serviceClient = createSupabaseServiceRoleClient()
+    const { error: subError } = await serviceClient
+      .schema('app')
+      .from('team_subscriptions')
+      .insert({
+        team_id: team.id,
+        tier: 'FREE',
+        status: 'active',
+      })
 
     if (subError) {
       // Non-fatal, log but continue

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { googleOAuthCallback } from '@/lib/auth/google'
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
 
 /**
  * Handles OAuth callback from Google
@@ -34,16 +33,17 @@ export async function GET(request: Request) {
     }
 
     // Exchange code for tokens and create session
+    // This sets Supabase auth cookies via the storage adapter
     await googleOAuthCallback(code, codeVerifier)
 
     // Clean up OAuth cookies
     cookieStore.delete('oauth_state')
     cookieStore.delete('oauth_code_verifier')
 
-    // Redirect to dashboard
-    redirect(`${redirectUrl}/dashboard`)
+    // Use NextResponse.redirect to preserve cookies
+    return NextResponse.redirect(`${redirectUrl}/dashboard`)
   } catch (error: any) {
-    // Redirect to login with error
-    redirect(`${redirectUrl}/login?error=${encodeURIComponent(error.message)}`)
+    // Handle errors
+    return NextResponse.redirect(`${redirectUrl}/login?error=${encodeURIComponent(error.message)}`)
   }
 }
