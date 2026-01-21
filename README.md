@@ -57,6 +57,7 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
 # Google Maps API
 GOOGLE_MAPS_API_KEY=your-maps-api-key
+PLACES_API_URL=https://places.googleapis.com/v1/places:searchText
 
 # SerpAPI
 SERP_API_KEY=your-serpapi-key
