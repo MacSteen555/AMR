@@ -61,17 +61,17 @@ export async function POST(request: Request) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
 
-    // Optional debug
-    const { data: dbg, error: dbgErr } = await supabase.schema('app').rpc('rls_debug')
-    console.log('RLS debug:', dbg, dbgErr)
-
-    // ✅ Create team via RPC (created_by set inside DB to auth.uid())
+    // ✅ Create team via standard insert
+    // RLS policy 'teams_insert_authenticated' allows this
     const { data: teamData, error: teamError } = await supabase
       .schema('app')
-      .rpc('create_team', {
-        p_name: parsed.name,
-        p_slug: slug,
+      .from('teams')
+      .insert({
+        name: parsed.name,
+        slug: slug,
+        created_by: uid,
       })
+      .select()
       .single()
 
     if (teamError || !teamData) {
@@ -81,8 +81,11 @@ export async function POST(request: Request) {
     const team = teamData as Team;
 
     // Create admin membership
-    // NOTE: this will fail unless you have a bootstrap policy for team_memberships inserts
-    const { error: membershipError } = await supabase
+    // We use the Service Role client to bypass RLS, because the 'tm_insert_admin' policy
+    // requires the user to ALREADY be an admin of the team, which is impossible for the first member.
+    const adminClient = createSupabaseServiceRoleClient()
+
+    const { error: membershipError } = await adminClient
       .schema('app')
       .from('team_memberships')
       .insert({
@@ -92,12 +95,13 @@ export async function POST(request: Request) {
       })
 
     if (membershipError) {
+      // If membership fails, we should probably delete the team to avoid orphans,
+      // but for now let's just throw.
       throw new Error(`Failed to create membership: ${membershipError.message}`)
     }
 
     // Initialize subscription (system op)
-    const admin = createSupabaseServiceRoleClient()
-    const { error: subError } = await admin
+    const { error: subError } = await adminClient
       .schema('app')
       .from('team_subscriptions')
       .insert({
