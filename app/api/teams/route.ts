@@ -3,6 +3,15 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import { createTeamSchema } from '@/lib/validation/schemas'
 
+type Team = {
+  id: string
+  name: string
+  slug: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
 export async function GET() {
   try {
     const user = await requireUser()
@@ -30,41 +39,55 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const user = await requireUser()
+    // Gate route (your auth helper)
+    await requireUser()
+
     const body = await request.json()
-    const data = createTeamSchema.parse(body)
+    const parsed = createTeamSchema.parse(body)
 
     const supabase = createSupabaseServerClient()
 
-    // Generate slug
-    const slug = data.name
+    // Get verified Supabase user (guaranteed to match auth.uid() in Postgres)
+    const { data: userData, error: userErr } = await supabase.auth.getUser()
+    if (userErr || !userData.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+    const uid = userData.user.id
+
+    // Slug (basic)
+    const slug = parsed.name
       .toLowerCase()
+      .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
 
-    // Create team (RLS should allow any authenticated user to create)
-    const { data: team, error: teamError } = await supabase
+    // Optional debug
+    const { data: dbg, error: dbgErr } = await supabase.schema('app').rpc('rls_debug')
+    console.log('RLS debug:', dbg, dbgErr)
+
+    // ✅ Create team via RPC (created_by set inside DB to auth.uid())
+    const { data: teamData, error: teamError } = await supabase
       .schema('app')
-      .from('teams')
-      .insert({
-        name: data.name,
-        slug,
-        created_by: user.id,
+      .rpc('create_team', {
+        p_name: parsed.name,
+        p_slug: slug,
       })
-      .select()
       .single()
 
-    if (teamError || !team) {
+    if (teamError || !teamData) {
       throw new Error(`Failed to create team: ${teamError?.message}`)
     }
 
-    // Create admin membership (RLS should allow inserting your own membership)
+    const team = teamData as Team;
+
+    // Create admin membership
+    // NOTE: this will fail unless you have a bootstrap policy for team_memberships inserts
     const { error: membershipError } = await supabase
       .schema('app')
       .from('team_memberships')
       .insert({
         team_id: team.id,
-        user_id: user.id,
+        user_id: uid,
         role: 'admin',
       })
 
@@ -72,9 +95,9 @@ export async function POST(request: Request) {
       throw new Error(`Failed to create membership: ${membershipError.message}`)
     }
 
-    // Initialize team subscription (use service role for system operation)
-    const serviceClient = createSupabaseServiceRoleClient()
-    const { error: subError } = await serviceClient
+    // Initialize subscription (system op)
+    const admin = createSupabaseServiceRoleClient()
+    const { error: subError } = await admin
       .schema('app')
       .from('team_subscriptions')
       .insert({
@@ -84,16 +107,17 @@ export async function POST(request: Request) {
       })
 
     if (subError) {
-      // Non-fatal, log but continue
       console.error('Failed to initialize subscription:', subError)
     }
 
     return NextResponse.json({ team }, { status: 201 })
   } catch (error: any) {
-    if (error.name === 'ZodError') {
+    if (error?.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error?.message ?? 'Unknown error' }, { status: 500 })
   }
 }
+
+
 

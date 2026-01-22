@@ -13,7 +13,7 @@ if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
 }
 
 // Required scopes for Google Business Profile API
-const REQUIRED_SCOPES = [                                                                                                                                               
+const REQUIRED_SCOPES = [
   'https://www.googleapis.com/auth/business.manage',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
@@ -27,7 +27,7 @@ export function googleOAuthStart(): { url: string; codeVerifier: string; state: 
   // Generate PKCE code verifier and challenge
   const codeVerifier = crypto.randomBytes(32).toString('base64url')
   const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
-  
+
   // Generate state for CSRF protection
   const state = crypto.randomBytes(16).toString('hex')
 
@@ -43,7 +43,7 @@ export function googleOAuthStart(): { url: string; codeVerifier: string; state: 
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
   }
-  
+
   const url = oauth2Client.generateAuthUrl(authUrlParams)
 
   return { url, codeVerifier, state }
@@ -53,15 +53,18 @@ export function googleOAuthStart(): { url: string; codeVerifier: string; state: 
  * Step 2: Handle OAuth Callback
  * Exchanges authorization code for tokens, creates session, stores user data
  */
+import { SupabaseClient } from '@supabase/supabase-js'
+
 export async function googleOAuthCallback(
   code: string,
-  codeVerifier: string
+  codeVerifier: string,
+  supabaseClient?: SupabaseClient
 ): Promise<{ supabaseUserId: string }> {
   // ============================================
   // 1. Exchange code for tokens
   // ============================================
   const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, REDIRECT_URI)
-  
+
   const { tokens } = await oauth2Client.getToken({
     code,
     codeVerifier,
@@ -81,19 +84,39 @@ export async function googleOAuthCallback(
   // ============================================
   // 3. Create Supabase session
   // ============================================
-  const supabase = createSupabaseServerClient()
-  
+  const supabase = supabaseClient || createSupabaseServerClient()
+
   // First, sign out any existing session to avoid refresh token conflicts
   await supabase.auth.signOut()
-  
+
   // Now create a fresh session with the ID token
   const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
     provider: 'google',
     token: tokens.id_token,
   })
 
-  if (authError || !authData.user || !authData.session) {
-    throw new Error(`Failed to create Supabase session: ${authError?.message}`)
+  // Explicitly try to set the session to trigger cookie storage if signInWithIdToken didn't
+  if (authData?.session) {
+    await supabase.auth.setSession(authData.session)
+  }
+
+  console.log('Supabase signInWithIdToken result:', {
+    hasUser: !!authData?.user,
+    hasSession: !!authData?.session,
+    userId: authData?.user?.id,
+    error: authError?.message,
+  })
+
+  if (authError) {
+    throw new Error(`Supabase auth error: ${authError.message}`)
+  }
+
+  if (!authData?.user) {
+    throw new Error('No user returned from Supabase')
+  }
+
+  if (!authData?.session) {
+    throw new Error('No session returned from Supabase')
   }
 
   const userId = authData.user.id
@@ -102,7 +125,7 @@ export async function googleOAuthCallback(
   // 4. Create app user (if doesn't exist)
   // ============================================
   const serviceClient = createSupabaseServiceRoleClient()
-  
+
   const { data: existingUser } = await serviceClient
     .schema('app')
     .from('users')

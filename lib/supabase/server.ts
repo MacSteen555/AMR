@@ -18,29 +18,35 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
 export function createSupabaseServerClient() {
   const cookieStore = cookies()
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value
+  return createServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(
+          cookiesToSet: Array<{
+            name: string
+            value: string
+            options?: CookieOptions
+          }>
+        ) {
+          try {
+            cookiesToSet.forEach(
+              ({ name, value, options }: { name: string; value: string; options?: CookieOptions }) => {
+                cookieStore.set(name, value, options)
+              }
+            )
+          } catch (error) {
+            console.error('Error setting cookies in createSupabaseServerClient:', error)
+            // setAll can be called from Server Components; ignore there
+          }
+        },
       },
-      set(name: string, value: string, options: CookieOptions) {
-        try {
-          cookieStore.set({ name, value, ...options })
-        } catch (error) {
-          // The `set` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
-      },
-      remove(name: string, options: CookieOptions) {
-        try {
-          cookieStore.set({ name, value: '', ...options })
-        } catch (error) {
-          // Same as above
-        }
-      },
-    },
-  })
+    }
+  )
 }
 
 /**
