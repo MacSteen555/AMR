@@ -41,25 +41,18 @@ export async function GET(request: Request) {
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_ANON_KEY!,
       {
-        auth: {
-          persistSession: true,
-          detectSessionInUrl: false,
-        },
         cookies: {
           getAll() {
-            const all = cookieStore.getAll()
-            console.log('getAll called in route handler. Found:', all.map(c => c.name))
-            return all
+            return cookieStore.getAll()
           },
           setAll(cookies: Array<{ name: string; value: string; options?: any }>) {
-            console.log('setAll called in route handler with:', cookies.map(c => c.name))
             try {
               cookies.forEach(({ name, value, options }) => {
                 cookiesToSet.push({ name, value, options })
                 cookieStore.set(name, value, options)
               })
             } catch (error) {
-              console.error('Error setting cookies in route handler:', error)
+              // Ignore errors from setAll
             }
           },
         },
@@ -73,7 +66,6 @@ export async function GET(request: Request) {
     const { data: { session }, error: sessionReadError } = await supabase.auth.getSession()
 
     if (!session) {
-      console.error('Session missing after callback. Cookies to set:', cookiesToSet.map(c => c.name))
       throw new Error(`Session verification failed: ${sessionReadError?.message || 'No session created'}`)
     }
 

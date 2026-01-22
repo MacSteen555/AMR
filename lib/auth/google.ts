@@ -95,18 +95,6 @@ export async function googleOAuthCallback(
     token: tokens.id_token,
   })
 
-  // Explicitly try to set the session to trigger cookie storage if signInWithIdToken didn't
-  if (authData?.session) {
-    await supabase.auth.setSession(authData.session)
-  }
-
-  console.log('Supabase signInWithIdToken result:', {
-    hasUser: !!authData?.user,
-    hasSession: !!authData?.session,
-    userId: authData?.user?.id,
-    error: authError?.message,
-  })
-
   if (authError) {
     throw new Error(`Supabase auth error: ${authError.message}`)
   }
