@@ -13,7 +13,7 @@ export default function NewTeamPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!name.trim()) {
       setError('Team name is required')
       return
@@ -22,9 +22,9 @@ export default function NewTeamPage() {
     try {
       setLoading(true)
       setError(null)
-      
+
       await apiPost<{ team: { id: string } }>('/api/teams', { name })
-      
+
       // Redirect to teams page (will refresh auth data automatically)
       router.push('/teams')
       router.refresh()
@@ -66,7 +66,7 @@ export default function NewTeamPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Coffee Empire"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-gray-900"
                   disabled={loading}
                 />
               </div>
