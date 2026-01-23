@@ -40,7 +40,6 @@ export function createSupabaseServerClient() {
               }
             )
           } catch (error) {
-            console.error('Error setting cookies in createSupabaseServerClient:', error)
             // setAll can be called from Server Components; ignore there
           }
         },
