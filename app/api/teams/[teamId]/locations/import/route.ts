@@ -32,6 +32,22 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         }
       }
 
+      // Enforce: A location can only belong to ONE team.
+      const { data: existingGlobal } = await serviceClient
+        .schema('app')
+        .from('locations')
+        .select('team_id, name')
+        .eq('google_location_id', googleLocationId)
+        .maybeSingle()
+
+      if (existingGlobal) {
+        if (existingGlobal.team_id !== params.teamId) {
+          throw new Error(`Location "${existingGlobal.name || googleLocationId}" is already managed by another team.`)
+        }
+        // If it belongs to this team, we can skip or update. Let's skip.
+        continue
+      }
+
       // Create location
       const { data: location, error: locError } = await serviceClient
         .schema('app')

@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { AppShell } from '@/components/AppShell'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { apiGet } from '@/lib/api'
+import { apiGet, apiPost } from '@/lib/api'
 
 interface Location {
   id: string
@@ -21,6 +21,14 @@ interface Member {
   role: string
 }
 
+type GoogleLocation = {
+  account_id: string
+  location_id: string
+  location_name: string
+  address: any
+  account_name?: string
+}
+
 export default function TeamsPage() {
   const { teams, loading } = useAuth()
   const router = useRouter()
@@ -28,6 +36,14 @@ export default function TeamsPage() {
   const [locations, setLocations] = useState<Location[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [loadingData, setLoadingData] = useState(false)
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [googleLocations, setGoogleLocations] = useState<GoogleLocation[]>([])
+  const [loadingGoogle, setLoadingGoogle] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [selectedGoogleIds, setSelectedGoogleIds] = useState<string[]>([])
+  const [modalError, setModalError] = useState<string | null>(null)
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
@@ -57,11 +73,55 @@ export default function TeamsPage() {
     }
   }
 
+  // Modal Functions
+  const openAddLocationModal = async () => {
+    setIsModalOpen(true)
+    setLoadingGoogle(true)
+    setModalError(null)
+    setSelectedGoogleIds([])
+    try {
+      const data = await apiGet<{ locations: GoogleLocation[] }>('/api/google/entitlements/locations')
+      setGoogleLocations(data.locations)
+    } catch (err: any) {
+      setModalError(err.message || 'Failed to load Google locations')
+    } finally {
+      setLoadingGoogle(false)
+    }
+  }
+
+  const handleToggleGoogleLoc = (id: string) => {
+    setSelectedGoogleIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+  const handleImport = async () => {
+    if (selectedGoogleIds.length === 0 || !selectedTeamId) return
+
+    try {
+      setImporting(true)
+      setModalError(null)
+
+      const selectedLocs = googleLocations.filter(l => selectedGoogleIds.includes(l.location_id))
+      const accountId = selectedLocs[0]?.account_id
+
+      await apiPost(`/api/teams/${selectedTeamId}/locations/import`, {
+        account_id: accountId,
+        google_location_ids: selectedGoogleIds
+      })
+
+      setIsModalOpen(false)
+      // Refresh locations
+      loadTeamData(selectedTeamId)
+    } catch (err: any) {
+      setModalError(err.message || 'Failed to import locations')
+      setImporting(false)
+    }
+  }
+
   if (loading) {
     return null
   }
-
-  const selectedTeam = teams.find((t) => t.id === selectedTeamId)
 
   return (
     <AppShell>
@@ -88,9 +148,8 @@ export default function TeamsPage() {
           {teams.map((team) => (
             <div
               key={team.id}
-              className={`bg-white rounded-lg border-2 ${
-                team.id === selectedTeamId ? 'border-indigo-500' : 'border-gray-200'
-              } transition-all`}
+              className={`bg-white rounded-lg border-2 ${team.id === selectedTeamId ? 'border-indigo-500' : 'border-gray-200'
+                } transition-all`}
             >
               {/* Team Header */}
               <div className="p-6 border-b border-gray-200">
@@ -160,7 +219,7 @@ export default function TeamsPage() {
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-lg font-semibold text-gray-900">Locations</h3>
                           <button
-                            onClick={() => router.push(`/teams/${team.id}/locations/import`)}
+                            onClick={openAddLocationModal}
                             className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,11 +244,10 @@ export default function TeamsPage() {
                                   <div className="text-sm text-gray-500">{location.address}</div>
                                 </div>
                               </div>
-                              <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                                location.status === 'active' 
+                              <span className={`px-2 py-1 text-xs font-semibold rounded ${location.status === 'active'
                                   ? 'bg-green-100 text-green-700'
                                   : 'bg-gray-100 text-gray-700'
-                              }`}>
+                                }`}>
                                 {location.status}
                               </span>
                               <button className="p-1 hover:bg-gray-100 rounded">
@@ -213,7 +271,7 @@ export default function TeamsPage() {
                           <h3 className="text-lg font-semibold text-gray-900">Members</h3>
                           {team.role === 'admin' && (
                             <button
-                              onClick={() => router.push(`/teams/${team.id}/invites`)}
+                              onClick={() => router.push(`/teams/${teams.find(t => t.id === selectedTeamId)?.id || ''}/invites`)}
                               className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,8 +342,84 @@ export default function TeamsPage() {
             </button>
           </div>
         )}
+
+        {/* Add Location Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
+              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">Add Location to {teams.find(t => t.id === selectedTeamId)?.name}</h3>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1">
+                {modalError && (
+                  <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
+                    {modalError}
+                  </div>
+                )}
+
+                {loadingGoogle ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  </div>
+                ) : googleLocations.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No Google Locations found to import.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {googleLocations.map((loc) => (
+                      <div
+                        key={loc.location_id}
+                        className={`flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${selectedGoogleIds.includes(loc.location_id) ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-gray-200'
+                          }`}
+                        onClick={() => handleToggleGoogleLoc(loc.location_id)}
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                          checked={selectedGoogleIds.includes(loc.location_id)}
+                          onChange={() => { }} // handled by parent div
+                        />
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-900">{loc.location_name}</p>
+                          <p className="text-sm text-gray-500">{loc.address?.addressLines?.join(', ')}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{loc.account_name}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3 rounded-b-lg bg-gray-50">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  disabled={importing}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImport}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={importing || selectedGoogleIds.length === 0}
+                >
+                  {importing ? 'Importing...' : 'Import Selected'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   )
 }
-
