@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { AppShell } from '@/components/AppShell'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { apiGet, apiPost } from '@/lib/api'
+import { apiGet, apiPost, apiDelete } from '@/lib/api'
 
 interface Location {
   id: string
@@ -44,6 +44,34 @@ export default function TeamsPage() {
   const [importing, setImporting] = useState(false)
   const [selectedGoogleIds, setSelectedGoogleIds] = useState<string[]>([])
   const [modalError, setModalError] = useState<string | null>(null)
+
+  // Delete handlers
+  const handleDeleteLocation = async (locationId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!selectedTeamId || !confirm('Are you sure you want to remove this location?')) return
+
+    try {
+      setLoadingData(true)
+      await apiDelete(`/api/teams/${selectedTeamId}/locations/${locationId}`)
+      loadTeamData(selectedTeamId)
+    } catch (err: any) {
+      alert('Failed to remove location: ' + err.message)
+      setLoadingData(false)
+    }
+  }
+
+  const handleDeleteTeam = async () => {
+    if (!selectedTeamId || !confirm('Are you sure you want to delete this team? This cannot be undone.')) return
+
+    try {
+      setLoadingData(true)
+      await apiDelete(`/api/teams/${selectedTeamId}`)
+      window.location.reload() // Full reload to refresh auth state/list
+    } catch (err: any) {
+      alert('Failed to delete team: ' + err.message)
+      setLoadingData(false)
+    }
+  }
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
@@ -245,14 +273,18 @@ export default function TeamsPage() {
                                 </div>
                               </div>
                               <span className={`px-2 py-1 text-xs font-semibold rounded ${location.status === 'active'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-gray-100 text-gray-700'
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-gray-100 text-gray-700'
                                 }`}>
                                 {location.status}
                               </span>
-                              <button className="p-1 hover:bg-gray-100 rounded">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                              <button
+                                className="p-1 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 transition-colors"
+                                onClick={(e) => handleDeleteLocation(location.id, e)}
+                                title="Remove location"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                               </button>
                             </div>
@@ -316,6 +348,25 @@ export default function TeamsPage() {
                           ))}
                         </div>
                       </div>
+
+                      {/* Danger Zone */}
+                      {team.role === 'admin' && (
+                        <div className="pt-6 border-t border-gray-200">
+                          <h3 className="text-lg font-semibold text-red-600 mb-4">Danger Zone</h3>
+                          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-100">
+                            <div>
+                              <h4 className="font-medium text-red-900">Delete Team</h4>
+                              <p className="text-sm text-red-700">Permanently delete this team and all of its data.</p>
+                            </div>
+                            <button
+                              onClick={handleDeleteTeam}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                            >
+                              Delete Team
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
