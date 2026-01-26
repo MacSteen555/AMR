@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireTeamMember } from '@/lib/rbac'
+import { requireLocationAccess, requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 export async function DELETE(
@@ -27,6 +27,53 @@ export async function DELETE(
         }
 
         return NextResponse.json({ success: true })
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+}
+
+// PATCH /api/teams/[teamId]/locations/[locationId]
+export async function PATCH(
+    request: Request,
+    { params }: { params: { teamId: string; locationId: string } }
+) {
+    try {
+        // Ensure user can manage this location
+        const { canManage } = await requireLocationAccess(params.locationId)
+        if (!canManage) {
+            throw new Error('You do not have permission to manage settings for this location')
+        }
+
+        const body = await request.json()
+        const {
+            brand_voice,
+            positive_sentiment,
+            negative_sentiment,
+            reply_language
+        } = body
+
+        const serviceClient = createSupabaseServiceRoleClient()
+
+        const { data, error } = await serviceClient
+            .schema('app')
+            .from('locations')
+            .update({
+                brand_voice,
+                positive_sentiment,
+                negative_sentiment,
+                reply_language
+                // use_team_defaults removed
+            })
+            .eq('id', params.locationId)
+            .eq('team_id', params.teamId)
+            .select()
+            .single()
+
+        if (error) {
+            throw new Error(`Failed to update location settings: ${error.message}`)
+        }
+
+        return NextResponse.json({ location: data })
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
