@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { AppShell } from '@/components/AppShell'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { apiGet, apiPost, apiDelete } from '@/lib/api'
 
 interface Location {
@@ -37,41 +37,33 @@ export default function TeamsPage() {
   const [members, setMembers] = useState<Member[]>([])
   const [loadingData, setLoadingData] = useState(false)
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  // Modals state
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [sendingInvite, setSendingInvite] = useState(false)
+
+  // Location Import State
   const [googleLocations, setGoogleLocations] = useState<GoogleLocation[]>([])
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [importing, setImporting] = useState(false)
   const [selectedGoogleIds, setSelectedGoogleIds] = useState<string[]>([])
   const [modalError, setModalError] = useState<string | null>(null)
 
-  // Delete handlers
-  const handleDeleteLocation = async (locationId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!selectedTeamId || !confirm('Are you sure you want to remove this location?')) return
+  // Menu State
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
-    try {
-      setLoadingData(true)
-      await apiDelete(`/api/teams/${selectedTeamId}/locations/${locationId}`)
-      loadTeamData(selectedTeamId)
-    } catch (err: any) {
-      alert('Failed to remove location: ' + err.message)
-      setLoadingData(false)
+  // Close menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+      }
     }
-  }
-
-  const handleDeleteTeam = async () => {
-    if (!selectedTeamId || !confirm('Are you sure you want to delete this team? This cannot be undone.')) return
-
-    try {
-      setLoadingData(true)
-      await apiDelete(`/api/teams/${selectedTeamId}`)
-      window.location.reload() // Full reload to refresh auth state/list
-    } catch (err: any) {
-      alert('Failed to delete team: ' + err.message)
-      setLoadingData(false)
-    }
-  }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (teams.length > 0 && !selectedTeamId) {
@@ -101,9 +93,73 @@ export default function TeamsPage() {
     }
   }
 
-  // Modal Functions
+  // --- Handlers ---
+
+  const handleDeleteLocation = async (locationId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!selectedTeamId || !confirm('Are you sure you want to remove this location?')) return
+
+    try {
+      setLoadingData(true)
+      await apiDelete(`/api/teams/${selectedTeamId}/locations/${locationId}`)
+      loadTeamData(selectedTeamId)
+    } catch (err: any) {
+      alert('Failed to remove location: ' + err.message)
+      setLoadingData(false)
+    }
+  }
+
+  const handleDeleteTeam = async () => {
+    if (!selectedTeamId || !confirm('Are you sure you want to delete this team? This cannot be undone.')) return
+
+    try {
+      setLoadingData(true)
+      await apiDelete(`/api/teams/${selectedTeamId}`)
+      window.location.reload()
+    } catch (err: any) {
+      alert('Failed to delete team: ' + err.message)
+      setLoadingData(false)
+    }
+  }
+
+  const handleInviteReference = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedTeamId || !inviteEmail) return
+
+    try {
+      setSendingInvite(true)
+      await apiPost(`/api/teams/${selectedTeamId}/invites`, {
+        email: inviteEmail,
+        role: 'member'
+      })
+      alert('Invitation sent!')
+      setIsInviteModalOpen(false)
+      setInviteEmail('')
+    } catch (err: any) {
+      alert('Failed to send invite: ' + err.message)
+    } finally {
+      setSendingInvite(false)
+    }
+  }
+
+  const handlePromoteAdmin = async (memberId: string) => {
+    if (!selectedTeamId || !confirm('Promoting this user to Admin will demote you to a Member. Continue?')) return
+
+    try {
+      setLoadingData(true)
+      await apiPost(`/api/teams/${selectedTeamId}/members/transfer-ownership`, {
+        newAdminId: memberId
+      })
+      window.location.reload() // Reload because our role changed
+    } catch (err: any) {
+      alert('Failed to promote user: ' + err.message)
+      setLoadingData(false)
+    }
+  }
+
+  // Location Modal Helpers
   const openAddLocationModal = async () => {
-    setIsModalOpen(true)
+    setIsLocationModalOpen(true)
     setLoadingGoogle(true)
     setModalError(null)
     setSelectedGoogleIds([])
@@ -115,12 +171,6 @@ export default function TeamsPage() {
     } finally {
       setLoadingGoogle(false)
     }
-  }
-
-  const handleToggleGoogleLoc = (id: string) => {
-    setSelectedGoogleIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    )
   }
 
   const handleImport = async () => {
@@ -138,8 +188,7 @@ export default function TeamsPage() {
         google_location_ids: selectedGoogleIds
       })
 
-      setIsModalOpen(false)
-      // Refresh locations
+      setIsLocationModalOpen(false)
       loadTeamData(selectedTeamId)
     } catch (err: any) {
       setModalError(err.message || 'Failed to import locations')
@@ -147,9 +196,19 @@ export default function TeamsPage() {
     }
   }
 
+  const handleToggleGoogleLoc = (id: string) => {
+    setSelectedGoogleIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+  }
+
+
   if (loading) {
     return null
   }
+
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId)
+  const isTeamAdmin = selectedTeam?.role === 'admin'
 
   return (
     <AppShell>
@@ -225,11 +284,33 @@ export default function TeamsPage() {
                       </div>
                     </div>
                   </div>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
+
+                  {/* Three Dots Menu */}
+                  {team.id === selectedTeamId && isTeamAdmin && (
+                    <div className="relative" ref={menuRef}>
+                      <button
+                        onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                      </button>
+                      {isMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100">
+                          <button
+                            onClick={() => { setIsMenuOpen(false); handleDeleteTeam(); }}
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            Delete Team
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {team.id !== selectedTeamId && (
+                    <div className="p-2"></div> /* Spacer to match height */
+                  )}
                 </div>
               </div>
 
@@ -301,9 +382,9 @@ export default function TeamsPage() {
                       <div>
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-lg font-semibold text-gray-900">Members</h3>
-                          {team.role === 'admin' && (
+                          {isTeamAdmin && (
                             <button
-                              onClick={() => router.push(`/teams/${teams.find(t => t.id === selectedTeamId)?.id || ''}/invites`)}
+                              onClick={() => setIsInviteModalOpen(true)}
                               className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,11 +417,12 @@ export default function TeamsPage() {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded">
                                   {member.role}
                                 </span>
-                                {team.role === 'admin' && (
-                                  <button className="p-1 hover:bg-gray-100 rounded">
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                    </svg>
+                                {isTeamAdmin && member.role !== 'admin' && (
+                                  <button
+                                    onClick={() => handlePromoteAdmin(member.id)}
+                                    className="text-xs text-indigo-600 hover:text-indigo-800 underline px-2"
+                                  >
+                                    Make Admin
                                   </button>
                                 )}
                               </div>
@@ -348,25 +430,6 @@ export default function TeamsPage() {
                           ))}
                         </div>
                       </div>
-
-                      {/* Danger Zone */}
-                      {team.role === 'admin' && (
-                        <div className="pt-6 border-t border-gray-200">
-                          <h3 className="text-lg font-semibold text-red-600 mb-4">Danger Zone</h3>
-                          <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-100">
-                            <div>
-                              <h4 className="font-medium text-red-900">Delete Team</h4>
-                              <p className="text-sm text-red-700">Permanently delete this team and all of its data.</p>
-                            </div>
-                            <button
-                              onClick={handleDeleteTeam}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                            >
-                              Delete Team
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -394,14 +457,53 @@ export default function TeamsPage() {
           </div>
         )}
 
+        {/* Invite Modal */}
+        {isInviteModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Invite Member</h3>
+              <form onSubmit={handleInviteReference}>
+                <div className="mb-4">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    required
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 bg-white"
+                    placeholder="colleague@example.com"
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsInviteModalOpen(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingInvite}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {sendingInvite ? 'Sending...' : 'Send Invite'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Add Location Modal */}
-        {isModalOpen && (
+        {isLocationModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
               <div className="p-6 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="text-xl font-bold text-gray-900">Add Location to {teams.find(t => t.id === selectedTeamId)?.name}</h3>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsLocationModalOpen(false)}
                   className="text-gray-400 hover:text-gray-500"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +555,7 @@ export default function TeamsPage() {
 
               <div className="p-6 border-t border-gray-200 flex justify-end gap-3 rounded-b-lg bg-gray-50">
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => setIsLocationModalOpen(false)}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   disabled={importing}
                 >
