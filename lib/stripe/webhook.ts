@@ -106,6 +106,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
   const serviceClient = createSupabaseServiceRoleClient()
 
+  console.log(`[Stripe Webhook] Subscription updated - customerId: ${customerId}, cancel_at_period_end: ${subscription.cancel_at_period_end}`)
+
   const { data: teamSub } = await serviceClient
     .schema('app').from('team_subscriptions')
     .select('team_id')
@@ -114,6 +116,26 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   if (teamSub) {
     await updateTeamSubscription(teamSub.team_id, subscription)
+
+    // Check if subscription is set to cancel at period end
+    const status = subscription.cancel_at_period_end
+      ? 'canceling'
+      : (subscription.status === 'active' || subscription.status === 'trialing')
+        ? 'active'
+        : 'past_due'
+
+    console.log(`[Stripe Webhook] Setting status to: ${status}`)
+
+    // Update status separately to handle 'canceling' state
+    const { error: statusError } = await serviceClient
+      .schema('app')
+      .from('team_subscriptions')
+      .update({ status })
+      .eq('team_id', teamSub.team_id)
+
+    if (statusError) {
+      console.error(`[Stripe Webhook] Error updating status:`, statusError)
+    }
   }
 }
 
@@ -128,7 +150,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     .single()
 
   if (teamSub) {
-    await serviceClient
+    console.log(`[Stripe Webhook] Canceling subscription for team: ${teamSub.team_id}`)
+
+    // Set to FREE tier
+    const { error } = await serviceClient
       .schema('app').from('team_subscriptions')
       .update({
         tier: 'FREE',
@@ -141,6 +166,48 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         competitive_enabled: false,
       })
       .eq('team_id', teamSub.team_id)
+
+    if (error) {
+      console.error(`[Stripe Webhook] Error canceling subscription:`, error)
+    }
+
+    // Hard reset credits to 5
+    console.log(`[Stripe Webhook] Resetting credits to 5 for team: ${teamSub.team_id}`)
+
+    const { error: txError } = await serviceClient
+      .schema('app')
+      .from('team_credit_transactions')
+      .insert({
+        team_id: teamSub.team_id,
+        event_type: 'adjustment',
+        amount: 5,
+        reason: 'Subscription canceled - reset to FREE tier credits',
+        actor_user_id: null,
+      })
+
+    if (txError) {
+      console.error(`[Stripe Webhook] Error inserting credit transaction:`, txError)
+    }
+
+    const { error: balanceError } = await serviceClient
+      .schema('app')
+      .from('team_credit_balances')
+      .upsert(
+        {
+          team_id: teamSub.team_id,
+          balance: 5,
+          period_start: null,
+          period_end: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'team_id' }
+      )
+
+    if (balanceError) {
+      console.error(`[Stripe Webhook] Error resetting balance:`, balanceError)
+    } else {
+      console.log(`[Stripe Webhook] Successfully reset credits to 5`)
+    }
   }
 }
 
