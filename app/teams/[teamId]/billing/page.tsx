@@ -51,7 +51,7 @@ const PLANS = [
   {
     tier: 'ENTERPRISE',
     name: 'Enterprise',
-    price: '$99',
+    price: '$150',
     credits: 1000,
     features: ['1,000 credits/month', 'All features', 'Custom integrations', 'Dedicated support'],
   },
@@ -167,10 +167,10 @@ export default function BillingPage() {
     try {
       await apiPost(`/api/teams/${teamId}/billing/cancel`, {})
       setIsCancelModalOpen(false)
-      loadBilling()
+      // Redirect to success page, which will redirect back to billing
+      router.push(`/teams/${teamId}/billing/success?cancelled=true`)
     } catch (err: any) {
       setError(err.message)
-    } finally {
       setActionLoading(null)
     }
   }
@@ -179,10 +179,10 @@ export default function BillingPage() {
     setActionLoading('reactivate')
     try {
       await apiPost(`/api/teams/${teamId}/billing/reactivate`, {})
-      loadBilling()
+      // Redirect to success page, which will redirect back to billing
+      router.push(`/teams/${teamId}/billing/success?reactivated=true`)
     } catch (err: any) {
       setError(err.message)
-    } finally {
       setActionLoading(null)
     }
   }
@@ -202,6 +202,7 @@ export default function BillingPage() {
 
   const currentTier = billing?.subscription?.tier || 'FREE'
   const tierIndex = PLANS.findIndex(p => p.tier === currentTier)
+  const isCanceling = billing?.subscription?.status === 'canceling'
 
   return (
     <AppShell>
@@ -217,26 +218,26 @@ export default function BillingPage() {
 
           {/* Cancellation Banner */}
           {billing?.subscription?.status === 'canceling' && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
-              <div className="flex gap-3 items-center">
-                 <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="mb-6 p-5 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex gap-3 items-start">
+                 <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                  </svg>
-                 <div>
-                   <h3 className="font-semibold text-yellow-900">Subscription Canceling</h3>
-                   <p className="text-yellow-700 text-sm">
-                     Your plan will end on <span className="font-semibold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>. 
-                     You have full access until then.
+                 <div className="flex-1">
+                   <h3 className="font-semibold text-yellow-900 text-lg">Your subscription is scheduled to cancel</h3>
+                   <p className="text-yellow-700 mt-1">
+                     Your <span className="font-semibold">{currentTier}</span> plan will end on <span className="font-semibold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>.
+                     You'll continue to have full access to all features until then. After that, you'll be moved to the Free plan.
                    </p>
+                   <button
+                     onClick={handleReactivate}
+                     disabled={actionLoading === 'reactivate'}
+                     className="mt-4 px-5 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium transition-colors disabled:opacity-50"
+                   >
+                     {actionLoading === 'reactivate' ? 'Restoring...' : 'Reverse Cancellation — I want to keep my account'}
+                   </button>
                  </div>
               </div>
-              <button
-                onClick={handleReactivate}
-                disabled={actionLoading === 'reactivate'}
-                className="px-4 py-2 bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-100 font-medium transition-colors disabled:opacity-50"
-              >
-                {actionLoading === 'reactivate' ? 'Restoring...' : 'Keep Plan'}
-              </button>
             </div>
           )}
 
@@ -381,7 +382,7 @@ export default function BillingPage() {
                     {plan.tier !== 'FREE' && (
                       <button
                         onClick={() => handleChangePlan(plan.tier)}
-                        disabled={isCurrent || actionLoading === plan.tier}
+                        disabled={isCurrent || actionLoading === plan.tier || (isDowngrade && isCanceling)}
                         className={`w-full py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                           isCurrent
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -390,12 +391,12 @@ export default function BillingPage() {
                               : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        {actionLoading === plan.tier 
-                          ? 'Loading...' 
-                          : isCurrent 
-                            ? 'Current Plan' 
-                            : isUpgrade 
-                              ? 'Upgrade' 
+                        {actionLoading === plan.tier
+                          ? 'Loading...'
+                          : isCurrent
+                            ? 'Current Plan'
+                            : isUpgrade
+                              ? 'Upgrade'
                               : 'Downgrade'}
                       </button>
                     )}

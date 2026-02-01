@@ -19,6 +19,18 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       return NextResponse.json({ error: 'No active subscription' }, { status: 400 })
     }
 
+    // Check if subscription has a schedule attached
+    const sub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id, {
+      expand: ['schedule']
+    })
+
+    // If there's a schedule, release it first
+    if (sub.schedule) {
+      const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule.id
+      console.log(`[API] Releasing subscription schedule ${scheduleId} before canceling`)
+      await stripe.subscriptionSchedules.release(scheduleId)
+    }
+
     // Cancel at period end
     await stripe.subscriptions.update(subscription.stripe_subscription_id, {
       cancel_at_period_end: true,
