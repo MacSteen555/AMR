@@ -380,6 +380,13 @@ async function updateTeamSubscription(teamId: string, subscription: Stripe.Subsc
 
   console.log(`[Stripe Webhook] Plan details:`, plan)
 
+  // Get existing subscription to preserve timestamps if new ones are null
+  const { data: existingSub } = await serviceClient
+    .schema('app').from('team_subscriptions')
+    .select('current_period_start, current_period_end')
+    .eq('team_id', teamId)
+    .single()
+
   // Safe date conversion helper
   const toISO = (timestamp: number | null | undefined) => {
     if (!timestamp) return null
@@ -391,18 +398,22 @@ async function updateTeamSubscription(teamId: string, subscription: Stripe.Subsc
     }
   }
 
+  // Convert timestamps, but preserve existing values if new ones are null
+  const newPeriodStart = toISO(subscription.current_period_start)
+  const newPeriodEnd = toISO(subscription.current_period_end)
+
   const updateData = {
     team_id: teamId,
     tier: tierString,
-    status: subscription.cancel_at_period_end 
-      ? 'canceling' 
-      : (subscription.status === 'active' || subscription.status === 'trialing') 
-        ? 'active' 
+    status: subscription.cancel_at_period_end
+      ? 'canceling'
+      : (subscription.status === 'active' || subscription.status === 'trialing')
+        ? 'active'
         : 'past_due',
     stripe_subscription_id: subscription.id,
     stripe_customer_id: subscription.customer as string,
-    current_period_start: toISO(subscription.current_period_start),
-    current_period_end: toISO(subscription.current_period_end),
+    current_period_start: newPeriodStart || existingSub?.current_period_start || null,
+    current_period_end: newPeriodEnd || existingSub?.current_period_end || null,
     monthly_credits: plan?.monthly_credits || 0,
     insights_enabled: plan?.insights_enabled || false,
     competitive_enabled: plan?.competitive_enabled || false,

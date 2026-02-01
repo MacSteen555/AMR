@@ -43,8 +43,11 @@ export async function createCheckoutSession(
   if (subscription?.stripe_subscription_id && (subscription.status === 'active' || subscription.status === 'trialing')) {
     try {
       console.log(`[Checkout] Found active subscription ${subscription.stripe_subscription_id}, checking for update...`)
-      
-      const sub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id)
+
+      // Expand the schedule field to check if subscription is already scheduled
+      const sub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id, {
+        expand: ['schedule']
+      })
       
       if (sub.status === 'active' || sub.status === 'trialing') {
         const item = sub.items.data[0]
@@ -67,72 +70,37 @@ export async function createCheckoutSession(
 
         if (isDowngrade) {
            console.log(`[Checkout] Downgrade detected (${currentAmount} -> ${newAmount}). Scheduling for end of period.`)
-           
-           // Check if there is already a schedule
+
+           // If there's an existing schedule, release it first
            if (sub.schedule) {
-             // If existing schedule, we might need to release it or update it?
-             // Simplest is to release current schedule and create new one, or update phases.
-             // For now, let's just create a schedule from the subscription.
-             // Note: If sub.schedule exists, we should update that schedule.
              const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule.id
-             
-             await stripe.subscriptionSchedules.update(scheduleId, {
-                end_behavior: 'release', // Release subscription at end of schedule? No, we want to change phases.
-                phases: [
-                  {
-                    items: [{ price: currentPriceId, quantity: 1 }],
-                    start_date: 'now',
-                    end_date: sub.current_period_end, // Finish current period
-                  },
-                  {
-                    items: [{ price: priceId, quantity: 1 }], // Switch to new plan
-                    iterations: 1, // Or undefined for infinite? undefined usually implies standard recurring
-                  }
-                ]
-             })
-           } else {
-             // Create a schedule from the subscription
-             await stripe.subscriptionSchedules.create({
-               from_subscription: sub.id,
-             })
-             
-             // The schedule is created with one phase (current). We need to update it to add the next phase?
-             // Actually, when creating from subscription, it preserves current phase.
-             // We can update it immediately after to append the new phase.
-             // OR: We can just update the subscription with `proration_behavior: 'none'`?
-             // No, `proration_behavior: 'none'` just means "don't create pending invoice items", but it changes the plan IMMEDIATELY.
-             // We want "end of period" change.
-             // So we must use Update Subscription with `cancel_at_period_end`? No, that cancels.
-             // The canonical way is Subscription Schedule.
-             
-             // Update the newly created schedule
-             // Retrieve it first? `create` returns it.
-             // Actually, easier: Update Subscription directly with `cancel_at_period_end: false` (just in case)
-             // AND `items`... wait. Stripe's `update` doesn't support "at_period_end" for items directly without schedule.
-             
-             // Let's retry the Schedule logic.
-             // 1. Create schedule from sub
-             const schedule = await stripe.subscriptionSchedules.create({
-               from_subscription: sub.id,
-             })
-             
-             // 2. Update schedule to set the NEXT phase
-             await stripe.subscriptionSchedules.update(schedule.id, {
-               phases: [
-                 {
-                   items: [{ price: currentPriceId, quantity: 1 }],
-                   start_date: schedule.current_phase?.start_date,
-                   end_date: sub.current_period_end,
-                 },
-                 {
-                   items: [{ price: priceId, quantity: 1 }],
-                   // No end_date implies infinite (standard subscription behavior)
-                 }
-               ]
-             })
+             console.log(`[Checkout] Releasing existing schedule ${scheduleId}`)
+             await stripe.subscriptionSchedules.release(scheduleId)
            }
 
-           console.log(`[Checkout] Successfully scheduled downgrade to ${tier} at ${sub.current_period_end}`)
+           // Create a new schedule from the subscription
+           console.log(`[Checkout] Creating new subscription schedule`)
+           const schedule = await stripe.subscriptionSchedules.create({
+             from_subscription: sub.id,
+           })
+
+           // Update the schedule to set the downgrade at period end
+           await stripe.subscriptionSchedules.update(schedule.id, {
+             phases: [
+               {
+                 items: [{ price: currentPriceId, quantity: 1 }],
+                 start_date: sub.current_period_start,
+                 end_date: sub.current_period_end,
+               },
+               {
+                 items: [{ price: priceId, quantity: 1 }],
+                 start_date: sub.current_period_end,
+                 // No end_date means it continues indefinitely
+               }
+             ]
+           })
+
+           console.log(`[Checkout] Successfully scheduled downgrade to ${tier} at ${new Date(sub.current_period_end * 1000).toISOString()}`)
            return successUrl
 
         } else {
@@ -151,7 +119,9 @@ export async function createCheckoutSession(
       }
     } catch (error) {
       console.error(`[Checkout] Error updating existing subscription:`, error)
-      // Fall through to create new session if update fails
+      // For upgrades, fall through to create new session if update fails
+      // For downgrades, throw error - don't create new checkout session
+      throw new Error(`Failed to update subscription: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
