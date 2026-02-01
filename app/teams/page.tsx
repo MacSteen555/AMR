@@ -60,6 +60,9 @@ export default function TeamsPage() {
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [settingsForm, setSettingsForm] = useState<LocationSettings>({})
   const [savingSettings, setSavingSettings] = useState(false)
+  
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
   // Location Import State
   const [googleLocations, setGoogleLocations] = useState<GoogleLocation[]>([])
@@ -127,8 +130,13 @@ export default function TeamsPage() {
     }
   }
 
-  const handleDeleteTeam = async () => {
-    if (!selectedTeamId || !confirm('Are you sure you want to delete this team? This cannot be undone.')) return
+  const handleDeleteTeam = () => {
+    if (!selectedTeamId) return
+    setIsDeleteModalOpen(true)
+  }
+
+  const executeDeleteTeam = async () => {
+    if (!selectedTeamId) return
 
     try {
       setLoadingData(true)
@@ -137,6 +145,7 @@ export default function TeamsPage() {
     } catch (err: any) {
       alert('Failed to delete team: ' + err.message)
       setLoadingData(false)
+      setIsDeleteModalOpen(false)
     }
   }
 
@@ -688,6 +697,78 @@ export default function TeamsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Team Modal */}
+      {isDeleteModalOpen && selectedTeamId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            {(() => {
+              const team = teams.find(t => t.id === selectedTeamId)
+              const hasActivePaidSub = team?.subscription?.tier && 
+                                     team.subscription.tier !== 'FREE' && 
+                                     (team.subscription.status === 'active' || team.subscription.status === 'trialing')
+              
+              return (
+                <>
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={`p-2 rounded-full ${hasActivePaidSub ? 'bg-red-100' : 'bg-gray-100'}`}>
+                      <svg className={`w-6 h-6 ${hasActivePaidSub ? 'text-red-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {hasActivePaidSub ? 'Active Subscription Warning' : 'Delete Team?'}
+                      </h3>
+                      <p className="text-gray-600 mt-2">
+                        {hasActivePaidSub ? (
+                          <>
+                            This team has an active <span className="font-semibold">{team?.subscription?.tier}</span> subscription.
+                            <br /><br />
+                            <span className="font-bold text-red-600">Deleting this team DOES NOT cancel your subscription.</span>
+                            <br />
+                            You will continue to be charged by Stripe unless you cancel it first.
+                          </>
+                        ) : (
+                          'Are you sure you want to delete this team? This action cannot be undone and all team data will be permanently lost.'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 mt-6">
+                    {hasActivePaidSub && (
+                       <button
+                         onClick={() => window.location.href = `/teams/${selectedTeamId}/billing`}
+                         className="w-full py-2 px-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-medium transition-colors mb-2"
+                       >
+                         Go to Billing logic to Cancel
+                       </button>
+                    )}
+                    
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => setIsDeleteModalOpen(false)}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
+                        disabled={loadingData}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={executeDeleteTeam}
+                        disabled={loadingData}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
+                      >
+                        {loadingData ? 'Deleting...' : (hasActivePaidSub ? 'I Understand, Delete Anyway' : 'Delete Team')}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }

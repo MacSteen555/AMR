@@ -30,8 +30,8 @@ const PLANS = [
     tier: 'FREE',
     name: 'Free',
     price: '$0',
-    credits: 4,
-    features: ['4 credits/month', 'Basic reply generation'],
+    credits: 5,
+    features: ['5 credits/month', 'Basic reply generation'],
   },
   {
     tier: 'PRO',
@@ -67,6 +67,12 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  
+  // Modal State
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewData, setPreviewData] = useState<any>(null)
+  const [targetTier, setTargetTier] = useState<string | null>(null)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
 
   const currentTeam = teams.find(t => t.id === teamId)
 
@@ -87,18 +93,41 @@ export default function BillingPage() {
     }
   }
 
-  const handleUpgrade = async (tier: 'PRO' | 'BUSINESS' | 'ENTERPRISE') => {
+  const handleChangePlan = async (tier: string) => {
+    setTargetTier(tier)
     setActionLoading(tier)
+    setError(null)
     try {
-      const response: { url?: string } = await apiPost(`/api/teams/${teamId}/billing/checkout`, { tier })
-      if (response.url) {
-        window.location.href = response.url
-      }
+      const data = await apiPost(`/api/teams/${teamId}/billing/preview`, { tier })
+      setPreviewData(data)
+      setShowPreview(true)
     } catch (err: any) {
       setError(err.message)
     } finally {
       setActionLoading(null)
     }
+  }
+
+  const confirmChangePlan = async () => {
+    if (!targetTier) return
+    setActionLoading('confirm')
+    try {
+      const response: { url?: string } = await apiPost(`/api/teams/${teamId}/billing/checkout`, { tier: targetTier })
+      if (response.url) {
+        window.location.href = response.url
+      }
+    } catch (err: any) {
+      setError(err.message)
+      setShowPreview(false)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const closePreview = () => {
+    setShowPreview(false)
+    setPreviewData(null)
+    setTargetTier(null)
   }
 
   const handleManageBilling = async () => {
@@ -129,24 +158,16 @@ export default function BillingPage() {
     }
   }
 
-  const handleCancelPlan = async () => {
-    const periodEnd = billing?.subscription?.current_period_end
-      ? new Date(billing.subscription.current_period_end).toLocaleDateString()
-      : 'the end of your billing period'
+  const handleCancelPlan = () => {
+    setIsCancelModalOpen(true)
+  }
 
-    const confirmed = confirm(
-      `Your ${currentTier} plan will remain active until ${periodEnd}. ` +
-      `You'll keep all features and credits until then. ` +
-      `After that, you'll be on the FREE plan with 5 credits.\n\n` +
-      `Do you want to cancel your subscription?`
-    )
-
-    if (!confirmed) return
-
+  const confirmCancel = async () => {
     setActionLoading('cancel')
     try {
       await apiPost(`/api/teams/${teamId}/billing/cancel`, {})
-      await loadBilling() // Refresh to show canceling banner
+      setIsCancelModalOpen(false)
+      loadBilling()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -158,7 +179,7 @@ export default function BillingPage() {
     setActionLoading('reactivate')
     try {
       await apiPost(`/api/teams/${teamId}/billing/reactivate`, {})
-      await loadBilling() // Refresh to remove banner
+      loadBilling()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -194,36 +215,37 @@ export default function BillingPage() {
             </p>
           </div>
 
+          {/* Cancellation Banner */}
+          {billing?.subscription?.status === 'canceling' && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
+              <div className="flex gap-3 items-center">
+                 <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                 </svg>
+                 <div>
+                   <h3 className="font-semibold text-yellow-900">Subscription Canceling</h3>
+                   <p className="text-yellow-700 text-sm">
+                     Your plan will end on <span className="font-semibold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>. 
+                     You have full access until then.
+                   </p>
+                 </div>
+              </div>
+              <button
+                onClick={handleReactivate}
+                disabled={actionLoading === 'reactivate'}
+                className="px-4 py-2 bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-100 font-medium transition-colors disabled:opacity-50"
+              >
+                {actionLoading === 'reactivate' ? 'Restoring...' : 'Keep Plan'}
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
               {error}
               <button onClick={() => setError(null)} className="ml-2 underline">
                 Dismiss
               </button>
-            </div>
-          )}
-
-          {/* Cancellation Banner */}
-          {billing?.subscription?.status === 'canceling' && billing?.subscription?.current_period_end && (
-            <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-yellow-800 font-medium">
-                    Your {currentTier} plan will end on{' '}
-                    {new Date(billing.subscription.current_period_end).toLocaleDateString()}.
-                  </p>
-                  <p className="text-yellow-700 text-sm mt-1">
-                    You'll have full access to all features until then.
-                  </p>
-                </div>
-                <button
-                  onClick={handleReactivate}
-                  disabled={actionLoading === 'reactivate'}
-                  className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-                >
-                  {actionLoading === 'reactivate' ? 'Loading...' : 'Reactivate Plan'}
-                </button>
-              </div>
             </div>
           )}
 
@@ -234,15 +256,11 @@ export default function BillingPage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  billing?.subscription?.status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : billing?.subscription?.status === 'canceling'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'bg-gray-100 text-gray-700'
+                  billing?.subscription?.status === 'active' 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {billing?.subscription?.status === 'canceling'
-                    ? 'Canceling'
-                    : billing?.subscription?.status || 'Free'}
+                  {billing?.subscription?.status || 'Free'}
                 </span>
               </div>
               
@@ -255,12 +273,12 @@ export default function BillingPage() {
 
               {billing?.subscription?.current_period_end && (
                 <div className="text-sm text-gray-500 mb-4">
-                  Renews on {new Date(billing.subscription.current_period_end).toLocaleDateString()}
+                  {billing.subscription.status === 'canceling' ? 'Ends on' : 'Renews on'} {new Date(billing.subscription.current_period_end).toLocaleDateString()}
                 </div>
               )}
 
               {billing?.subscription?.stripe_subscription_id && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <button
                     onClick={handleManageBilling}
                     disabled={actionLoading === 'portal'}
@@ -270,13 +288,12 @@ export default function BillingPage() {
                   </button>
 
                   {billing.subscription.status === 'active' && currentTier !== 'FREE' && (
-                    <button
-                      onClick={handleCancelPlan}
-                      disabled={actionLoading === 'cancel'}
-                      className="w-full px-4 py-2 border border-red-300 rounded-lg text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50"
-                    >
-                      {actionLoading === 'cancel' ? 'Loading...' : 'Cancel Plan'}
-                    </button>
+                     <button
+                       onClick={handleCancelPlan}
+                       className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                     >
+                       Cancel Plan
+                     </button>
                   )}
                 </div>
               )}
@@ -363,7 +380,7 @@ export default function BillingPage() {
 
                     {plan.tier !== 'FREE' && (
                       <button
-                        onClick={() => isUpgrade ? handleUpgrade(plan.tier as any) : handleManageBilling()}
+                        onClick={() => handleChangePlan(plan.tier)}
                         disabled={isCurrent || actionLoading === plan.tier}
                         className={`w-full py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                           isCurrent
@@ -405,7 +422,7 @@ export default function BillingPage() {
                 <tbody>
                   <tr className="border-b">
                     <td className="py-3 px-4 text-gray-900">Monthly Credits</td>
-                    <td className="text-center py-3 px-4">4</td>
+                    <td className="text-center py-3 px-4">5</td>
                     <td className="text-center py-3 px-4">25</td>
                     <td className="text-center py-3 px-4">50</td>
                     <td className="text-center py-3 px-4">1,000</td>
@@ -444,6 +461,103 @@ export default function BillingPage() {
           </div>
         </div>
       </div>
+
+      {/* Plan Change Preview Modal */}
+      {showPreview && previewData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Confirm {previewData.type === 'upgrade' ? 'Upgrade' : 'Plan Change'}
+            </h3>
+            
+            <div className="space-y-4 mb-6">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium text-gray-900 mb-2">{previewData.message}</p>
+                {previewData.type === 'downgrade' && (
+                  <p className="text-sm text-gray-600">
+                    Your current plan benefits will remain active until the end of your billing period ({new Date(previewData.effective_date).toLocaleDateString()}).
+                  </p>
+                )}
+                {previewData.type === 'upgrade' && (
+                  <p className="text-sm text-gray-600">
+                    You will be charged the prorated difference immediately.
+                  </p>
+                )}
+              </div>
+
+              {previewData.amount_due_today > 0 && (
+                 <div className="flex justify-between items-center py-2 border-t border-gray-200">
+                   <span className="font-semibold text-gray-900">Total Due Today</span>
+                   <span className="text-xl font-bold text-indigo-600">
+                     ${previewData.amount_due_today.toFixed(2)}
+                   </span>
+                 </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={closePreview}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                disabled={actionLoading === 'confirm'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmChangePlan}
+                disabled={actionLoading === 'confirm'}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === 'confirm' ? 'Processing...' : 'Confirm Change'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Subscription?</h3>
+            
+            <div className="space-y-4 mb-6">
+               <div className="p-4 bg-gray-50 rounded-lg">
+                 <p className="text-gray-900 font-medium mb-3">
+                   Your <span className="font-bold">{currentTier}</span> plan will remain active until <span className="font-bold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>.
+                 </p>
+                 <ul className="space-y-2 text-sm text-gray-600">
+                   <li className="flex items-center gap-2">
+                     <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                     You'll keep all features and credits until then
+                   </li>
+                   <li className="flex items-center gap-2">
+                     <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                     After that, you'll be on the FREE plan with 5 credits
+                   </li>
+                 </ul>
+               </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsCancelModalOpen(false)}
+                className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-medium transition-colors"
+                disabled={actionLoading === 'cancel'}
+              >
+                Keep Plan
+              </button>
+              <button
+                onClick={confirmCancel}
+                disabled={actionLoading === 'cancel'}
+                className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50"
+              >
+                {actionLoading === 'cancel' ? 'Processing...' : 'Cancel Plan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   )
 }

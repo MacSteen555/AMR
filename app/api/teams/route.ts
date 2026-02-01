@@ -114,6 +114,38 @@ export async function POST(request: Request) {
       console.error('Failed to initialize subscription:', subError)
     }
 
+    // Initialize credits (System grant for new team)
+    const initialCredits = 5
+    const { error: creditError } = await adminClient
+      .schema('app')
+      .from('team_credit_transactions')
+      .insert({
+        team_id: team.id,
+        event_type: 'adjustment',
+        amount: initialCredits,
+        reason: 'Welcome credits',
+        actor_user_id: uid,
+      })
+
+    if (creditError) {
+      console.error('Failed to grant initial credits:', creditError)
+    } else {
+      // Initialize balance
+      const { error: balanceError } = await adminClient
+        .schema('app')
+        .from('team_credit_balances')
+        .insert({
+          team_id: team.id,
+          balance: initialCredits,
+          period_start: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+
+      if (balanceError) {
+        console.error('Failed to initialize balance:', balanceError)
+      }
+    }
+
     return NextResponse.json({ team }, { status: 201 })
   } catch (error: any) {
     if (error?.name === 'ZodError') {
