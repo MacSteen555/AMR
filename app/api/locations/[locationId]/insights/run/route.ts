@@ -74,7 +74,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
         kind: 'standard',
         data: insightsData,
         generated_by_user_id: user.id,
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5-mini',
       })
       .select()
       .single()

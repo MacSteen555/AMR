@@ -104,7 +104,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         owned_location_ids: data.owned_location_ids,
         competitor_ids: data.competitor_ids,
         data: analysisData,
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.2',
       })
       .select()
       .single()

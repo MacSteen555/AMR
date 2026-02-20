@@ -23,36 +23,35 @@ export interface ReviewData {
 /**
  * Generates a draft reply for a review using OpenAI.
  */
-export async function draftReply(review: ReviewData, locationSettings: LocationSettings): Promise<string> {
-  const prompt = buildPrompt(review, locationSettings)
+export async function draftReply(review: ReviewData, locationSettings: LocationSettings, previousDraft?: string): Promise<string> {
+  const prompt = buildPrompt(review, locationSettings, previousDraft)
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-5-mini',
+    model: 'gpt-5-nano',
     messages: [
       {
         role: 'system',
         content:
-          'You are a professional customer service representative helping businesses respond to Google reviews. Generate friendly, professional, and appropriate replies.',
+          'You are a professional customer service representative helping businesses respond to Google reviews. Generate friendly, professional, and appropriate replies. DO NOT USE EM DASHES.',
       },
       {
         role: 'user',
         content: prompt,
       },
     ],
-    temperature: 0.7,
-    max_tokens: 500,
+    max_completion_tokens: 4000,
   })
 
-  const draftText = completion.choices[0]?.message?.content?.trim()
+  const draftText = completion.choices[0].message.content
 
   if (!draftText) {
-    throw new Error('Failed to generate draft reply')
+    throw new Error(`Failed to generate draft reply: ${completion.choices[0]?.message?.content ? 'No content' : 'Empty response'}`)
   }
 
   return draftText
 }
 
-function buildPrompt(review: ReviewData, settings: LocationSettings): string {
+export function buildPrompt(review: ReviewData, settings: LocationSettings, previousDraft?: string): string {
   let prompt = `Generate a professional reply to this Google review:\n\n`
   prompt += `Rating: ${review.rating}/5\n`
   if (review.comment) {
@@ -78,6 +77,10 @@ function buildPrompt(review: ReviewData, settings: LocationSettings): string {
 
   if (settings.signature) {
     prompt += `\nSignature to include: ${settings.signature}\n`
+  }
+
+  if (previousDraft) {
+    prompt += `\n\nIMPORTANT: The user rejected the following draft. Generate something COMPLETELY DIFFERENT in tone, structure, and content:\n"${previousDraft}"\n`
   }
 
   prompt += `\nGenerate a concise, professional reply (2-4 sentences).`
