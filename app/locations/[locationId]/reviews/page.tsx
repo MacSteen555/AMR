@@ -14,7 +14,7 @@ interface Review {
     rating: number
     comment: string
     review_date: string
-    reply_status: 'none' | 'draft' | 'replied_external' | 'dismissed'
+    reply_status: 'none' | 'draft' | 'posted' | 'dismissed'
     draft_text?: string
     reply_text?: string
     location_name?: string
@@ -33,8 +33,10 @@ export default function LocationReviewsPage() {
 
     // Actions
     const [isSyncing, setIsSyncing] = useState(false)
-    const [isBatchGenerating, setIsBatchGenerating] = useState(false)
-    const [isBatchPublishing, setIsBatchPublishing] = useState(false)
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [isPublishing, setIsPublishing] = useState(false)
+
+    // Single Item Actions
     const [generatingId, setGeneratingId] = useState<string | null>(null)
     const [publishingId, setPublishingId] = useState<string | null>(null)
 
@@ -43,6 +45,7 @@ export default function LocationReviewsPage() {
 
     // Stack Mode
     const [stackIndex, setStackIndex] = useState(0)
+    const router = useRouter()
 
     useEffect(() => {
         loadReviews()
@@ -60,6 +63,27 @@ export default function LocationReviewsPage() {
         }
     }
 
+    const filteredReviews = reviews.filter(r => {
+        if (!r) return false
+        if (tab === 'inbox') return r.reply_status === 'none' || r.reply_status === 'draft'
+        if (tab === 'history') return r.reply_status === 'posted' || r.reply_status === 'dismissed'
+        return false
+    })
+
+    // --- Stack Mode Helper ---
+    const currentStackReview = filteredReviews[stackIndex]
+
+    // Auto-Generate in Stack Mode
+    useEffect(() => {
+        // If we are in stack mode, and the current review needs a draft, generate it automatically
+        if (viewMode === 'stack' && currentStackReview && currentStackReview.reply_status === 'none' && !generatingId) {
+            handleGenerateSingle(currentStackReview.id)
+        }
+    }, [viewMode, currentStackReview, generatingId])
+
+
+    // --- Handlers ---
+
     const handleSync = async () => {
         try {
             setIsSyncing(true)
@@ -75,41 +99,48 @@ export default function LocationReviewsPage() {
 
     const handleBulkGenerate = async () => {
         try {
-            setIsBatchGenerating(true)
+            setIsGenerating(true)
             const res = await apiPost<{ generated: number }>(`/api/locations/${locationId}/reviews/bulk-generate`, { limit: 20 })
             setToast({ message: `Generated ${res.generated} drafts!`, type: 'success' })
             await loadReviews()
         } catch (err) {
             setToast({ message: 'Generation failed', type: 'error' })
         } finally {
-            setIsBatchGenerating(false)
+            setIsGenerating(false)
         }
     }
 
     const handleBulkPublish = async () => {
         if (!confirm('Publish all approved drafts?')) return
 
+        // Optimistic Update
         const previousReviews = [...reviews]
-
         try {
-            setIsBatchPublishing(true)
+            setIsPublishing(true)
 
-            // Optimistic Update
+            // Find all drafts that will be published
+            const publishedIds = reviews.filter(r => r.reply_status === 'draft').map(r => r.id)
+
+            // Optimistically move them to 'posted' (History)
             setReviews(prev => prev.map(r =>
                 r.reply_status === 'draft'
-                    ? { ...r, reply_status: 'replied_external', reply_text: r.draft_text }
+                    ? { ...r, reply_status: 'posted', reply_text: r.draft_text }
                     : r
             ))
-            setToast({ message: 'Publishing drafts...', type: 'success' })
+
+            setToast({ message: 'Publishing all drafts...', type: 'success' })
 
             const res = await apiPost<{ published: number }>(`/api/locations/${locationId}/reviews/bulk-publish`, {})
+
             setToast({ message: `Published ${res.published} replies!`, type: 'success' })
             await loadReviews()
         } catch (err) {
+            console.error(err)
+            // Revert
             setReviews(previousReviews)
             setToast({ message: 'Publishing failed', type: 'error' })
         } finally {
-            setIsBatchPublishing(false)
+            setIsPublishing(false)
         }
     }
 
@@ -145,21 +176,22 @@ export default function LocationReviewsPage() {
         }
     }
 
-    const handlePublishSingle = async (reviewId: string) => {
+    const handlePublishSingle = async (reviewId: string, overrideText?: string) => {
         if (publishingId) return
 
         // 1. Optimistic Updates
         const previousReviews = [...reviews]
         const previousEdits = { ...edits }
 
+        // Find review to get draft text if needed
         const review = reviews.find(r => r.id === reviewId)
-        const textToPublish = edits[reviewId] ?? review?.draft_text
+        const textToPublish = overrideText || review?.draft_text || ''
 
         try {
             setPublishingId(reviewId)
 
             // Optimistically update
-            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, reply_status: 'replied_external', reply_text: textToPublish } : r))
+            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, reply_status: 'posted', reply_text: textToPublish } : r))
 
             // Clear edits locally
             setEdits(prev => {
@@ -177,11 +209,12 @@ export default function LocationReviewsPage() {
             }
 
             const res = await apiPost<{ review: Review }>(`/api/reviews/${reviewId}/publish`, {
-                reply_text: textToPublish
+                reply_text: overrideText
             })
 
             if (res.review) {
                 setToast({ message: 'Reply posted successfully!', type: 'success' })
+                // Update with server data to be sure
                 setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...res.review } : r))
             }
         } catch (err) {
@@ -189,7 +222,7 @@ export default function LocationReviewsPage() {
             // Revert on failure
             setReviews(previousReviews)
             setEdits(previousEdits)
-            setToast({ message: 'Failed to publish', type: 'error' })
+            setToast({ message: 'Failed to publish reply', type: 'error' })
         } finally {
             setPublishingId(null)
         }
@@ -205,14 +238,16 @@ export default function LocationReviewsPage() {
             setToast({ message: 'Ignoring review...', type: 'success' })
 
             if (viewMode === 'stack') {
-                setStackIndex(prev => prev) // Move to next item
+                setStackIndex(prev => prev)
             }
 
             const res = await apiPatch<{ review: Review }>(`/api/reviews/${reviewId}`, {
                 reply_status: 'dismissed'
             })
+
             if (res.review) {
                 setToast({ message: 'Review ignored', type: 'success' })
+                // Update with server data
                 setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...res.review } : r))
             }
         } catch (err) {
@@ -223,14 +258,18 @@ export default function LocationReviewsPage() {
         }
     }
 
-    const filteredReviews = reviews.filter(r => {
-        if (tab === 'inbox') return r.reply_status === 'none' || r.reply_status === 'draft'
-        if (tab === 'history') return r.reply_status === 'replied_external' || r.reply_status === 'dismissed'
-        return false
-    })
 
-    // Stack Mode Logic
-    const currentStackReview = filteredReviews[stackIndex]
+    const handleSwipe = async (action: 'post' | 'skip' | 'ignore') => {
+        if (!currentStackReview) return
+
+        if (action === 'post') {
+            await handlePublishSingle(currentStackReview.id, edits[currentStackReview.id])
+        } else if (action === 'skip') {
+            setStackIndex(prev => prev + 1)
+        } else if (action === 'ignore') {
+            await handleIgnoreSingle(currentStackReview.id)
+        }
+    }
 
     return (
         <AppShell>
@@ -239,30 +278,30 @@ export default function LocationReviewsPage() {
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Reviews</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">Location Reviews</h1>
                         <p className="text-gray-600">Manage customer feedback for this location.</p>
                     </div>
                     <div className="flex gap-3">
                         <button
                             onClick={handleSync}
                             disabled={isSyncing}
-                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50"
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 disabled:opacity-50 font-medium"
                         >
                             {isSyncing ? 'Syncing...' : 'Sync Reviews'}
                         </button>
                         <button
                             onClick={handleBulkGenerate}
-                            disabled={isBatchGenerating}
-                            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50"
+                            disabled={isGenerating}
+                            className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 font-medium"
                         >
-                            {isBatchGenerating ? 'Generating...' : 'Auto-Generate Drafts'}
+                            {isGenerating ? 'Generating...' : 'Auto-Generate Drafts'}
                         </button>
                         <button
                             onClick={handleBulkPublish}
-                            disabled={isBatchPublishing}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                            disabled={isPublishing}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
                         >
-                            {isBatchPublishing ? 'Publishing...' : 'Post All Drafts'}
+                            {isPublishing ? 'Publishing...' : 'Post All Drafts'}
                         </button>
                     </div>
                 </div>
@@ -280,7 +319,7 @@ export default function LocationReviewsPage() {
                             onClick={() => setTab('history')}
                             className={`pb-3 px-2 font-medium border-b-2 transition-colors ${tab === 'history' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            History ({reviews.filter(r => r.reply_status === 'replied_external' || r.reply_status === 'dismissed').length})
+                            History ({reviews.filter(r => r.reply_status === 'posted' || r.reply_status === 'dismissed').length})
                         </button>
                     </div>
                     {tab === 'inbox' && (
@@ -314,7 +353,7 @@ export default function LocationReviewsPage() {
                     ) : (viewMode === 'list' || tab === 'history') ? (
                         <div className="space-y-4">
                             {filteredReviews.map(review => (
-                                <div key={review.id} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+                                <div key={review.id} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm transition-all hover:shadow-md">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
@@ -348,11 +387,11 @@ export default function LocationReviewsPage() {
                                             )}
 
                                             <span className={`px-2 py-1 text-xs font-semibold rounded ${review.reply_status === 'draft' ? 'bg-purple-100 text-purple-700' :
-                                                review.reply_status === 'replied_external' ? 'bg-green-100 text-green-700' :
+                                                review.reply_status === 'posted' ? 'bg-green-100 text-green-700' :
                                                     review.reply_status === 'dismissed' ? 'bg-gray-100 text-gray-500' :
                                                         'bg-gray-100 text-gray-700'
                                                 }`}>
-                                                {review.reply_status === 'replied_external' ? 'Replied' :
+                                                {review.reply_status === 'posted' ? 'Replied' :
                                                     review.reply_status === 'draft' ? 'Draft Ready' :
                                                         review.reply_status === 'dismissed' ? 'Ignored' : 'Unreplied'}
                                             </span>
@@ -365,7 +404,7 @@ export default function LocationReviewsPage() {
                                         <div className="bg-gray-50 p-4 rounded-md border border-gray-100">
                                             <div className="flex justify-between items-center mb-2">
                                                 <div className="text-xs font-semibold text-gray-700">
-                                                    {review.reply_status === 'dismissed' ? 'Action Ignored' : 'Posted Reply'}
+                                                    {review.reply_status === 'dismissed' ? 'Action Ignored/Dismissed' : 'Posted Reply'}
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
@@ -376,7 +415,7 @@ export default function LocationReviewsPage() {
                                                         {generatingId === review.id ? 'Regenerating...' : 'Regenerate'}
                                                     </button>
                                                     <button
-                                                        onClick={() => handlePublishSingle(review.id)}
+                                                        onClick={() => handlePublishSingle(review.id, edits[review.id])}
                                                         disabled={publishingId === review.id}
                                                         className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
                                                     >
@@ -393,9 +432,9 @@ export default function LocationReviewsPage() {
                                         </div>
                                     )}
 
-                                    {/* Edit / Draft Area */}
-                                    {tab === 'inbox' && (review.reply_status === 'none' || review.reply_status === 'draft') && (
-                                        <div className="bg-purple-50 p-4 rounded-md border border-purple-100 transition-all">
+                                    {/* Inbox View Content */}
+                                    {tab === 'inbox' && review.reply_status === 'draft' && (
+                                        <div className="bg-purple-50 p-4 rounded-md border border-purple-100">
                                             <div className="flex justify-between items-center mb-2">
                                                 <div className="text-xs font-semibold text-purple-700">AI Draft</div>
                                                 <div className="flex gap-2">
@@ -410,7 +449,14 @@ export default function LocationReviewsPage() {
                                                         disabled={generatingId === review.id}
                                                         className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1"
                                                     >
-                                                        {generatingId === review.id ? 'Regenerating...' : (review.draft_text ? 'Regenerate' : 'Generate Draft')}
+                                                        {generatingId === review.id ? 'Regenerating...' : 'Regenerate'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePublishSingle(review.id, edits[review.id])}
+                                                        disabled={publishingId === review.id}
+                                                        className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                                                    >
+                                                        {publishingId === review.id ? 'Posting...' : 'Post Reply'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -420,15 +466,6 @@ export default function LocationReviewsPage() {
                                                 onChange={(e) => setEdits(prev => ({ ...prev, [review.id]: e.target.value }))}
                                                 placeholder="Draft text will appear here..."
                                             />
-                                            <div className="mt-2 flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handlePublishSingle(review.id)}
-                                                    disabled={publishingId === review.id || (!review.draft_text && !edits[review.id])}
-                                                    className="px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded hover:bg-purple-700 disabled:opacity-50 transition-colors"
-                                                >
-                                                    {publishingId === review.id ? 'Posting...' : 'Post Reply'}
-                                                </button>
-                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -452,9 +489,6 @@ export default function LocationReviewsPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                                                {currentStackReview.location_name}
-                                            </div>
                                         </div>
                                         <p className="text-gray-700 text-lg mb-8 leading-relaxed">
                                             {currentStackReview.comment || "(No comment)"}
@@ -463,13 +497,13 @@ export default function LocationReviewsPage() {
                                         <div className="bg-gray-50 p-6 rounded-xl border border-gray-100 mb-8 min-h-[200px] flex flex-col justify-center mb-6">
                                             <div className="flex justify-between items-center mb-3">
                                                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Proposed Reply</h4>
-                                                {(currentStackReview.reply_status === 'draft' || currentStackReview.reply_status === 'none') && (
+                                                {currentStackReview.reply_status === 'draft' && (
                                                     <button
                                                         onClick={() => handleGenerateSingle(currentStackReview.id, edits[currentStackReview.id] || currentStackReview.draft_text)}
                                                         disabled={generatingId === currentStackReview.id}
                                                         className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
                                                     >
-                                                        {generatingId === currentStackReview.id ? 'Regenerating...' : (currentStackReview.draft_text ? 'Regenerate' : 'Generate')}
+                                                        {generatingId === currentStackReview.id ? 'Regenerating...' : 'Regenerate'}
                                                     </button>
                                                 )}
                                             </div>
@@ -494,34 +528,24 @@ export default function LocationReviewsPage() {
 
                                         <div className="flex gap-4">
                                             <button
-                                                onClick={() => handleIgnoreSingle(currentStackReview.id)}
+                                                onClick={() => handleSwipe('ignore')}
                                                 className="flex-1 py-4 border-2 border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-colors"
                                             >
                                                 Ignore
                                             </button>
                                             <button
-                                                onClick={() => setStackIndex(prev => prev + 1)}
+                                                onClick={() => handleSwipe('skip')}
                                                 className="flex-1 py-4 border-2 border-gray-200 rounded-xl text-gray-600 font-bold hover:bg-gray-50 transition-colors"
                                             >
-                                                Skip
+                                                Skip / Later
                                             </button>
-                                            {(!currentStackReview.draft_text && !edits[currentStackReview.id]) ? (
-                                                <button
-                                                    onClick={() => handleGenerateSingle(currentStackReview.id)}
-                                                    disabled={generatingId === currentStackReview.id}
-                                                    className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-colors"
-                                                >
-                                                    Generate Draft
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handlePublishSingle(currentStackReview.id)}
-                                                    disabled={publishingId === currentStackReview.id}
-                                                    className="flex-1 py-4 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 shadow-lg transition-colors flex items-center justify-center gap-2"
-                                                >
-                                                    {publishingId === currentStackReview.id ? 'Posting...' : 'Post Reply'}
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => handleSwipe('post')}
+                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId}
+                                                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-colors flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                            >
+                                                {publishingId === currentStackReview.id ? 'Posting...' : 'Post Reply'}
+                                            </button>
                                         </div>
                                     </div>
                                     <div className="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center text-sm text-gray-500">
@@ -532,7 +556,6 @@ export default function LocationReviewsPage() {
                                 <div className="text-center">
                                     <div className="text-6xl mb-4">🎉</div>
                                     <h2 className="text-2xl font-bold text-gray-900 mb-2">You're all caught up!</h2>
-                                    <p className="text-gray-500 mb-6">No more reviews needing attention in this list.</p>
                                     <button
                                         onClick={() => setViewMode('list')}
                                         className="text-indigo-600 hover:text-indigo-800 font-medium"

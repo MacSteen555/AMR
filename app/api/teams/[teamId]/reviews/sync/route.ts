@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                     loc.google_account_hint,
                     loc.google_location_id,
                     user.id,
-                    50 // page size
+                    100 // page size
                 )
 
                 // Upsert Reviews (similar logic to single sync)
@@ -60,10 +60,10 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
                         let newStatus = 'none'
                         if (review.reviewReply) {
-                            newStatus = 'replied_external'
+                            newStatus = 'posted'
                         } else {
                             if (existingStatus === 'draft') newStatus = 'draft'
-                            else if (existingStatus === 'replied_external') newStatus = 'none'
+                            else if (existingStatus === 'posted') newStatus = 'none'
                         }
 
                         await serviceClient.schema('app').from('google_reviews').upsert({

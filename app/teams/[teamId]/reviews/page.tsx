@@ -14,7 +14,7 @@ interface Review {
     rating: number
     comment: string
     review_date: string
-    reply_status: 'none' | 'draft' | 'replied_external' | 'dismissed'
+    reply_status: 'none' | 'draft' | 'posted' | 'dismissed'
     draft_text?: string
     reply_text?: string
     location_name?: string
@@ -28,6 +28,9 @@ export default function TeamReviewsPage() {
     const [viewMode, setViewMode] = useState<'list' | 'stack'>('list')
     const [tab, setTab] = useState<'inbox' | 'history'>('inbox')
 
+    // Local State for Edits (Map<ReviewId, EditedText>)
+    const [edits, setEdits] = useState<Record<string, string>>({})
+
     // Actions
     const [isSyncing, setIsSyncing] = useState(false)
     const [isGeneratiing, setIsGenerating] = useState(false)
@@ -36,7 +39,6 @@ export default function TeamReviewsPage() {
     // Single Item Actions
     const [generatingId, setGeneratingId] = useState<string | null>(null)
     const [publishingId, setPublishingId] = useState<string | null>(null)
-    const [edits, setEdits] = useState<Record<string, string>>({})
 
     // Feedback
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
@@ -52,7 +54,7 @@ export default function TeamReviewsPage() {
     const loadReviews = async () => {
         setLoading(true)
         try {
-            const { reviews: data } = await apiGet<{ reviews: Review[] }>(`/api/teams/${teamId}/reviews?limit=100`)
+            const { reviews: data } = await apiGet<{ reviews: Review[] }>(`/api/teams/${teamId}/reviews?limit=1000`)
             setReviews(data)
         } catch (err) {
             console.error(err)
@@ -64,7 +66,7 @@ export default function TeamReviewsPage() {
     const filteredReviews = reviews.filter(r => {
         if (!r) return false
         if (tab === 'inbox') return r.reply_status === 'none' || r.reply_status === 'draft'
-        if (tab === 'history') return r.reply_status === 'replied_external' || r.reply_status === 'dismissed'
+        if (tab === 'history') return r.reply_status === 'posted' || r.reply_status === 'dismissed'
         return false
     })
 
@@ -119,10 +121,10 @@ export default function TeamReviewsPage() {
             // Find all drafts that will be published
             const publishedIds = reviews.filter(r => r.reply_status === 'draft').map(r => r.id)
 
-            // Optimistically move them to 'replied_external' (History)
+            // Optimistically move them to 'posted' (History)
             setReviews(prev => prev.map(r =>
                 r.reply_status === 'draft'
-                    ? { ...r, reply_status: 'replied_external', reply_text: r.draft_text } // Assume draft text becomes reply text
+                    ? { ...r, reply_status: 'posted', reply_text: r.draft_text } // Assume draft text becomes reply text
                     : r
             ))
 
@@ -191,7 +193,7 @@ export default function TeamReviewsPage() {
             setPublishingId(reviewId)
 
             // Optimistically update
-            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, reply_status: 'replied_external', reply_text: textToPublish } : r))
+            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, reply_status: 'posted', reply_text: textToPublish } : r))
 
             // Clear edits locally
             setEdits(prev => {
@@ -319,7 +321,7 @@ export default function TeamReviewsPage() {
                             onClick={() => setTab('history')}
                             className={`pb-3 px-2 font-medium border-b-2 transition-colors ${tab === 'history' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                         >
-                            History ({reviews.filter(r => r.reply_status === 'replied_external' || r.reply_status === 'dismissed').length})
+                            History ({reviews.filter(r => r.reply_status === 'posted' || r.reply_status === 'dismissed').length})
                         </button>
                     </div>
                     {tab === 'inbox' && (
@@ -394,11 +396,11 @@ export default function TeamReviewsPage() {
                                             )}
 
                                             <span className={`px-2 py-1 text-xs font-semibold rounded ${review.reply_status === 'draft' ? 'bg-purple-100 text-purple-700' :
-                                                review.reply_status === 'replied_external' ? 'bg-green-100 text-green-700' :
+                                                review.reply_status === 'posted' ? 'bg-green-100 text-green-700' :
                                                     review.reply_status === 'dismissed' ? 'bg-gray-100 text-gray-500' :
                                                         'bg-gray-100 text-gray-700'
                                                 }`}>
-                                                {review.reply_status === 'replied_external' ? 'Replied' :
+                                                {review.reply_status === 'posted' ? 'Replied' :
                                                     review.reply_status === 'draft' ? 'Draft Ready' :
                                                         review.reply_status === 'dismissed' ? 'Ignored' : 'Unreplied'}
                                             </span>

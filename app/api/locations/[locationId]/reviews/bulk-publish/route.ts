@@ -55,7 +55,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
                     .schema('app')
                     .from('google_reviews')
                     .update({
-                        reply_status: 'replied_external',
+                        reply_status: 'posted',
                         reply_text: review.draft_text, // It's live now
                         draft_text: null // Clear draft? Or keep it? Usually keep history but field implies 'current active draft'. Let's keep it or clear it. Let's clear it to signify done. Or better, keep it but status changes. 
                         // Actually, if we clear it, we lose record of what we drafted.

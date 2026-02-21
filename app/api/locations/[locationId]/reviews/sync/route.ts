@@ -64,12 +64,12 @@ export async function POST(request: Request, { params }: { params: { locationId:
         // Determine Status
         let newStatus = 'none'
         if (review.reviewReply) {
-          newStatus = 'replied_external' // Google has it, so it's external
+          newStatus = 'posted' // Google has it, so it's external
         } else {
           // Google has NO reply.
           if (existingStatus === 'draft') {
             newStatus = 'draft' // Preserve local draft
-          } else if (existingStatus === 'replied_external') {
+          } else if (existingStatus === 'posted') {
             newStatus = 'none' // It was deleted on Google
           } else {
             newStatus = 'none'

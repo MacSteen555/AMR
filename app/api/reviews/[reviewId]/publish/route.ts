@@ -45,7 +45,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             .schema('app')
             .from('google_reviews')
             .update({
-                reply_status: 'replied_external',
+                reply_status: 'posted',
                 reply_text: replyText,
                 draft_text: null, // Clear draft provided it posted successfully
             })
