@@ -213,7 +213,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </svg>
               <span className="text-sm text-gray-600">Credits</span>
             </div>
-            <span className="text-lg font-bold text-indigo-600">{credits}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold text-indigo-600">{credits}</span>
+              {currentTeam && (
+                <button
+                  onClick={() => router.push(`/teams/${currentTeam.id}/billing`)}
+                  className="text-xs px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors"
+                >
+                  Manage
+                </button>
+              )}
+            </div>
           </div>
 
           <button
