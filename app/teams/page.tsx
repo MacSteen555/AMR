@@ -398,13 +398,13 @@ export default function TeamsPage() {
                                   <div className="text-sm text-gray-500">{location.address}</div>
                                 </div>
                               </div>
-                              <span className={`px-2 py-1 text-xs font-semibold rounded ${location.status === 'active'
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-1 text-xs font-semibold rounded ${location.status === 'active'
                                   ? 'bg-green-100 text-green-700'
                                   : 'bg-gray-100 text-gray-700'
-                                }`}>
-                                {location.status}
-                              </span>
-                              <div className="flex items-center gap-1">
+                                  }`}>
+                                  {location.status}
+                                </span>
                                 <button
                                   className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-indigo-600 transition-colors"
                                   onClick={(e) => openLocationSettings(location, e)}
