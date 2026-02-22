@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { apiGet } from '@/lib/api'
 
 interface Team {
   id: string
@@ -15,11 +16,31 @@ interface Team {
   creditBalance: number
 }
 
+interface Location {
+  id: string
+  name: string
+  google_place_id?: string
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, teams, loading } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(teams[0] || null)
+  const [locations, setLocations] = useState<Location[]>([])
+  const [locationsOpen, setLocationsOpen] = useState(true)
+
+  const currentTeam = selectedTeam || teams[0] || null
+  const credits = currentTeam?.creditBalance || 0
+  const tier = currentTeam?.subscription?.tier || 'FREE'
+
+  // Fetch locations for current team
+  useEffect(() => {
+    if (!currentTeam) return
+    apiGet<{ locations: Location[] }>(`/api/teams/${currentTeam.id}/locations`)
+      .then(res => setLocations(res.locations || []))
+      .catch(() => setLocations([]))
+  }, [currentTeam?.id])
 
   if (loading) {
     return <LoadingScreen />
@@ -29,9 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  const currentTeam = selectedTeam || teams[0] || null
-  const credits = currentTeam?.creditBalance || 0
-  const tier = currentTeam?.subscription?.tier || 'FREE'
+  // Derive active location from pathname
+  const activeLocationId = pathname?.match(/\/locations\/([^/]+)/)?.[1] || null
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -76,20 +96,75 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {currentTeam ? (
             <>
-              <NavItem
-                href={`/teams/${currentTeam.id}/locations`}
-                icon={<LocationIcon />}
-                label="All Locations"
-                active={pathname?.includes('/locations')}
-              />
+              {/* Location Selector */}
+              <div>
+                <button
+                  onClick={() => setLocationsOpen(!locationsOpen)}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${pathname?.includes('/locations') && !pathname?.includes('/reviews')
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={pathname?.includes('/locations') && !pathname?.includes('/reviews') ? 'text-white' : 'text-gray-500'}>
+                      <LocationIcon />
+                    </div>
+                    <span className="text-sm font-medium">Locations</span>
+                  </div>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${locationsOpen ? 'rotate-180' : ''} ${pathname?.includes('/locations') && !pathname?.includes('/reviews') ? 'text-white' : 'text-gray-400'
+                      }`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {locationsOpen && (
+                  <div className="mt-1 ml-4 pl-3 border-l-2 border-gray-100 space-y-0.5">
+                    {/* All Locations (Team View) */}
+                    <button
+                      onClick={() => router.push(`/teams/${currentTeam.id}/reviews`)}
+                      className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${pathname === `/teams/${currentTeam.id}/reviews` && !activeLocationId
+                        ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                    >
+                      📊 All Locations
+                    </button>
+
+                    {/* Individual Locations */}
+                    {locations.map(loc => (
+                      <button
+                        key={loc.id}
+                        onClick={() => router.push(`/locations/${loc.id}/reviews`)}
+                        className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors truncate ${activeLocationId === loc.id
+                          ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                        title={loc.name}
+                      >
+                        📍 {loc.name}
+                      </button>
+                    ))}
+
+                    {locations.length === 0 && (
+                      <div className="px-3 py-1.5 text-xs text-gray-400 italic">
+                        No locations yet
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <NavItem
                 href={`/teams/${currentTeam.id}/reviews`}
                 icon={<ReviewIcon />}
                 label="Reviews"
-                active={pathname?.includes('/reviews')}
+                active={pathname?.includes('/reviews') && !activeLocationId}
               />
               <NavItem
                 href={`/teams/${currentTeam.id}/insights`}
@@ -140,7 +215,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <span className="text-lg font-bold text-indigo-600">{credits}</span>
           </div>
-          
+
           <button
             onClick={() => router.push('/settings')}
             className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
@@ -168,14 +243,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   )
 }
 
-function NavItem({ 
-  href, 
-  icon, 
-  label, 
-  active, 
-  badge, 
-  disabled 
-}: { 
+function NavItem({
+  href,
+  icon,
+  label,
+  active,
+  badge,
+  disabled
+}: {
   href: string
   icon: React.ReactNode
   label: string
@@ -184,18 +259,17 @@ function NavItem({
   disabled?: boolean
 }) {
   const router = useRouter()
-  
+
   return (
     <button
       onClick={() => !disabled && router.push(href)}
       disabled={disabled}
-      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-        active
-          ? 'bg-indigo-600 text-white'
-          : disabled
+      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${active
+        ? 'bg-indigo-600 text-white'
+        : disabled
           ? 'text-gray-400 cursor-not-allowed'
           : 'text-gray-700 hover:bg-gray-100'
-      }`}
+        }`}
     >
       <div className="flex items-center gap-3">
         <div className={active ? 'text-white' : disabled ? 'text-gray-400' : 'text-gray-500'}>
@@ -273,4 +347,3 @@ function SettingsIcon() {
     </svg>
   )
 }
-

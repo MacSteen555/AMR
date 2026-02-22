@@ -24,12 +24,12 @@ export interface GoogleBusinessReview {
  */
 async function getAuthClient(userId: string) {
   const accessToken = await getAccessToken(userId)
-  
+
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_OAUTH_CLIENT_ID!,
     process.env.GOOGLE_OAUTH_CLIENT_SECRET!
   )
-  
+
   oauth2Client.setCredentials({ access_token: accessToken })
   return oauth2Client
 }
@@ -84,7 +84,7 @@ export async function listReviews(
 ): Promise<{ reviews: GoogleBusinessReview[]; nextPageToken?: string }> {
   // Ensure accountId has the accounts/ prefix
   const fullAccountId = accountId.startsWith('accounts/') ? accountId : `accounts/${accountId}`
-  
+
   // Extract just the location ID if it's a full path
   let locationName = locationId
   if (locationId.includes('/locations/')) {
@@ -131,7 +131,7 @@ export async function updateReply(
 ): Promise<void> {
   // Ensure accountId has the accounts/ prefix
   const fullAccountId = accountId.startsWith('accounts/') ? accountId : `accounts/${accountId}`
-  
+
   // Extract just the location ID if it's a full path
   let locationName = locationId
   if (locationId.includes('/locations/')) {

@@ -24,7 +24,7 @@ export async function insightsRun(input: InsightsInput): Promise<any> {
   const prompt = buildInsightsPrompt(input)
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4.1-nano',
+    model: 'gpt-5-mini',
     messages: [
       {
         role: 'system',
@@ -36,8 +36,7 @@ export async function insightsRun(input: InsightsInput): Promise<any> {
         content: prompt,
       },
     ],
-    temperature: 0.3,
-    max_tokens: 2000,
+    max_completion_tokens: 10000,
     response_format: { type: 'json_object' },
   })
 
@@ -110,7 +109,7 @@ export async function competitiveRun(input: {
   const prompt = buildCompetitivePrompt(input)
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4.1-nano',
+    model: 'gpt-5.2',
     messages: [
       {
         role: 'system',
@@ -122,8 +121,7 @@ export async function competitiveRun(input: {
         content: prompt,
       },
     ],
-    temperature: 0.3,
-    max_tokens: 3000,
+    max_completion_tokens: 30000,
     response_format: { type: 'json_object' },
   })
 
