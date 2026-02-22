@@ -461,7 +461,7 @@ export default function TeamReviewsPage() {
                                             </div>
                                             <textarea
                                                 className="w-full text-sm text-gray-800 bg-white border border-gray-200 focus:ring-1 focus:ring-indigo-300 rounded p-2 resize-y min-h-[80px]"
-                                                value={edits[review.id] ?? (review.reply_text || review.draft_text || '')}
+                                                value={edits[review.id] ?? (review.draft_text || review.reply_text || '')}
                                                 onChange={(e) => setEdits(prev => ({ ...prev, [review.id]: e.target.value }))}
                                                 placeholder="Reply text..."
                                             />
