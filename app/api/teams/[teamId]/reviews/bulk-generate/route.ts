@@ -65,7 +65,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                         reply_status: 'draft',
                         draft_updated_at: new Date().toISOString(),
                         llm_last_generated_at: new Date().toISOString(),
-                        llm_model: 'gpt-4o'
+                        llm_model: 'gpt-5-nano'
                     })
                     .eq('id', review.id)
 

@@ -176,6 +176,33 @@ export default function LocationReviewsPage() {
         }
     }
 
+    // Same as handleGenerateSingle but calls /regenerate (does NOT change reply_status)
+    const handleRegenerateSingle = async (reviewId: string, previousDraft?: string) => {
+        if (generatingId) return
+        try {
+            setGeneratingId(reviewId)
+            setEdits(prev => ({ ...prev, [reviewId]: '' }))
+
+            const res = await apiPost<{ review: Review }>(`/api/reviews/${reviewId}/regenerate`, {
+                previous_draft: previousDraft
+            })
+
+            if (res.review) {
+                setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...res.review } : r))
+                setEdits(prev => {
+                    const next = { ...prev }
+                    delete next[reviewId]
+                    return next
+                })
+            }
+        } catch (err) {
+            console.error('Failed to regenerate draft', err)
+            setToast({ message: 'Failed to regenerate draft', type: 'error' })
+        } finally {
+            setGeneratingId(null)
+        }
+    }
+
     const handlePublishSingle = async (reviewId: string, overrideText?: string) => {
         if (publishingId) return
 
@@ -408,7 +435,7 @@ export default function LocationReviewsPage() {
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
-                                                        onClick={() => handleGenerateSingle(review.id, edits[review.id] || review.reply_text || review.draft_text)}
+                                                        onClick={() => handleRegenerateSingle(review.id, edits[review.id] || review.reply_text || review.draft_text)}
                                                         disabled={generatingId === review.id}
                                                         className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1"
                                                     >
