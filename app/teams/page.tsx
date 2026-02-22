@@ -75,6 +75,9 @@ export default function TeamsPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Banner dismiss
+  const [showBanner, setShowBanner] = useState(true)
+
   // Close menu on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -258,517 +261,640 @@ export default function TeamsPage() {
   }
 
   if (loading) {
-    return null
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+        </div>
+      </AppShell>
+    )
   }
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId)
   const isTeamAdmin = selectedTeam?.role === 'admin'
+  const hasTeams = teams.length > 0
 
   return (
     <AppShell>
-      <div className="p-8">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
-            <p className="text-gray-600 mt-1">Manage your teams, locations, and members</p>
-          </div>
-          <button
-            onClick={() => router.push('/teams/new')}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Team
-          </button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+        <div className="max-w-5xl mx-auto px-6 py-8">
 
-        {/* Team Cards */}
-        <div className="space-y-6">
-          {teams.map((team) => (
-            <div
-              key={team.id}
-              className={`bg-white rounded-lg border-2 ${team.id === selectedTeamId ? 'border-indigo-500' : 'border-gray-200'
-                } transition-all`}
-            >
-              {/* Team Header */}
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h2 className="text-xl font-semibold text-gray-900">{team.name}</h2>
-                        <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded">
-                          {team.subscription?.tier || 'FREE'}
-                        </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded">
-                          {team.role}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        {team.id === selectedTeamId ? (
-                          <>
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          {/* ── Explainer Banner ── */}
+          {showBanner && (
+            <div className="mb-6 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white relative overflow-hidden">
+              <button
+                onClick={() => setShowBanner(false)}
+                className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              {/* Background decoration */}
+              <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+              <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-xl" />
+              <div className="relative">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-1">What are Teams?</h3>
+                    <p className="text-indigo-100 text-sm leading-relaxed max-w-2xl">
+                      Teams are how you organize your business locations. Each team can have multiple locations, 
+                      members with different roles, and its own subscription plan. Set up brand voice settings 
+                      per location so every review reply matches your brand perfectly. 
+                      <span className="text-white font-medium"> Think of a team as your business or brand umbrella.</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Empty State: No Teams ── */}
+          {!hasTeams && (
+            <div className="text-center py-20">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-3xl mb-6">
+                <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">Get Started with Your First Team</h1>
+              <p className="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
+                Create a team to connect your Google Business locations and start managing reviews with 
+                AI-powered replies that match your brand voice.
+              </p>
+              <button
+                onClick={() => router.push('/teams/new')}
+                className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Your First Team
+              </button>
+              <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+                <div className="bg-white rounded-xl p-5 border border-gray-200 text-left">
+                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-sm mb-1">Connect Locations</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">Import your Google Business locations in one click.</p>
+                </div>
+                <div className="bg-white rounded-xl p-5 border border-gray-200 text-left">
+                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-sm mb-1">Set Brand Voice</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">Customize how AI replies sound for each location.</p>
+                </div>
+                <div className="bg-white rounded-xl p-5 border border-gray-200 text-left">
+                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-sm mb-1">Auto-Reply to Reviews</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">AI drafts replies your team reviews and posts.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Has Teams ── */}
+          {hasTeams && (
+            <>
+              {/* Header */}
+              <div className="mb-8 flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
+                  <p className="text-gray-500 mt-1">Manage your teams, locations, and members</p>
+                </div>
+                <button
+                  onClick={() => router.push('/teams/new')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-semibold text-sm shadow-sm hover:shadow-md"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add New Team
+                </button>
+              </div>
+
+              {/* Team Cards */}
+              <div className="space-y-6">
+                {teams.map((team) => (
+                  <div
+                    key={team.id}
+                    className={`bg-white rounded-2xl border-2 transition-all shadow-sm ${team.id === selectedTeamId ? 'border-indigo-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    {/* Team Header */}
+                    <div className="p-6 border-b border-gray-100">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-sm">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <h2 className="text-xl font-semibold text-gray-900">{team.name}</h2>
+                              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg">
+                                {team.subscription?.tier || 'FREE'}
+                              </span>
+                              <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg">
+                                {team.role}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              {team.id === selectedTeamId ? (
+                                <>
+                                  <span className="flex items-center gap-1.5">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    {locations.length} location{locations.length !== 1 ? 's' : ''}
+                                  </span>
+                                  <span className="flex items-center gap-1.5">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                    {members.length} member{members.length !== 1 ? 's' : ''}
+                                  </span>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => setSelectedTeamId(team.id)}
+                                  className="text-indigo-600 hover:text-indigo-700 font-medium"
+                                >
+                                  View details →
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Three Dots Menu */}
+                        {team.id === selectedTeamId && isTeamAdmin && (
+                          <div className="relative" ref={menuRef}>
+                            <button
+                              onClick={() => setIsMenuOpen(!isMenuOpen)}
+                              className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                               </svg>
-                              {locations.length} locations
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                              </svg>
-                              {members.length} members
-                            </span>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => setSelectedTeamId(team.id)}
-                            className="text-indigo-600 hover:text-indigo-700 font-medium"
-                          >
-                            View details →
-                          </button>
+                            </button>
+                            {isMenuOpen && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-10 border border-gray-100">
+                                <button
+                                  onClick={() => { setIsMenuOpen(false); handleDeleteTeam(); }}
+                                  className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  Delete Team
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {team.id !== selectedTeamId && (
+                          <div className="p-2"></div>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Three Dots Menu */}
-                  {team.id === selectedTeamId && isTeamAdmin && (
-                    <div className="relative" ref={menuRef}>
-                      <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-700"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                      </button>
-                      {isMenuOpen && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100">
-                          <button
-                            onClick={() => { setIsMenuOpen(false); handleDeleteTeam(); }}
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                          >
-                            Delete Team
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {team.id !== selectedTeamId && (
-                    <div className="p-2"></div> /* Spacer to match height */
-                  )}
-                </div>
-              </div>
-
-              {/* Team Details (expanded) */}
-              {team.id === selectedTeamId && (
-                <div className="p-6">
-                  {loadingData ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {/* Locations */}
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">Locations</h3>
-                          <button
-                            onClick={openAddLocationModal}
-                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Location
-                          </button>
-                        </div>
-                        <div className="space-y-2">
-                          {locations.map((location) => (
-                            <div
-                              key={location.id}
-                              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                              onClick={() => router.push(`/locations/${location.id}`)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                </svg>
-                                <div>
-                                  <div className="font-medium text-gray-900">{location.name}</div>
-                                  <div className="text-sm text-gray-500">{location.address}</div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-1 text-xs font-semibold rounded ${location.status === 'active'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-gray-100 text-gray-700'
-                                  }`}>
-                                  {location.status}
-                                </span>
+                    {/* Team Details (expanded) */}
+                    {team.id === selectedTeamId && (
+                      <div className="p-6">
+                        {loadingData ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                          </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {/* Locations */}
+                            <div>
+                              <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Locations</h3>
                                 <button
-                                  className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-indigo-600 transition-colors"
-                                  onClick={(e) => openLocationSettings(location, e)}
-                                  title="Settings"
+                                  onClick={openAddLocationModal}
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors font-medium"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                   </svg>
-                                </button>
-                                <button
-                                  className="p-1 hover:bg-red-100 rounded text-gray-400 hover:text-red-600 transition-colors"
-                                  onClick={(e) => handleDeleteLocation(location.id, e)}
-                                  title="Remove location"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
+                                  Add Location
                                 </button>
                               </div>
-                            </div>
-                          ))}
-                          {locations.length === 0 && (
-                            <div className="text-center py-8 text-gray-500">
-                              No locations yet. Add one to get started.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Members */}
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900">Members</h3>
-                          {isTeamAdmin && (
-                            <button
-                              onClick={() => setIsInviteModalOpen(true)}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                              Invite Member
-                            </button>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          {members.map((member) => (
-                            <div
-                              key={member.id}
-                              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                            >
-                              <div className="flex items-center gap-3">
-                                {member.avatar_url ? (
-                                  <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full" />
-                                ) : (
-                                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-semibold">
-                                    {(member.display_name || member.email).charAt(0).toUpperCase()}
+                              <div className="space-y-2">
+                                {locations.map((location) => (
+                                  <div
+                                    key={location.id}
+                                    className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+                                    onClick={() => router.push(`/locations/${location.id}`)}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center">
+                                        <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        </svg>
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-gray-900">{location.name}</div>
+                                        <div className="text-sm text-gray-500">{location.address}</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`px-2 py-1 text-xs font-semibold rounded-lg ${location.status === 'active'
+                                        ? 'bg-green-50 text-green-700'
+                                        : 'bg-gray-100 text-gray-700'
+                                        }`}>
+                                        {location.status}
+                                      </span>
+                                      {location.brand_voice && (
+                                        <span className="px-2 py-1 text-xs font-medium rounded-lg bg-violet-50 text-violet-600" title="Brand voice configured">
+                                          <svg className="w-3.5 h-3.5 inline-block mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                                          </svg>
+                                          Voice Set
+                                        </span>
+                                      )}
+                                      <button
+                                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                                        onClick={(e) => openLocationSettings(location, e)}
+                                        title="Settings"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                                        onClick={(e) => handleDeleteLocation(location.id, e)}
+                                        title="Remove location"
+                                      >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {locations.length === 0 && (
+                                  <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl">
+                                    <svg className="w-8 h-8 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    </svg>
+                                    <p className="text-gray-500 text-sm mb-3">No locations yet</p>
+                                    <button
+                                      onClick={openAddLocationModal}
+                                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                    >
+                                      + Add your first location
+                                    </button>
                                   </div>
                                 )}
-                                <div>
-                                  <div className="font-medium text-gray-900">{member.display_name || 'User'}</div>
-                                  <div className="text-sm text-gray-500">{member.email}</div>
-                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded">
-                                  {member.role}
-                                </span>
-                                {isTeamAdmin && member.role !== 'admin' && (
+                            </div>
+
+                            {/* Members */}
+                            <div>
+                              <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900">Members</h3>
+                                {isTeamAdmin && (
                                   <button
-                                    onClick={() => handlePromoteAdmin(member.id)}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 underline px-2"
+                                    onClick={() => setIsInviteModalOpen(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors font-medium"
                                   >
-                                    Make Admin
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Invite Member
                                   </button>
                                 )}
                               </div>
+                              <div className="space-y-2">
+                                {members.map((member) => (
+                                  <div
+                                    key={member.id}
+                                    className="flex items-center justify-between p-4 border border-gray-200 rounded-xl"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {member.avatar_url ? (
+                                        <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                                      ) : (
+                                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-violet-400 rounded-full flex items-center justify-center text-white font-semibold">
+                                          {(member.display_name || member.email).charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <div>
+                                        <div className="font-medium text-gray-900">{member.display_name || 'User'}</div>
+                                        <div className="text-sm text-gray-500">{member.email}</div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
+                                        {member.role}
+                                      </span>
+                                      {isTeamAdmin && member.role !== 'admin' && (
+                                        <button
+                                          onClick={() => handlePromoteAdmin(member.id)}
+                                          className="text-xs text-indigo-600 hover:text-indigo-800 underline px-2"
+                                        >
+                                          Make Admin
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
                       </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* --- Modals --- */}
+
+          {/* Invite Modal */}
+          {isInviteModalOpen && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Invite Member</h3>
+                <form onSubmit={handleInviteReference}>
+                  <div className="mb-4">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      id="email"
+                      required
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                      placeholder="colleague@example.com"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsInviteModalOpen(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={sendingInvite}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                    >
+                      {sendingInvite ? 'Sending...' : 'Send Invite'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Location Settings Modal */}
+          {isLocationSettingsOpen && editingLocation && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 m-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">Settings for {editingLocation.name}</h3>
+                </div>
+
+                <form onSubmit={handleSaveLocationSettings}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Brand Voice</label>
+                      <textarea
+                        value={settingsForm.brand_voice || ''}
+                        onChange={e => setSettingsForm({ ...settingsForm, brand_voice: e.target.value })}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Positive Sentiment</label>
+                        <input
+                          type="text"
+                          value={settingsForm.positive_sentiment || ''}
+                          onChange={e => setSettingsForm({ ...settingsForm, positive_sentiment: e.target.value })}
+                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Negative Sentiment</label>
+                        <input
+                          type="text"
+                          value={settingsForm.negative_sentiment || ''}
+                          onChange={e => setSettingsForm({ ...settingsForm, negative_sentiment: e.target.value })}
+                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Reply Language</label>
+                      <select
+                        value={settingsForm.reply_language || 'en'}
+                        onChange={e => setSettingsForm({ ...settingsForm, reply_language: e.target.value })}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900 bg-white"
+                      >
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setIsLocationSettingsOpen(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingSettings}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                    >
+                      {savingSettings ? 'Saving...' : 'Save Settings'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Add Location Modal */}
+          {isLocationModalOpen && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
+                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-900">Add Location to {teams.find(t => t.id === selectedTeamId)?.name}</h3>
+                  <button
+                    onClick={() => setIsLocationModalOpen(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="p-6 overflow-y-auto flex-1">
+                  {modalError && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
+                      {modalError}
+                    </div>
+                  )}
+
+                  {loadingGoogle ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                  ) : googleLocations.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No Google Locations found to import.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {googleLocations.map((loc) => (
+                        <div
+                          key={loc.location_id}
+                          className={`flex items-start p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${selectedGoogleIds.includes(loc.location_id) ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-gray-200'
+                            }`}
+                          onClick={() => handleToggleGoogleLoc(loc.location_id)}
+                        >
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            checked={selectedGoogleIds.includes(loc.location_id)}
+                            onChange={() => { }}
+                          />
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-900">{loc.location_name}</p>
+                            <p className="text-sm text-gray-500">{loc.address?.addressLines?.join(', ')}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{loc.account_name}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-              )}
+
+                <div className="p-6 border-t border-gray-200 flex justify-end gap-3 rounded-b-2xl bg-gray-50">
+                  <button
+                    onClick={() => setIsLocationModalOpen(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                    disabled={importing}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleImport}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    disabled={importing || selectedGoogleIds.length === 0}
+                  >
+                    {importing ? 'Importing...' : 'Import Selected'}
+                  </button>
+                </div>
+              </div>
             </div>
-          ))}
+          )}
         </div>
 
-        {/* --- Modals --- */}
-
-        {/* Invite Modal */}
-        {isInviteModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 m-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Invite Member</h3>
-              <form onSubmit={handleInviteReference}>
-                <div className="mb-4">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                  <input
-                    type="email"
-                    id="email"
-                    required
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 text-gray-900 bg-white"
-                    placeholder="colleague@example.com"
-                  />
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsInviteModalOpen(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={sendingInvite}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {sendingInvite ? 'Sending...' : 'Send Invite'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Location Settings Modal */}
-        {isLocationSettingsOpen && editingLocation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 m-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-gray-900">Settings for {editingLocation.name}</h3>
-              </div>
-
-              <form onSubmit={handleSaveLocationSettings}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Brand Voice</label>
-                    <textarea
-                      value={settingsForm.brand_voice || ''}
-                      onChange={e => setSettingsForm({ ...settingsForm, brand_voice: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Positive Sentiment</label>
-                      <input
-                        type="text"
-                        value={settingsForm.positive_sentiment || ''}
-                        onChange={e => setSettingsForm({ ...settingsForm, positive_sentiment: e.target.value })}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Negative Sentiment</label>
-                      <input
-                        type="text"
-                        value={settingsForm.negative_sentiment || ''}
-                        onChange={e => setSettingsForm({ ...settingsForm, negative_sentiment: e.target.value })}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Reply Language</label>
-                    <select
-                      value={settingsForm.reply_language || 'en'}
-                      onChange={e => setSettingsForm({ ...settingsForm, reply_language: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white"
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setIsLocationSettingsOpen(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingSettings}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {savingSettings ? 'Saving...' : 'Save Settings'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Add Location Modal */}
-        {isLocationModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col m-4">
-              <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-900">Add Location to {teams.find(t => t.id === selectedTeamId)?.name}</h3>
-                <button
-                  onClick={() => setIsLocationModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="p-6 overflow-y-auto flex-1">
-                {modalError && (
-                  <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
-                    {modalError}
-                  </div>
-                )}
-
-                {loadingGoogle ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                  </div>
-                ) : googleLocations.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No Google Locations found to import.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {googleLocations.map((loc) => (
-                      <div
-                        key={loc.location_id}
-                        className={`flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${selectedGoogleIds.includes(loc.location_id) ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-gray-200'
-                          }`}
-                        onClick={() => handleToggleGoogleLoc(loc.location_id)}
-                      >
-                        <input
-                          type="checkbox"
-                          className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                          checked={selectedGoogleIds.includes(loc.location_id)}
-                          onChange={() => { }} // handled by parent div
-                        />
-                        <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-900">{loc.location_name}</p>
-                          <p className="text-sm text-gray-500">{loc.address?.addressLines?.join(', ')}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{loc.account_name}</p>
-                        </div>
+        {/* Delete Team Modal */}
+        {isDeleteModalOpen && selectedTeamId && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+              {(() => {
+                const team = teams.find(t => t.id === selectedTeamId)
+                const hasActivePaidSub = team?.subscription?.tier && 
+                                       team.subscription.tier !== 'FREE' && 
+                                       (team.subscription.status === 'active' || team.subscription.status === 'trialing')
+                
+                return (
+                  <>
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className={`p-2 rounded-full ${hasActivePaidSub ? 'bg-red-100' : 'bg-gray-100'}`}>
+                        <svg className={`w-6 h-6 ${hasActivePaidSub ? 'text-red-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {hasActivePaidSub ? 'Active Subscription Warning' : 'Delete Team?'}
+                        </h3>
+                        <p className="text-gray-600 mt-2">
+                          {hasActivePaidSub ? (
+                            <>
+                              This team has an active <span className="font-semibold">{team?.subscription?.tier}</span> subscription.
+                              <br /><br />
+                              <span className="font-bold text-red-600">Deleting this team DOES NOT cancel your subscription.</span>
+                              <br />
+                              You will continue to be charged by Stripe unless you cancel it first.
+                            </>
+                          ) : (
+                            'Are you sure you want to delete this team? This action cannot be undone and all team data will be permanently lost.'
+                          )}
+                        </p>
+                      </div>
+                    </div>
 
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3 rounded-b-lg bg-gray-50">
-                <button
-                  onClick={() => setIsLocationModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                  disabled={importing}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleImport}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={importing || selectedGoogleIds.length === 0}
-                >
-                  {importing ? 'Importing...' : 'Import Selected'}
-                </button>
-              </div>
+                    <div className="flex flex-col gap-3 mt-6">
+                      {hasActivePaidSub && (
+                         <button
+                           onClick={() => window.location.href = `/teams/${selectedTeamId}/billing`}
+                           className="w-full py-2 px-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-medium transition-colors mb-2"
+                         >
+                           Go to Billing to Cancel
+                         </button>
+                      )}
+                      
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => setIsDeleteModalOpen(false)}
+                          className="px-4 py-2 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                          disabled={loadingData}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={executeDeleteTeam}
+                          disabled={loadingData}
+                          className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium disabled:opacity-50"
+                        >
+                          {loadingData ? 'Deleting...' : (hasActivePaidSub ? 'I Understand, Delete Anyway' : 'Delete Team')}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
         )}
       </div>
-
-      {/* Delete Team Modal */}
-      {isDeleteModalOpen && selectedTeamId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            {(() => {
-              const team = teams.find(t => t.id === selectedTeamId)
-              const hasActivePaidSub = team?.subscription?.tier && 
-                                     team.subscription.tier !== 'FREE' && 
-                                     (team.subscription.status === 'active' || team.subscription.status === 'trialing')
-              
-              return (
-                <>
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className={`p-2 rounded-full ${hasActivePaidSub ? 'bg-red-100' : 'bg-gray-100'}`}>
-                      <svg className={`w-6 h-6 ${hasActivePaidSub ? 'text-red-600' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">
-                        {hasActivePaidSub ? 'Active Subscription Warning' : 'Delete Team?'}
-                      </h3>
-                      <p className="text-gray-600 mt-2">
-                        {hasActivePaidSub ? (
-                          <>
-                            This team has an active <span className="font-semibold">{team?.subscription?.tier}</span> subscription.
-                            <br /><br />
-                            <span className="font-bold text-red-600">Deleting this team DOES NOT cancel your subscription.</span>
-                            <br />
-                            You will continue to be charged by Stripe unless you cancel it first.
-                          </>
-                        ) : (
-                          'Are you sure you want to delete this team? This action cannot be undone and all team data will be permanently lost.'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-3 mt-6">
-                    {hasActivePaidSub && (
-                       <button
-                         onClick={() => window.location.href = `/teams/${selectedTeamId}/billing`}
-                         className="w-full py-2 px-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-medium transition-colors mb-2"
-                       >
-                         Go to Billing logic to Cancel
-                       </button>
-                    )}
-                    
-                    <div className="flex justify-end gap-3">
-                      <button
-                        onClick={() => setIsDeleteModalOpen(false)}
-                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium"
-                        disabled={loadingData}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={executeDeleteTeam}
-                        disabled={loadingData}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium disabled:opacity-50"
-                      >
-                        {loadingData ? 'Deleting...' : (hasActivePaidSub ? 'I Understand, Delete Anyway' : 'Delete Team')}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )
-            })()}
-          </div>
-        </div>
-      )}
     </AppShell>
   )
 }
