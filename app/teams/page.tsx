@@ -193,7 +193,7 @@ export default function TeamsPage() {
     setEditingLocation(loc)
     setSettingsForm({
       brand_voice: loc.brand_voice || '',
-      positive_sentiment: loc.positive_sentiment || '',
+      positive_sentiment: '',
       negative_sentiment: loc.negative_sentiment || '',
       reply_language: loc.reply_language || 'en',
     })
@@ -672,72 +672,84 @@ export default function TeamsPage() {
 
           {/* Location Settings Modal */}
           {isLocationSettingsOpen && editingLocation && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 m-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">Settings for {editingLocation.name}</h3>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white relative">
+                  <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100/50">
+                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 leading-tight">Brand Voice Settings</h3>
+                      <p className="text-sm text-gray-500 font-medium">{editingLocation.name}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsLocationSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-50 rounded-full transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
                 </div>
 
-                <form onSubmit={handleSaveLocationSettings}>
-                  <div className="space-y-4">
+                <form onSubmit={handleSaveLocationSettings} className="flex flex-col flex-1 overflow-hidden">
+                  <div className="p-8 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+                    
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Brand Voice</label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Overall Tone & Style</label>
                       <textarea
                         value={settingsForm.brand_voice || ''}
                         onChange={e => setSettingsForm({ ...settingsForm, brand_voice: e.target.value })}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900"
-                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[80px] shadow-sm"
+                        placeholder="e.g. Professional and friendly..."
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Positive Sentiment</label>
-                        <input
-                          type="text"
-                          value={settingsForm.positive_sentiment || ''}
-                          onChange={e => setSettingsForm({ ...settingsForm, positive_sentiment: e.target.value })}
-                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Negative Sentiment</label>
-                        <input
-                          type="text"
-                          value={settingsForm.negative_sentiment || ''}
-                          onChange={e => setSettingsForm({ ...settingsForm, negative_sentiment: e.target.value })}
-                          className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900"
-                        />
-                      </div>
+                    <div className="pt-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Negative Sentiment Rules</label>
+                      <textarea
+                        value={settingsForm.negative_sentiment || ''}
+                        onChange={e => setSettingsForm({ ...settingsForm, negative_sentiment: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[120px] shadow-sm"
+                        placeholder="Specific instructions for how to respond to negative reviews..."
+                      />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">Reply Language</label>
+                    <div className="pt-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reply Language</label>
                       <select
                         value={settingsForm.reply_language || 'en'}
                         onChange={e => setSettingsForm({ ...settingsForm, reply_language: e.target.value })}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-gray-900 bg-white"
+                        className="w-full md:w-1/2 px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
                       >
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="de">German</option>
+                        <option value="en">English (US)</option>
+                        <option value="es">Español</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
                       </select>
+                      <p className="text-sm text-gray-500 mt-2 pl-1">The main language the AI will use to generate replies.</p>
                     </div>
+
                   </div>
 
-                  <div className="flex justify-end gap-3 mt-6">
+                  <div className="px-6 py-4 bg-white border-t border-gray-100 flex justify-end gap-3 mt-auto">
                     <button
                       type="button"
                       onClick={() => setIsLocationSettingsOpen(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-medium"
+                      className="px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={savingSettings}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                      className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2 shadow-sm"
                     >
-                      {savingSettings ? 'Saving...' : 'Save Settings'}
+                      {savingSettings ? (
+                        <>
+                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                           Saving...
+                        </>
+                      ) : 'Save Settings'}
                     </button>
                   </div>
                 </form>

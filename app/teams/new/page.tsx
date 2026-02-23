@@ -103,74 +103,6 @@ function StarRating({ rating }: { rating: number }) {
   )
 }
 
-// ── Brand voice option card ──
-
-function VoiceOptionCard({
-  voice,
-  label,
-  description,
-  reply,
-  isSelected,
-  onSelect,
-}: {
-  voice: BrandVoiceOption
-  label: string
-  description: string
-  reply: string
-  isSelected: boolean
-  onSelect: () => void
-}) {
-  const icons: Record<BrandVoiceOption, JSX.Element> = {
-    professional: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-      </svg>
-    ),
-    friendly: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    witty: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    ),
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`relative flex flex-col p-4 rounded-xl border-2 transition-all duration-200 text-left w-full ${
-        isSelected
-          ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100'
-          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm bg-white'
-      }`}
-    >
-      {isSelected && (
-        <div className="absolute top-3 right-3">
-          <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-        </div>
-      )}
-      <div className="flex items-center gap-2 mb-2">
-        <span className={isSelected ? 'text-indigo-600' : 'text-gray-500'}>{icons[voice]}</span>
-        <span className={`font-semibold text-sm ${isSelected ? 'text-indigo-700' : 'text-gray-800'}`}>
-          {label}
-        </span>
-      </div>
-      <p className="text-xs text-gray-500 mb-3">{description}</p>
-      <div className={`text-sm rounded-lg p-3 ${isSelected ? 'bg-white border border-indigo-200' : 'bg-gray-50 border border-gray-100'}`}>
-        <p className="text-gray-700 italic leading-relaxed">&ldquo;{reply}&rdquo;</p>
-      </div>
-    </button>
-  )
-}
-
 // ── Main Page ──
 
 export default function NewTeamPage() {
@@ -205,8 +137,10 @@ export default function NewTeamPage() {
   const [positiveOriginal, setPositiveOriginal] = useState('')
   const [negativeOriginal, setNegativeOriginal] = useState('')
 
-  const [isEditingPositive, setIsEditingPositive] = useState(false)
-  const [isEditingNegative, setIsEditingNegative] = useState(false)
+  const [brandVoice, setBrandVoice] = useState('Professional and friendly')
+  const [negativeSentiment, setNegativeSentiment] = useState('Use a professional tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.')
+  const [userEditedPrompt, setUserEditedPrompt] = useState(false)
+  const [isInferringPrompt, setIsInferringPrompt] = useState(false)
 
   const [savingBrandVoice, setSavingBrandVoice] = useState(false)
 
@@ -290,15 +224,22 @@ export default function NewTeamPage() {
         location_name: locationName,
       })
       setSampleReviews(data)
-      // Default to friendly for positive, professional for negative
-      setPositiveVoice('friendly')
-      setNegativeVoice('professional')
-      setPositiveReplyText(data.positive_review.replies.friendly)
-      setNegativeReplyText(data.negative_review.replies.professional)
-      setPositiveOriginal(data.positive_review.replies.friendly)
-      setNegativeOriginal(data.negative_review.replies.professional)
-      setIsEditingPositive(false)
-      setIsEditingNegative(false)
+      
+      const initPosVoice = 'friendly'
+      const initNegVoice = 'professional'
+
+      setPositiveVoice(initPosVoice)
+      setNegativeVoice(initNegVoice)
+      
+      setPositiveReplyText(data.positive_review.replies[initPosVoice])
+      setNegativeReplyText(data.negative_review.replies[initNegVoice])
+      setPositiveOriginal(data.positive_review.replies[initPosVoice])
+      setNegativeOriginal(data.negative_review.replies[initNegVoice])
+      
+      if (!userEditedPrompt) {
+        setBrandVoice(`${initPosVoice} and ${initNegVoice}`)
+        setNegativeSentiment(`Use a ${initNegVoice} tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.`)
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to generate sample reviews')
     } finally {
@@ -306,14 +247,17 @@ export default function NewTeamPage() {
     }
   }
 
-  // When voice selection changes, update the reply text
+  // When voice selection changes, update the reply text (and optionally prompt if they haven't edited it)
   const handleSelectPositiveVoice = (voice: BrandVoiceOption) => {
     setPositiveVoice(voice)
     if (sampleReviews) {
       const reply = sampleReviews.positive_review.replies[voice]
       setPositiveReplyText(reply)
       setPositiveOriginal(reply)
-      setIsEditingPositive(false)
+    }
+    
+    if (!userEditedPrompt) {
+      updateOpinionPrompt(voice, negativeVoice)
     }
   }
 
@@ -323,7 +267,46 @@ export default function NewTeamPage() {
       const reply = sampleReviews.negative_review.replies[voice]
       setNegativeReplyText(reply)
       setNegativeOriginal(reply)
-      setIsEditingNegative(false)
+    }
+    
+    if (!userEditedPrompt) {
+      updateOpinionPrompt(positiveVoice, voice)
+    }
+  }
+
+  const updateOpinionPrompt = (posVoice: string, negVoice: string) => {
+    setBrandVoice(`${posVoice} and ${negVoice}`)
+    setNegativeSentiment(`Use a ${negVoice} tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.`)
+  }
+
+  // Infer Prompt from their manual edits to the textareas
+  const handleInferPromptFromReplies = async () => {
+    try {
+      setIsInferringPrompt(true)
+      setError(null)
+      
+      const [posRes, negRes] = await Promise.all([
+        apiPost<{ brand_voice_prompt: string; sentiment_prompt: string }>('/api/onboarding/extract-brand-voice', {
+          original_reply: positiveOriginal,
+          edited_reply: positiveReplyText,
+          sentiment_type: 'positive',
+          selected_voice: positiveVoice,
+        }),
+        apiPost<{ brand_voice_prompt: string; sentiment_prompt: string }>('/api/onboarding/extract-brand-voice', {
+          original_reply: negativeOriginal,
+          edited_reply: negativeReplyText,
+          sentiment_type: 'negative',
+          selected_voice: negativeVoice,
+        })
+      ])
+      
+      setBrandVoice(posRes.brand_voice_prompt !== negRes.brand_voice_prompt ? `${posRes.brand_voice_prompt} ${negRes.brand_voice_prompt}` : posRes.brand_voice_prompt)
+      setNegativeSentiment(negRes.sentiment_prompt)
+      setUserEditedPrompt(true)
+    } catch (err: any) {
+      setError(err.message || 'Failed to infer brand voice')
+    } finally {
+      setIsInferringPrompt(false)
     }
   }
 
@@ -336,38 +319,11 @@ export default function NewTeamPage() {
       setSavingBrandVoice(true)
       setError(null)
 
-      // Extract brand voice for both positive and negative sentiments
-      const [positiveResult, negativeResult] = await Promise.all([
-        apiPost<{ brand_voice_prompt: string; sentiment_prompt: string }>(
-          '/api/onboarding/extract-brand-voice',
-          {
-            original_reply: positiveOriginal,
-            edited_reply: positiveReplyText,
-            sentiment_type: 'positive',
-            selected_voice: positiveVoice,
-          }
-        ),
-        apiPost<{ brand_voice_prompt: string; sentiment_prompt: string }>(
-          '/api/onboarding/extract-brand-voice',
-          {
-            original_reply: negativeOriginal,
-            edited_reply: negativeReplyText,
-            sentiment_type: 'negative',
-            selected_voice: negativeVoice,
-          }
-        ),
-      ])
-
-      // Combine brand voice prompts
-      const brandVoice = positiveResult.brand_voice_prompt !== negativeResult.brand_voice_prompt
-        ? `${positiveResult.brand_voice_prompt} ${negativeResult.brand_voice_prompt}`
-        : positiveResult.brand_voice_prompt
-
-      // Save to location
+      // Save directly from the separated text areas
       await apiPatch(`/api/teams/${teamId}/locations/${currentLocation.id}`, {
         brand_voice: brandVoice,
-        positive_sentiment: positiveResult.sentiment_prompt,
-        negative_sentiment: negativeResult.sentiment_prompt,
+        positive_sentiment: '',
+        negative_sentiment: negativeSentiment,
         reply_language: 'en',
       })
 
@@ -390,25 +346,10 @@ export default function NewTeamPage() {
 
   const currentLocation = importedLocationIds[currentLocationIdx]
 
-  const voiceDescriptions: Record<BrandVoiceOption, { label: string; description: string }> = {
-    professional: {
-      label: 'Professional',
-      description: 'Formal, polished, and corporate. Best for law firms, medical offices, and B2B.',
-    },
-    friendly: {
-      label: 'Friendly',
-      description: 'Warm, casual, and personable. Ideal for restaurants, retail, and service businesses.',
-    },
-    witty: {
-      label: 'Witty',
-      description: 'Clever and lighthearted while staying appropriate. Great for creative brands.',
-    },
-  }
-
   return (
     <AppShell>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-        <div className="max-w-4xl mx-auto px-6 py-10">
+        <div className="max-w-6xl mx-auto px-6 py-10">
           {/* Back button */}
           <button
             onClick={() => {
@@ -431,7 +372,7 @@ export default function NewTeamPage() {
 
           {/* Error display */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 max-w-4xl mx-auto">
               <svg className="w-5 h-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -446,7 +387,7 @@ export default function NewTeamPage() {
 
           {/* ─── STEP 1: Team Name ─── */}
           {step === 1 && (
-            <div className="animate-fadeIn">
+            <div className="animate-fadeIn max-w-lg mx-auto">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-2xl mb-4">
                   <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -459,7 +400,7 @@ export default function NewTeamPage() {
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-w-lg mx-auto">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
                 <label htmlFor="teamName" className="block text-sm font-semibold text-gray-700 mb-2">
                   Team Name
                 </label>
@@ -503,7 +444,7 @@ export default function NewTeamPage() {
 
           {/* ─── STEP 2: Select Locations ─── */}
           {step === 2 && (
-            <div className="animate-fadeIn">
+            <div className="animate-fadeIn max-w-2xl mx-auto">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-2xl mb-4">
                   <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -517,7 +458,7 @@ export default function NewTeamPage() {
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden max-w-2xl mx-auto">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 {loadingLocations ? (
                   <div className="flex flex-col items-center justify-center py-16">
                     <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
@@ -625,15 +566,16 @@ export default function NewTeamPage() {
           {/* ─── STEP 3: Brand Voice Setup ─── */}
           {step === 3 && (
             <div className="animate-fadeIn">
-              <div className="text-center mb-8">
+              <div className="text-center mb-10">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-2xl mb-4">
                   <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                   </svg>
                 </div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Set Your Brand Voice</h1>
-                <p className="text-gray-500 max-w-lg mx-auto">
-                  Choose how you want to sound when replying to reviews. We&apos;ll show you a sample positive and negative review. Pick a voice style and fine-tune the reply if you like.
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Configure Brand Voice</h1>
+                <p className="text-gray-500 max-w-2xl mx-auto">
+                  Select a voice for positive and negative reviews. Edit the replies to match your style exactly.
+                  When you're happy, we'll finalize your overall brand instructions.
                 </p>
                 {importedLocationIds.length > 1 && (
                   <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 bg-indigo-50 rounded-full">
@@ -653,183 +595,168 @@ export default function NewTeamPage() {
                     <div className="w-16 h-16 border-4 border-indigo-200 rounded-full" />
                     <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
                   </div>
-                  <p className="text-gray-500 mt-6 text-sm">Generating sample reviews for {currentLocation?.name}...</p>
-                  <p className="text-gray-400 text-xs mt-1">This takes a few seconds</p>
+                  <p className="text-gray-500 mt-6 text-sm">Drafting sample reviews for {currentLocation?.name}...</p>
                 </div>
               ) : sampleReviews ? (
-                <div className="space-y-10">
-                  {/* ── POSITIVE REVIEW SECTION ── */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                          </svg>
+                <div className="space-y-8">
+                  
+                  {/* TWO COLUMNS: POSITIVE AND NEGATIVE REVIEWS */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    {/* LEFT COLUMN: POSITIVE */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                      <div className="px-5 py-3 bg-green-50 border-b border-green-100 flex items-center justify-between">
+                         <span className="text-sm font-semibold text-green-800">Positive Example</span>
+                      </div>
+                      <div className="p-6 flex-1 flex flex-col">
+                        
+                        {/* Review Content */}
+                        <div className="flex gap-4 mb-6">
+                           <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold shrink-0">
+                             {sampleReviews.positive_review.reviewer_name.charAt(0)}
+                           </div>
+                           <div>
+                             <p className="font-semibold text-gray-900 text-sm">{sampleReviews.positive_review.reviewer_name}</p>
+                             <div className="mt-0.5 mb-1"><StarRating rating={sampleReviews.positive_review.rating} /></div>
+                             <p className="text-gray-700 text-sm leading-relaxed">&ldquo;{sampleReviews.positive_review.text}&rdquo;</p>
+                           </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-green-900">Positive Review</h3>
-                          <p className="text-xs text-green-600">How should you respond to happy customers?</p>
+
+                        {/* Reply Content */}
+                        <div className="pl-4 border-l-2 border-green-200 ml-4 flex-1 flex flex-col">
+                           <div className="flex items-center gap-2 mb-3">
+                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tone</span>
+                             <div className="flex bg-gray-100 p-0.5 rounded-lg">
+                               {(['professional', 'friendly', 'witty'] as BrandVoiceOption[]).map((voice) => (
+                                  <button 
+                                    key={voice}
+                                    onClick={() => handleSelectPositiveVoice(voice)}
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${positiveVoice === voice ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                  >
+                                    {voice.charAt(0).toUpperCase() + voice.slice(1)}
+                                  </button>
+                               ))}
+                             </div>
+                           </div>
+                           
+                           <label className="sr-only">Your Reply</label>
+                           <textarea
+                             value={positiveReplyText}
+                             onChange={(e) => setPositiveReplyText(e.target.value)}
+                             className="w-full flex-1 p-3 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none min-h-[140px]"
+                             placeholder="Edit your reply here..."
+                           />
+                           <p className="text-[11px] text-gray-400 mt-2 text-right">Feel free to edit this reply directly to teach the AI your exact style.</p>
                         </div>
+
                       </div>
                     </div>
 
-                    <div className="p-6">
-                      {/* Sample review card */}
-                      <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
-                            {sampleReviews.positive_review.reviewer_name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-800">{sampleReviews.positive_review.reviewer_name}</p>
-                            <StarRating rating={sampleReviews.positive_review.rating} />
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-700 leading-relaxed mt-2">
-                          &ldquo;{sampleReviews.positive_review.text}&rdquo;
-                        </p>
+                    {/* RIGHT COLUMN: NEGATIVE */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                      <div className="px-5 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
+                         <span className="text-sm font-semibold text-red-800">Negative Example</span>
                       </div>
-
-                      {/* Voice options */}
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Choose your reply style:</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                        {(['professional', 'friendly', 'witty'] as BrandVoiceOption[]).map((voice) => (
-                          <VoiceOptionCard
-                            key={voice}
-                            voice={voice}
-                            label={voiceDescriptions[voice].label}
-                            description={voiceDescriptions[voice].description}
-                            reply={sampleReviews.positive_review.replies[voice]}
-                            isSelected={positiveVoice === voice}
-                            onSelect={() => handleSelectPositiveVoice(voice)}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Edit reply */}
-                      <div className="border border-gray-200 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">Your Reply</span>
-                          {!isEditingPositive ? (
-                            <button
-                              onClick={() => setIsEditingPositive(true)}
-                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Edit Reply
-                            </button>
-                          ) : (
-                            <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Editing - we&apos;ll learn from your changes
-                            </span>
-                          )}
+                      <div className="p-6 flex-1 flex flex-col">
+                        
+                        {/* Review Content */}
+                        <div className="flex gap-4 mb-6">
+                           <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 font-bold shrink-0">
+                             {sampleReviews.negative_review.reviewer_name.charAt(0)}
+                           </div>
+                           <div>
+                             <p className="font-semibold text-gray-900 text-sm">{sampleReviews.negative_review.reviewer_name}</p>
+                             <div className="mt-0.5 mb-1"><StarRating rating={sampleReviews.negative_review.rating} /></div>
+                             <p className="text-gray-700 text-sm leading-relaxed">&ldquo;{sampleReviews.negative_review.text}&rdquo;</p>
+                           </div>
                         </div>
-                        {isEditingPositive ? (
-                          <textarea
-                            value={positiveReplyText}
-                            onChange={(e) => setPositiveReplyText(e.target.value)}
-                            className="w-full px-4 py-3 text-sm text-gray-800 leading-relaxed resize-none focus:outline-none min-h-[100px]"
-                            rows={4}
-                          />
-                        ) : (
-                          <div className="px-4 py-3">
-                            <p className="text-sm text-gray-700 leading-relaxed">{positiveReplyText}</p>
-                          </div>
-                        )}
+
+                        {/* Reply Content */}
+                        <div className="pl-4 border-l-2 border-red-200 ml-4 flex-1 flex flex-col">
+                           <div className="flex items-center gap-2 mb-3">
+                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tone</span>
+                             <div className="flex bg-gray-100 p-0.5 rounded-lg">
+                               {(['professional', 'friendly', 'witty'] as BrandVoiceOption[]).map((voice) => (
+                                  <button 
+                                    key={voice}
+                                    onClick={() => handleSelectNegativeVoice(voice)}
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${negativeVoice === voice ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                  >
+                                    {voice.charAt(0).toUpperCase() + voice.slice(1)}
+                                  </button>
+                               ))}
+                             </div>
+                           </div>
+                           
+                           <label className="sr-only">Your Reply</label>
+                           <textarea
+                             value={negativeReplyText}
+                             onChange={(e) => setNegativeReplyText(e.target.value)}
+                             className="w-full flex-1 p-3 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none min-h-[140px]"
+                             placeholder="Edit your reply here..."
+                           />
+                           <p className="text-[11px] text-gray-400 mt-2 text-right">Feel free to edit this reply directly to teach the AI your exact style.</p>
+                        </div>
+
                       </div>
                     </div>
+
                   </div>
 
-                  {/* ── NEGATIVE REVIEW SECTION ── */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="px-6 py-4 bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                  {/* OVERALL BRAND PROMPT SECTION */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-indigo-100 p-8 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+                    
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                           </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-red-900">Negative Review</h3>
-                          <p className="text-xs text-red-600">How should you handle unhappy customers?</p>
-                        </div>
+                          Your Overall Brand Prompt
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">This is the prompt we will use to generate all your AI review replies. You can edit it now, or let us infer it from any manual edits you made to the replies above.</p>
                       </div>
+                      
+                      <button
+                        onClick={handleInferPromptFromReplies}
+                        disabled={isInferringPrompt}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 border border-indigo-100"
+                      >
+                         {isInferringPrompt ? (
+                           <>
+                             <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                             Inferring...
+                           </>
+                         ) : (
+                           <>
+                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                             </svg>
+                             Infer from My Edits
+                           </>
+                         )}
+                      </button>
                     </div>
 
-                    <div className="p-6">
-                      {/* Sample review card */}
-                      <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-orange-700 font-bold text-sm">
-                            {sampleReviews.negative_review.reviewer_name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-800">{sampleReviews.negative_review.reviewer_name}</p>
-                            <StarRating rating={sampleReviews.negative_review.rating} />
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-700 leading-relaxed mt-2">
-                          &ldquo;{sampleReviews.negative_review.text}&rdquo;
-                        </p>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Overall Tone / Style</label>
+                        <textarea
+                          value={brandVoice}
+                          onChange={(e) => { setBrandVoice(e.target.value); setUserEditedPrompt(true) }}
+                          className="w-full p-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors min-h-[80px]"
+                          placeholder="General instructions for your brand voice..."
+                        />
                       </div>
-
-                      {/* Voice options */}
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Choose your reply style:</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                        {(['professional', 'friendly', 'witty'] as BrandVoiceOption[]).map((voice) => (
-                          <VoiceOptionCard
-                            key={voice}
-                            voice={voice}
-                            label={voiceDescriptions[voice].label}
-                            description={voiceDescriptions[voice].description}
-                            reply={sampleReviews.negative_review.replies[voice]}
-                            isSelected={negativeVoice === voice}
-                            onSelect={() => handleSelectNegativeVoice(voice)}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Edit reply */}
-                      <div className="border border-gray-200 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">Your Reply</span>
-                          {!isEditingNegative ? (
-                            <button
-                              onClick={() => setIsEditingNegative(true)}
-                              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Edit Reply
-                            </button>
-                          ) : (
-                            <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Editing - we&apos;ll learn from your changes
-                            </span>
-                          )}
-                        </div>
-                        {isEditingNegative ? (
-                          <textarea
-                            value={negativeReplyText}
-                            onChange={(e) => setNegativeReplyText(e.target.value)}
-                            className="w-full px-4 py-3 text-sm text-gray-800 leading-relaxed resize-none focus:outline-none min-h-[100px]"
-                            rows={4}
-                          />
-                        ) : (
-                          <div className="px-4 py-3">
-                            <p className="text-sm text-gray-700 leading-relaxed">{negativeReplyText}</p>
-                          </div>
-                        )}
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Negative Sentiment Rules</label>
+                        <textarea
+                          value={negativeSentiment}
+                          onChange={(e) => { setNegativeSentiment(e.target.value); setUserEditedPrompt(true) }}
+                          className="w-full p-3 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors min-h-[100px]"
+                          placeholder="Specific instructions for how to respond to negative reviews..."
+                        />
                       </div>
                     </div>
                   </div>
@@ -854,7 +781,7 @@ export default function NewTeamPage() {
                     </button>
                     <button
                       onClick={handleSaveBrandVoice}
-                      disabled={savingBrandVoice}
+                      disabled={savingBrandVoice || (!brandVoice.trim() && !negativeSentiment.trim())}
                       className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm hover:shadow-md"
                     >
                       {savingBrandVoice ? (
