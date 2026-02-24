@@ -1,6 +1,5 @@
 'use client'
 
-import { AppShell } from '@/components/AppShell'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiPost, apiGet, apiPatch } from '@/lib/api'
@@ -347,7 +346,7 @@ export default function NewTeamPage() {
   const currentLocation = importedLocationIds[currentLocationIdx]
 
   return (
-    <AppShell>
+    <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
         <div className="p-8">
           {/* Back button */}
@@ -833,6 +832,6 @@ export default function NewTeamPage() {
           animation: fadeIn 0.4s ease-out;
         }
       `}</style>
-    </AppShell>
+    </>
   )
 }

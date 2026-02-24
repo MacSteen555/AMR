@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { AppShell } from '@/components/AppShell'
 import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { apiGet, apiPost, apiPatch } from '@/lib/api'
@@ -303,7 +302,7 @@ export default function LocationReviewsPage() {
     }
 
     return (
-        <AppShell>
+        <>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             <div className="p-8 h-screen flex flex-col">
                 {/* Google Permission Banner */}
@@ -614,6 +613,6 @@ export default function LocationReviewsPage() {
                     )}
                 </div>
             </div>
-        </AppShell>
+        </>
     )
 }

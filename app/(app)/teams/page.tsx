@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { AppShell } from '@/components/AppShell'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { apiGet, apiPost, apiDelete, apiPatch } from '@/lib/api'
@@ -303,11 +302,11 @@ export default function TeamsPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
         </div>
-      </AppShell>
+      </>
     )
   }
 
@@ -316,7 +315,7 @@ export default function TeamsPage() {
   const hasTeams = teams.length > 0
 
   return (
-    <AppShell>
+    <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
         <div className="p-8">
 
@@ -985,6 +984,6 @@ export default function TeamsPage() {
         )}
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-    </AppShell>
+    </>
   )
 }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { AppShell } from '@/components/AppShell'
 import { useAuth } from '@/hooks/useAuth'
 import { apiGet, apiPost } from '@/lib/api'
 
@@ -67,7 +66,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Modal State
   const [showPreview, setShowPreview] = useState(false)
   const [previewData, setPreviewData] = useState<any>(null)
@@ -189,14 +188,14 @@ export default function BillingPage() {
 
   if (authLoading || loading) {
     return (
-      <AppShell>
+      <>
         <div className="p-8">
           <div className="animate-pulse">
             <div className="h-8 w-48 bg-gray-200 rounded mb-4"></div>
             <div className="h-4 w-64 bg-gray-200 rounded"></div>
           </div>
         </div>
-      </AppShell>
+      </>
     )
   }
 
@@ -205,7 +204,7 @@ export default function BillingPage() {
   const isCanceling = billing?.subscription?.status === 'canceling'
 
   return (
-    <AppShell>
+    <>
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -220,23 +219,23 @@ export default function BillingPage() {
           {billing?.subscription?.status === 'canceling' && (
             <div className="mb-6 p-5 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex gap-3 items-start">
-                 <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                 </svg>
-                 <div className="flex-1">
-                   <h3 className="font-semibold text-yellow-900 text-lg">Your subscription is scheduled to cancel</h3>
-                   <p className="text-yellow-700 mt-1">
-                     Your <span className="font-semibold">{currentTier}</span> plan will end on <span className="font-semibold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>.
-                     You'll continue to have full access to all features until then. After that, you'll be moved to the Free plan.
-                   </p>
-                   <button
-                     onClick={handleReactivate}
-                     disabled={actionLoading === 'reactivate'}
-                     className="mt-4 px-5 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium transition-colors disabled:opacity-50"
-                   >
-                     {actionLoading === 'reactivate' ? 'Restoring...' : 'Reverse Cancellation — I want to keep my account'}
-                   </button>
-                 </div>
+                <svg className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-yellow-900 text-lg">Your subscription is scheduled to cancel</h3>
+                  <p className="text-yellow-700 mt-1">
+                    Your <span className="font-semibold">{currentTier}</span> plan will end on <span className="font-semibold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>.
+                    You'll continue to have full access to all features until then. After that, you'll be moved to the Free plan.
+                  </p>
+                  <button
+                    onClick={handleReactivate}
+                    disabled={actionLoading === 'reactivate'}
+                    className="mt-4 px-5 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading === 'reactivate' ? 'Restoring...' : 'Reverse Cancellation — I want to keep my account'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -256,15 +255,14 @@ export default function BillingPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  billing?.subscription?.status === 'active' 
-                    ? 'bg-green-100 text-green-700' 
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${billing?.subscription?.status === 'active'
+                    ? 'bg-green-100 text-green-700'
                     : 'bg-yellow-100 text-yellow-700'
-                }`}>
+                  }`}>
                   {billing?.subscription?.status || 'Free'}
                 </span>
               </div>
-              
+
               <div className="mb-4">
                 <div className="text-3xl font-bold text-indigo-600">{currentTier}</div>
                 <div className="text-gray-600">
@@ -289,12 +287,12 @@ export default function BillingPage() {
                   </button>
 
                   {billing.subscription.status === 'active' && currentTier !== 'FREE' && (
-                     <button
-                       onClick={handleCancelPlan}
-                       className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium"
-                     >
-                       Cancel Plan
-                     </button>
+                    <button
+                      onClick={handleCancelPlan}
+                      className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                    >
+                      Cancel Plan
+                    </button>
                   )}
                 </div>
               )}
@@ -305,7 +303,7 @@ export default function BillingPage() {
               <h2 className="text-lg font-semibold mb-4 opacity-90">Credit Balance</h2>
               <div className="text-5xl font-bold mb-2">{billing?.creditBalance || 0}</div>
               <div className="opacity-80">credits available</div>
-              
+
               {billing?.topupProducts && billing.topupProducts.length > 0 && (
                 <div className="mt-6">
                   <div className="text-sm opacity-80 mb-2">Need more credits?</div>
@@ -338,13 +336,12 @@ export default function BillingPage() {
                 return (
                   <div
                     key={plan.tier}
-                    className={`relative bg-white rounded-xl border-2 p-6 transition-all ${
-                      isCurrent 
-                        ? 'border-indigo-500 shadow-lg' 
-                        : plan.popular 
-                          ? 'border-indigo-200 shadow-md' 
+                    className={`relative bg-white rounded-xl border-2 p-6 transition-all ${isCurrent
+                        ? 'border-indigo-500 shadow-lg'
+                        : plan.popular
+                          ? 'border-indigo-200 shadow-md'
                           : 'border-gray-200'
-                    }`}
+                      }`}
                   >
                     {plan.popular && !isCurrent && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -383,13 +380,12 @@ export default function BillingPage() {
                       <button
                         onClick={() => handleChangePlan(plan.tier)}
                         disabled={isCurrent || actionLoading === plan.tier || (isDowngrade && isCanceling)}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 ${
-                          isCurrent
+                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 ${isCurrent
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : isUpgrade
                               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                               : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         {actionLoading === plan.tier
                           ? 'Loading...'
@@ -470,7 +466,7 @@ export default function BillingPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               Confirm {previewData.type === 'upgrade' ? 'Upgrade' : 'Plan Change'}
             </h3>
-            
+
             <div className="space-y-4 mb-6">
               <div className="p-4 bg-gray-50 rounded-lg">
                 <p className="font-medium text-gray-900 mb-2">{previewData.message}</p>
@@ -487,12 +483,12 @@ export default function BillingPage() {
               </div>
 
               {previewData.amount_due_today > 0 && (
-                 <div className="flex justify-between items-center py-2 border-t border-gray-200">
-                   <span className="font-semibold text-gray-900">Total Due Today</span>
-                   <span className="text-xl font-bold text-indigo-600">
-                     ${previewData.amount_due_today.toFixed(2)}
-                   </span>
-                 </div>
+                <div className="flex justify-between items-center py-2 border-t border-gray-200">
+                  <span className="font-semibold text-gray-900">Total Due Today</span>
+                  <span className="text-xl font-bold text-indigo-600">
+                    ${previewData.amount_due_today.toFixed(2)}
+                  </span>
+                </div>
               )}
             </div>
 
@@ -521,23 +517,23 @@ export default function BillingPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Subscription?</h3>
-            
+
             <div className="space-y-4 mb-6">
-               <div className="p-4 bg-gray-50 rounded-lg">
-                 <p className="text-gray-900 font-medium mb-3">
-                   Your <span className="font-bold">{currentTier}</span> plan will remain active until <span className="font-bold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>.
-                 </p>
-                 <ul className="space-y-2 text-sm text-gray-600">
-                   <li className="flex items-center gap-2">
-                     <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                     You'll keep all features and credits until then
-                   </li>
-                   <li className="flex items-center gap-2">
-                     <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
-                     After that, you'll be on the FREE plan with 5 credits
-                   </li>
-                 </ul>
-               </div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="text-gray-900 font-medium mb-3">
+                  Your <span className="font-bold">{currentTier}</span> plan will remain active until <span className="font-bold">{billing?.subscription?.current_period_end ? new Date(billing.subscription.current_period_end).toLocaleDateString() : 'period end'}</span>.
+                </p>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    You'll keep all features and credits until then
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                    After that, you'll be on the FREE plan with 5 credits
+                  </li>
+                </ul>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3">
@@ -559,6 +555,6 @@ export default function BillingPage() {
           </div>
         </div>
       )}
-    </AppShell>
+    </>
   )
 }
