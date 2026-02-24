@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server'
 import { requireTeamMember } from '@/lib/rbac'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
+    // RBAC check (uses regular client with RLS internally)
     await requireTeamMember(params.teamId)
-    const supabase = createSupabaseServerClient()
+
+    // Data query uses service role since RLS may restrict
+    // cross-table reads for non-admin members
+    const supabase = createSupabaseServiceRoleClient()
 
     const { data: locations } = await supabase
       .schema('app')
@@ -20,4 +24,3 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     return NextResponse.json({ error: error.message }, { status: 403 })
   }
 }
-

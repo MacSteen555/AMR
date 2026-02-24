@@ -43,6 +43,9 @@ export default function LocationReviewsPage() {
     // Feedback
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
 
+    // Posting permissions (returned from API based on role + location_access)
+    const [canPostReplies, setCanPostReplies] = useState<boolean | null>(null)
+
     // Stack Mode
     const [stackIndex, setStackIndex] = useState(0)
     const router = useRouter()
@@ -54,8 +57,9 @@ export default function LocationReviewsPage() {
     const loadReviews = async () => {
         setLoading(true)
         try {
-            const { reviews: data } = await apiGet<{ reviews: Review[] }>(`/api/locations/${locationId}/reviews?limit=100`)
+            const { reviews: data, canPostReplies: canPost } = await apiGet<{ reviews: Review[], canPostReplies: boolean }>(`/api/locations/${locationId}/reviews?limit=100`)
             setReviews(data)
+            setCanPostReplies(canPost)
         } catch (err) {
             console.error(err)
         } finally {
@@ -302,6 +306,16 @@ export default function LocationReviewsPage() {
         <AppShell>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             <div className="p-8 h-screen flex flex-col">
+                {/* Google Permission Banner */}
+                {canPostReplies === false && (
+                    <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                        <span className="text-amber-500 text-lg">⚠️</span>
+                        <p className="text-sm text-amber-800">
+                            <strong>Read-only access.</strong> You can view reviews and generate drafts, but you don't have permission to sync or post replies to Google.
+                        </p>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -311,8 +325,9 @@ export default function LocationReviewsPage() {
                     <div className="flex gap-3">
                         <button
                             onClick={handleSync}
-                            disabled={isSyncing}
-                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 disabled:opacity-50 font-medium"
+                            disabled={isSyncing || canPostReplies === false}
+                            title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                            className={`px-4 py-2 border border-gray-300 rounded-lg bg-white font-medium disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'text-gray-400' : 'text-indigo-600 hover:bg-gray-50'}`}
                         >
                             {isSyncing ? 'Syncing...' : 'Sync Reviews'}
                         </button>
@@ -325,8 +340,9 @@ export default function LocationReviewsPage() {
                         </button>
                         <button
                             onClick={handleBulkPublish}
-                            disabled={isPublishing}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                            disabled={isPublishing || canPostReplies === false}
+                            title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                            className={`px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                         >
                             {isPublishing ? 'Publishing...' : 'Post All Drafts'}
                         </button>
@@ -443,8 +459,9 @@ export default function LocationReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                                                        disabled={publishingId === review.id || canPostReplies === false}
+                                                        title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Updating...' : 'Update'}
                                                     </button>
@@ -480,8 +497,9 @@ export default function LocationReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                                                        disabled={publishingId === review.id || canPostReplies === false}
+                                                        title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Posting...' : 'Post Reply'}
                                                     </button>
@@ -568,10 +586,11 @@ export default function LocationReviewsPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleSwipe('post')}
-                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId}
-                                                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-colors flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId || canPostReplies === false}
+                                                title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                                                className={`flex-1 py-4 rounded-xl font-bold shadow-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300'}`}
                                             >
-                                                {publishingId === currentStackReview.id ? 'Posting...' : 'Post Reply'}
+                                                {publishingId === currentStackReview.id ? 'Posting...' : canPostReplies === false ? '🔒 Post Reply' : 'Post Reply'}
                                             </button>
                                         </div>
                                     </div>
