@@ -129,21 +129,6 @@ export async function POST(request: Request) {
 
     if (creditError) {
       console.error('Failed to grant initial credits:', creditError)
-    } else {
-      // Initialize balance
-      const { error: balanceError } = await adminClient
-        .schema('app')
-        .from('team_credit_balances')
-        .insert({
-          team_id: team.id,
-          balance: initialCredits,
-          period_start: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-
-      if (balanceError) {
-        console.error('Failed to initialize balance:', balanceError)
-      }
     }
 
     return NextResponse.json({ team }, { status: 201 })

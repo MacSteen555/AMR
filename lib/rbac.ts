@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
 
 /**
@@ -40,13 +40,16 @@ export async function requireTeamAdmin(teamId: string) {
 
 /**
  * Requires that the current user has access to the specified location.
+ * Uses service role client for internal queries since this function
+ * performs its own auth checks (RLS on locations/memberships would
+ * block invited members from reading cross-table data).
  * Throws if no access.
  */
 export async function requireLocationAccess(locationId: string) {
   const user = await requireUser()
-  const supabase = createSupabaseServerClient()
+  const supabase = createSupabaseServiceRoleClient()
 
-  // Check if user can access location (via RLS or explicit check)
+  // Check if user can access location
   const { data: location, error: locationError } = await supabase
     .schema('app')
     .from('locations')
@@ -84,8 +87,10 @@ export async function requireLocationAccess(locationId: string) {
     if (access) {
       return { location, canManage: access.can_manage }
     }
+
+    // Team member without explicit location access - still allow read
+    return { location, canManage: false }
   }
 
   throw new Error('No access to location')
 }
-

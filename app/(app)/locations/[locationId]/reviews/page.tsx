@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { AppShell } from '@/components/AppShell'
 import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { apiGet, apiPost, apiPatch } from '@/lib/api'
@@ -21,8 +20,8 @@ interface Review {
     location_id?: string
 }
 
-export default function TeamReviewsPage() {
-    const { teamId } = useParams() as { teamId: string }
+export default function LocationReviewsPage() {
+    const { locationId } = useParams() as { locationId: string }
     const [reviews, setReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<'list' | 'stack'>('list')
@@ -33,7 +32,7 @@ export default function TeamReviewsPage() {
 
     // Actions
     const [isSyncing, setIsSyncing] = useState(false)
-    const [isGeneratiing, setIsGenerating] = useState(false)
+    const [isGenerating, setIsGenerating] = useState(false)
     const [isPublishing, setIsPublishing] = useState(false)
 
     // Single Item Actions
@@ -43,19 +42,23 @@ export default function TeamReviewsPage() {
     // Feedback
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
 
+    // Posting permissions (returned from API based on role + location_access)
+    const [canPostReplies, setCanPostReplies] = useState<boolean | null>(null)
+
     // Stack Mode
     const [stackIndex, setStackIndex] = useState(0)
     const router = useRouter()
 
     useEffect(() => {
         loadReviews()
-    }, [teamId])
+    }, [locationId])
 
     const loadReviews = async () => {
         setLoading(true)
         try {
-            const { reviews: data } = await apiGet<{ reviews: Review[] }>(`/api/teams/${teamId}/reviews?limit=1000`)
+            const { reviews: data, canPostReplies: canPost } = await apiGet<{ reviews: Review[], canPostReplies: boolean }>(`/api/locations/${locationId}/reviews?limit=100`)
             setReviews(data)
+            setCanPostReplies(canPost)
         } catch (err) {
             console.error(err)
         } finally {
@@ -87,8 +90,8 @@ export default function TeamReviewsPage() {
     const handleSync = async () => {
         try {
             setIsSyncing(true)
-            const res = await apiPost<{ locationsSynced: number }>(`/api/teams/${teamId}/reviews/sync`, {})
-            setToast({ message: `Synced reviews for ${res.locationsSynced} locations!`, type: 'success' })
+            await apiPost(`/api/locations/${locationId}/reviews/sync`, { page_size: 50 })
+            setToast({ message: 'Sync complete!', type: 'success' })
             await loadReviews()
         } catch (err) {
             setToast({ message: 'Sync failed', type: 'error' })
@@ -100,8 +103,8 @@ export default function TeamReviewsPage() {
     const handleBulkGenerate = async () => {
         try {
             setIsGenerating(true)
-            const res = await apiPost<{ generated: number }>(`/api/teams/${teamId}/reviews/bulk-generate`, { limit: 50 })
-            setToast({ message: `Generated ${res.generated} drafts across all locations!`, type: 'success' })
+            const res = await apiPost<{ generated: number }>(`/api/locations/${locationId}/reviews/bulk-generate`, { limit: 20 })
+            setToast({ message: `Generated ${res.generated} drafts!`, type: 'success' })
             await loadReviews()
         } catch (err) {
             setToast({ message: 'Generation failed', type: 'error' })
@@ -111,7 +114,7 @@ export default function TeamReviewsPage() {
     }
 
     const handleBulkPublish = async () => {
-        if (!confirm('Publish all approved drafts for ALL locations?')) return
+        if (!confirm('Publish all approved drafts?')) return
 
         // Optimistic Update
         const previousReviews = [...reviews]
@@ -124,17 +127,15 @@ export default function TeamReviewsPage() {
             // Optimistically move them to 'posted' (History)
             setReviews(prev => prev.map(r =>
                 r.reply_status === 'draft'
-                    ? { ...r, reply_status: 'posted', reply_text: r.draft_text } // Assume draft text becomes reply text
+                    ? { ...r, reply_status: 'posted', reply_text: r.draft_text }
                     : r
             ))
 
             setToast({ message: 'Publishing all drafts...', type: 'success' })
 
-            const res = await apiPost<{ published: number }>(`/api/teams/${teamId}/reviews/bulk-publish`, {})
+            const res = await apiPost<{ published: number }>(`/api/locations/${locationId}/reviews/bulk-publish`, {})
 
             setToast({ message: `Published ${res.published} replies!`, type: 'success' })
-            // We could reload here, but our optimistic state is likely correct enough. 
-            // Maybe background revalidate?
             await loadReviews()
         } catch (err) {
             console.error(err)
@@ -301,34 +302,46 @@ export default function TeamReviewsPage() {
     }
 
     return (
-        <AppShell>
+        <>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             <div className="p-8 h-screen flex flex-col">
+                {/* Google Permission Banner */}
+                {canPostReplies === false && (
+                    <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-center gap-3">
+                        <span className="text-amber-500 text-lg">⚠️</span>
+                        <p className="text-sm text-amber-800">
+                            <strong>Read-only access.</strong> You can view reviews and generate drafts, but you don't have permission to sync or post replies to Google.
+                        </p>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Team Reviews</h1>
-                        <p className="text-gray-600">Manage feedback across all your locations.</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Location Reviews</h1>
+                        <p className="text-gray-600">Manage customer feedback for this location.</p>
                     </div>
                     <div className="flex gap-3">
                         <button
                             onClick={handleSync}
-                            disabled={isSyncing}
-                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 disabled:opacity-50 font-medium"
+                            disabled={isSyncing || canPostReplies === false}
+                            title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                            className={`px-4 py-2 border border-gray-300 rounded-lg bg-white font-medium disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'text-gray-400' : 'text-indigo-600 hover:bg-gray-50'}`}
                         >
-                            {isSyncing ? 'Syncing...' : 'Sync All'}
+                            {isSyncing ? 'Syncing...' : 'Sync Reviews'}
                         </button>
                         <button
                             onClick={handleBulkGenerate}
-                            disabled={isGeneratiing}
+                            disabled={isGenerating}
                             className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 font-medium"
                         >
-                            {isGeneratiing ? 'Generating...' : 'Auto-Generate All Drafts'}
+                            {isGenerating ? 'Generating...' : 'Auto-Generate Drafts'}
                         </button>
                         <button
                             onClick={handleBulkPublish}
-                            disabled={isPublishing}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                            disabled={isPublishing || canPostReplies === false}
+                            title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                            className={`px-4 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                         >
                             {isPublishing ? 'Publishing...' : 'Post All Drafts'}
                         </button>
@@ -391,15 +404,8 @@ export default function TeamReviewsPage() {
                                                     {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                <span>{new Date(review.review_date).toLocaleDateString()}</span>
-                                                <span>•</span>
-                                                <span
-                                                    className="font-medium text-indigo-600 cursor-pointer hover:underline"
-                                                    onClick={() => router.push(`/locations/${review.location_id}/reviews`)}
-                                                >
-                                                    {review.location_name}
-                                                </span>
+                                            <div className="text-sm text-gray-500">
+                                                {new Date(review.review_date).toLocaleDateString()}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -452,8 +458,9 @@ export default function TeamReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                                                        disabled={publishingId === review.id || canPostReplies === false}
+                                                        title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Updating...' : 'Update'}
                                                     </button>
@@ -489,8 +496,9 @@ export default function TeamReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                                                        disabled={publishingId === review.id || canPostReplies === false}
+                                                        title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Posting...' : 'Post Reply'}
                                                     </button>
@@ -524,9 +532,6 @@ export default function TeamReviewsPage() {
                                                         {'★'.repeat(currentStackReview.rating)}{'☆'.repeat(5 - currentStackReview.rating)}
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-                                                {currentStackReview.location_name}
                                             </div>
                                         </div>
                                         <p className="text-gray-700 text-lg mb-8 leading-relaxed">
@@ -580,10 +585,11 @@ export default function TeamReviewsPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleSwipe('post')}
-                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId}
-                                                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-colors flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId || canPostReplies === false}
+                                                title={canPostReplies === false ? 'No permission to post replies' : undefined}
+                                                className={`flex-1 py-4 rounded-xl font-bold shadow-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed ${canPostReplies === false ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300'}`}
                                             >
-                                                {publishingId === currentStackReview.id ? 'Posting...' : 'Post Reply'}
+                                                {publishingId === currentStackReview.id ? 'Posting...' : canPostReplies === false ? '🔒 Post Reply' : 'Post Reply'}
                                             </button>
                                         </div>
                                     </div>
@@ -607,6 +613,6 @@ export default function TeamReviewsPage() {
                     )}
                 </div>
             </div>
-        </AppShell>
+        </>
     )
 }

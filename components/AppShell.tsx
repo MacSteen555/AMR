@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { apiGet } from '@/lib/api'
 
 interface Team {
@@ -23,12 +23,43 @@ interface Location {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, teams, loading } = useAuth()
+  const { user, teams, loading, refresh } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(teams[0] || null)
   const [locations, setLocations] = useState<Location[]>([])
   const [locationsOpen, setLocationsOpen] = useState(true)
+  const [teamsOpen, setTeamsOpen] = useState(false)
+  const teamDropdownRef = useRef<HTMLDivElement>(null)
+
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Sync selectedTeam when teams array loads/changes
+  useEffect(() => {
+    if (!teams.length) return
+    // If current selection is still valid, keep it
+    if (selectedTeam && teams.find(t => t.id === selectedTeam.id)) return
+    // Otherwise default to first team
+    setSelectedTeam(teams[0])
+  }, [teams])
+
+  // Sync selectedTeam with URL when navigating (URL takes priority)
+  useEffect(() => {
+    if (!pathname || !teams.length) return
+    const match = pathname.match(/\/teams\/([^/]+)/)
+    if (match && match[1] !== 'new') {
+      const teamIdFromUrl = match[1]
+      if (teamIdFromUrl !== selectedTeam?.id) {
+        const urlTeam = teams.find(t => t.id === teamIdFromUrl)
+        if (urlTeam) {
+          setSelectedTeam(urlTeam)
+        } else if (!isRefreshing && refresh) {
+          setIsRefreshing(true)
+          refresh().finally(() => setIsRefreshing(false))
+        }
+      }
+    }
+  }, [pathname, teams, selectedTeam?.id, isRefreshing, refresh])
 
   const currentTeam = selectedTeam || teams[0] || null
   const credits = currentTeam?.creditBalance || 0
@@ -41,6 +72,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       .then(res => setLocations(res.locations || []))
       .catch(() => setLocations([]))
   }, [currentTeam?.id])
+
+  // Close team dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
+        setTeamsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   if (loading) {
     return <LoadingScreen />
@@ -73,25 +115,66 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Team Selector */}
         {currentTeam && (
           <div className="p-4 border-b border-gray-200">
-            <button
-              onClick={() => router.push('/teams')}
-              className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center">
-                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
+            <div className="relative" ref={teamDropdownRef}>
+              <button
+                onClick={() => setTeamsOpen(!teamsOpen)}
+                className="w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div className="text-left overflow-hidden">
+                    <div className="text-sm font-semibold text-gray-900 truncate">{currentTeam.name}</div>
+                    <div className="text-xs text-indigo-600">{tier}</div>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <div className="text-sm font-semibold text-gray-900">{currentTeam.name}</div>
-                  <div className="text-xs text-indigo-600">{tier}</div>
+                <svg className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${teamsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {teamsOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1 text-left animate-in fade-in duration-150">
+                  {teams.map((team) => (
+                    <button
+                      key={team.id}
+                      onClick={() => {
+                        setSelectedTeam(team)
+                        setTeamsOpen(false)
+                        setLocations([])
+                        apiGet<{ locations: Location[] }>(`/api/teams/${team.id}/locations`)
+                          .then(res => setLocations(res.locations || []))
+                          .catch(() => setLocations([]))
+                        router.push(`/teams/${team.id}/reviews`)
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between transition-colors ${team.id === currentTeam.id ? 'bg-indigo-50' : ''}`}
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className={`font-medium truncate ${team.id === currentTeam.id ? 'text-indigo-700' : 'text-gray-700'}`}>{team.name}</span>
+                        <span className="text-xs text-gray-500">{team.subscription?.tier || 'FREE'}</span>
+                      </div>
+                      {team.id === currentTeam.id && (
+                        <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <button
+                      onClick={() => { setTeamsOpen(false); router.push('/teams') }}
+                      className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium transition-colors"
+                    >
+                      Manage Teams
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+              )}
+            </div>
           </div>
         )}
 

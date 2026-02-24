@@ -1,6 +1,5 @@
 'use client'
 
-import { AppShell } from '@/components/AppShell'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function SettingsPage() {
@@ -11,7 +10,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <div className="p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -58,7 +57,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </AppShell>
+    </>
   )
 }
 

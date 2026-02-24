@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/hooks/useAuth'
-import { AppShell } from '@/components/AppShell'
 import { useRouter, useParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { apiGet, apiPost, apiPatch } from '@/lib/api'
@@ -21,8 +20,8 @@ interface Review {
     location_id?: string
 }
 
-export default function LocationReviewsPage() {
-    const { locationId } = useParams() as { locationId: string }
+export default function TeamReviewsPage() {
+    const { teamId } = useParams() as { teamId: string }
     const [reviews, setReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<'list' | 'stack'>('list')
@@ -33,7 +32,7 @@ export default function LocationReviewsPage() {
 
     // Actions
     const [isSyncing, setIsSyncing] = useState(false)
-    const [isGenerating, setIsGenerating] = useState(false)
+    const [isGeneratiing, setIsGenerating] = useState(false)
     const [isPublishing, setIsPublishing] = useState(false)
 
     // Single Item Actions
@@ -43,19 +42,26 @@ export default function LocationReviewsPage() {
     // Feedback
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
 
+    // Per-location posting permissions (returned from API)
+    const [manageableLocationIds, setManageableLocationIds] = useState<Set<string>>(new Set())
+
     // Stack Mode
     const [stackIndex, setStackIndex] = useState(0)
     const router = useRouter()
 
+    // Helper: can this user post replies for a given review's location?
+    const canPostFor = (review: Review) => manageableLocationIds.has(review.location_id || '')
+
     useEffect(() => {
         loadReviews()
-    }, [locationId])
+    }, [teamId])
 
     const loadReviews = async () => {
         setLoading(true)
         try {
-            const { reviews: data } = await apiGet<{ reviews: Review[] }>(`/api/locations/${locationId}/reviews?limit=100`)
+            const { reviews: data, manageableLocationIds: ids } = await apiGet<{ reviews: Review[], manageableLocationIds: string[] }>(`/api/teams/${teamId}/reviews?limit=1000`)
             setReviews(data)
+            setManageableLocationIds(new Set(ids || []))
         } catch (err) {
             console.error(err)
         } finally {
@@ -87,8 +93,8 @@ export default function LocationReviewsPage() {
     const handleSync = async () => {
         try {
             setIsSyncing(true)
-            await apiPost(`/api/locations/${locationId}/reviews/sync`, { page_size: 50 })
-            setToast({ message: 'Sync complete!', type: 'success' })
+            const res = await apiPost<{ locationsSynced: number }>(`/api/teams/${teamId}/reviews/sync`, {})
+            setToast({ message: `Synced reviews for ${res.locationsSynced} locations!`, type: 'success' })
             await loadReviews()
         } catch (err) {
             setToast({ message: 'Sync failed', type: 'error' })
@@ -100,8 +106,8 @@ export default function LocationReviewsPage() {
     const handleBulkGenerate = async () => {
         try {
             setIsGenerating(true)
-            const res = await apiPost<{ generated: number }>(`/api/locations/${locationId}/reviews/bulk-generate`, { limit: 20 })
-            setToast({ message: `Generated ${res.generated} drafts!`, type: 'success' })
+            const res = await apiPost<{ generated: number }>(`/api/teams/${teamId}/reviews/bulk-generate`, { limit: 50 })
+            setToast({ message: `Generated ${res.generated} drafts across all locations!`, type: 'success' })
             await loadReviews()
         } catch (err) {
             setToast({ message: 'Generation failed', type: 'error' })
@@ -111,7 +117,7 @@ export default function LocationReviewsPage() {
     }
 
     const handleBulkPublish = async () => {
-        if (!confirm('Publish all approved drafts?')) return
+        if (!confirm('Publish all approved drafts for ALL locations?')) return
 
         // Optimistic Update
         const previousReviews = [...reviews]
@@ -124,15 +130,17 @@ export default function LocationReviewsPage() {
             // Optimistically move them to 'posted' (History)
             setReviews(prev => prev.map(r =>
                 r.reply_status === 'draft'
-                    ? { ...r, reply_status: 'posted', reply_text: r.draft_text }
+                    ? { ...r, reply_status: 'posted', reply_text: r.draft_text } // Assume draft text becomes reply text
                     : r
             ))
 
             setToast({ message: 'Publishing all drafts...', type: 'success' })
 
-            const res = await apiPost<{ published: number }>(`/api/locations/${locationId}/reviews/bulk-publish`, {})
+            const res = await apiPost<{ published: number }>(`/api/teams/${teamId}/reviews/bulk-publish`, {})
 
             setToast({ message: `Published ${res.published} replies!`, type: 'success' })
+            // We could reload here, but our optimistic state is likely correct enough. 
+            // Maybe background revalidate?
             await loadReviews()
         } catch (err) {
             console.error(err)
@@ -299,29 +307,29 @@ export default function LocationReviewsPage() {
     }
 
     return (
-        <AppShell>
+        <>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             <div className="p-8 h-screen flex flex-col">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Location Reviews</h1>
-                        <p className="text-gray-600">Manage customer feedback for this location.</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Team Reviews</h1>
+                        <p className="text-gray-600">Manage feedback across all your locations.</p>
                     </div>
                     <div className="flex gap-3">
                         <button
                             onClick={handleSync}
                             disabled={isSyncing}
-                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 disabled:opacity-50 font-medium"
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 font-medium disabled:opacity-50"
                         >
-                            {isSyncing ? 'Syncing...' : 'Sync Reviews'}
+                            {isSyncing ? 'Syncing...' : 'Sync All'}
                         </button>
                         <button
                             onClick={handleBulkGenerate}
-                            disabled={isGenerating}
+                            disabled={isGeneratiing}
                             className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 disabled:opacity-50 font-medium"
                         >
-                            {isGenerating ? 'Generating...' : 'Auto-Generate Drafts'}
+                            {isGeneratiing ? 'Generating...' : 'Auto-Generate All Drafts'}
                         </button>
                         <button
                             onClick={handleBulkPublish}
@@ -389,8 +397,20 @@ export default function LocationReviewsPage() {
                                                     {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
                                                 </div>
                                             </div>
-                                            <div className="text-sm text-gray-500">
-                                                {new Date(review.review_date).toLocaleDateString()}
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <span>{new Date(review.review_date).toLocaleDateString()}</span>
+                                                <span>•</span>
+                                                <span
+                                                    className="font-medium text-indigo-600 cursor-pointer hover:underline"
+                                                    onClick={() => router.push(`/locations/${review.location_id}/reviews`)}
+                                                >
+                                                    {review.location_name}
+                                                </span>
+                                                {!canPostFor(review) && (
+                                                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium" title="No permission to post replies for this location">
+                                                        🔒 Read-only
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -443,8 +463,9 @@ export default function LocationReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                                                        disabled={publishingId === review.id || !canPostFor(review)}
+                                                        title={!canPostFor(review) ? 'No permission to post replies for this location' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${!canPostFor(review) ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Updating...' : 'Update'}
                                                     </button>
@@ -480,8 +501,9 @@ export default function LocationReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                                                        disabled={publishingId === review.id || !canPostFor(review)}
+                                                        title={!canPostFor(review) ? 'No permission to post replies for this location' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${!canPostFor(review) ? 'bg-gray-300 text-gray-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Posting...' : 'Post Reply'}
                                                     </button>
@@ -515,6 +537,9 @@ export default function LocationReviewsPage() {
                                                         {'★'.repeat(currentStackReview.rating)}{'☆'.repeat(5 - currentStackReview.rating)}
                                                     </div>
                                                 </div>
+                                            </div>
+                                            <div className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                                                {currentStackReview.location_name}
                                             </div>
                                         </div>
                                         <p className="text-gray-700 text-lg mb-8 leading-relaxed">
@@ -568,10 +593,11 @@ export default function LocationReviewsPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleSwipe('post')}
-                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId}
-                                                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-colors flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId || !canPostFor(currentStackReview)}
+                                                title={!canPostFor(currentStackReview) ? 'No permission to post replies for this location' : undefined}
+                                                className={`flex-1 py-4 rounded-xl font-bold shadow-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed ${!canPostFor(currentStackReview) ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300'}`}
                                             >
-                                                {publishingId === currentStackReview.id ? 'Posting...' : 'Post Reply'}
+                                                {publishingId === currentStackReview.id ? 'Posting...' : !canPostFor(currentStackReview) ? '🔒 Post Reply' : 'Post Reply'}
                                             </button>
                                         </div>
                                     </div>
@@ -595,6 +621,6 @@ export default function LocationReviewsPage() {
                     )}
                 </div>
             </div>
-        </AppShell>
+        </>
     )
 }

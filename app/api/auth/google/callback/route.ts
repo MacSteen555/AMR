@@ -73,8 +73,19 @@ export async function GET(request: Request) {
     cookieStore.delete('oauth_state')
     cookieStore.delete('oauth_code_verifier')
 
+    // Check for post-login redirect (e.g. invite acceptance)
+    const inviteRedirect = cookieStore.get('invite_redirect')?.value
+    const finalRedirect = inviteRedirect
+      ? `${redirectUrl}${inviteRedirect}`
+      : `${redirectUrl}/dashboard`
+
     // Create redirect response
-    const response = NextResponse.redirect(`${redirectUrl}/dashboard`)
+    const response = NextResponse.redirect(finalRedirect)
+
+    // Clear the invite redirect cookie if it was used
+    if (inviteRedirect) {
+      response.cookies.delete('invite_redirect')
+    }
 
     // Explicitly set the captured Supabase cookies on the response
     cookiesToSet.forEach(({ name, value, options }) => {
