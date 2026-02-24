@@ -303,6 +303,9 @@ export default function NewTeamPage() {
       setBrandVoice(posRes.brand_voice_prompt !== negRes.brand_voice_prompt ? `${posRes.brand_voice_prompt} ${negRes.brand_voice_prompt}` : posRes.brand_voice_prompt)
       setNegativeSentiment(negRes.sentiment_prompt)
       setUserEditedPrompt(true)
+
+      setPositiveOriginal(positiveReplyText)
+      setNegativeOriginal(negativeReplyText)
     } catch (err: any) {
       setError(err.message || 'Failed to infer brand voice')
     } finally {
@@ -646,7 +649,24 @@ export default function NewTeamPage() {
                              className="w-full flex-1 p-3 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors resize-none min-h-[140px]"
                              placeholder="Edit your reply here..."
                            />
-                           <p className="text-[11px] text-gray-400 mt-2 text-right">Feel free to edit this reply directly to teach the AI your exact style.</p>
+
+                           <div className={`mt-3 flex items-center justify-between p-2 rounded-lg border transition-colors ${positiveReplyText !== positiveOriginal ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                             <span className={`text-xs font-medium ${positiveReplyText !== positiveOriginal ? 'text-green-700' : 'text-gray-500'}`}>
+                               {positiveReplyText !== positiveOriginal ? "Click save to update the AI's brand voice" : "Edit to teach the AI your specific style"}
+                             </span>
+                             <button
+                               onClick={handleInferPromptFromReplies}
+                               disabled={isInferringPrompt || positiveReplyText === positiveOriginal}
+                               className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm ${
+                                 positiveReplyText !== positiveOriginal 
+                                   ? 'bg-green-600 text-white hover:bg-green-700 disabled:opacity-50' 
+                                   : 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none'
+                               }`}
+                             >
+                               {isInferringPrompt ? "Saving..." : "Save"}
+                             </button>
+                           </div>
+
                         </div>
 
                       </div>
@@ -695,7 +715,22 @@ export default function NewTeamPage() {
                              className="w-full flex-1 p-3 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors resize-none min-h-[140px]"
                              placeholder="Edit your reply here..."
                            />
-                           <p className="text-[11px] text-gray-400 mt-2 text-right">Feel free to edit this reply directly to teach the AI your exact style.</p>
+                           <div className={`mt-3 flex items-center justify-between p-2 rounded-lg border transition-colors ${negativeReplyText !== negativeOriginal ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                             <span className={`text-xs font-medium ${negativeReplyText !== negativeOriginal ? 'text-red-700' : 'text-gray-500'}`}>
+                               {negativeReplyText !== negativeOriginal ? "Click save to update the AI's brand voice" : "Edit to teach the AI your specific style"}
+                             </span>
+                             <button
+                               onClick={handleInferPromptFromReplies}
+                               disabled={isInferringPrompt || negativeReplyText === negativeOriginal}
+                               className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shadow-sm ${
+                                 negativeReplyText !== negativeOriginal 
+                                   ? 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50' 
+                                   : 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none'
+                               }`}
+                             >
+                               {isInferringPrompt ? "Saving..." : "Save"}
+                             </button>
+                           </div>
                         </div>
 
                       </div>
@@ -715,28 +750,8 @@ export default function NewTeamPage() {
                           </svg>
                           Your Overall Brand Prompt
                         </h3>
-                        <p className="text-sm text-gray-500 mt-1">This is the prompt we will use to generate all your AI review replies. You can edit it now, or let us infer it from any manual edits you made to the replies above.</p>
+                        <p className="text-sm text-gray-500 mt-1">This is the prompt we will use to generate all your AI review replies. We automatically update this when you save edits to the sample replies above. You can also edit it directly.</p>
                       </div>
-                      
-                      <button
-                        onClick={handleInferPromptFromReplies}
-                        disabled={isInferringPrompt}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 border border-indigo-100"
-                      >
-                         {isInferringPrompt ? (
-                           <>
-                             <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                             Inferring...
-                           </>
-                         ) : (
-                           <>
-                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                             </svg>
-                             Infer from My Edits
-                           </>
-                         )}
-                      </button>
                     </div>
 
                     <div className="space-y-4 pt-4">

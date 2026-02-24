@@ -31,11 +31,11 @@ export async function POST(request: Request) {
       messages: [
         {
           role: 'system',
-          content: `You are an expert at analyzing writing style and tone. Given an original auto-generated reply and a user's edited version, extract the specific style preferences and tone adjustments the user made. Return valid JSON only.`,
+          content: `You are an expert at analyzing writing style and tone by examining the literal diffs between two texts. Pay strict attention to the EXACT changes made by the user, such as punctuation (e.g., changing '!' to '.'), capitalization, use of emojis, sentence structure, specific word choices, and addition of contact information. Return valid JSON only.`,
         },
         {
           role: 'user',
-          content: `The user was presented with an auto-generated ${sentiment_type} review reply and edited it. Analyze their changes and extract a concise prompt that captures their preferred writing style.
+          content: `The user was presented with an auto-generated ${sentiment_type} review reply and edited it. Analyze their exact changes to extract specific, highly actionable writing rules.
 
 Original reply (${selected_voice} tone):
 "${original_reply}"
@@ -43,15 +43,17 @@ Original reply (${selected_voice} tone):
 User's edited version:
 "${edited_reply}"
 
-This is for ${sentiment_type} review responses.
+INSTRUCTIONS for extracting rules:
+1. Look closely at granular differences. For instance, if they changed "Thank you so much!" to "Thank you so much.", a rule must be "Avoid overuse of exclamation marks when possible." If they removed emojis, a rule is "Never use emojis." 
+2. Synthesize these precise mechanical differences into a concise prompt that captures their preferred writing style.
+3. Determine how they want to handle ${sentiment_type} reviews.
+4. If they added ANY contact information (e.g., an email address like support@example.com, a phone number, or a website link), you MUST include a rule that explicitly states to provide that exact contact information in the response.
 
-Return JSON with:
+Return JSON with exactly these keys:
 {
-  "brand_voice_prompt": "A concise instruction (1-2 sentences) capturing the user's overall brand voice style based on their edits",
-  "sentiment_prompt": "A concise instruction (1-2 sentences) for how to specifically handle ${sentiment_type} reviews based on the user's edits"
-}
-
-Focus on specific, actionable style instructions, not vague descriptions. For example: "Use first person plural (we/our), keep responses under 3 sentences, always mention the customer by name" rather than "Be nice".`,
+  "brand_voice_prompt": "Specific, actionable style instructions focusing on the granular changes made (punctuation, length, tone, emojis, specific phrasing preferred). Include any general contact info rules. (1-3 sentences)",
+  "sentiment_prompt": "Specific instructions for handling ${sentiment_type} reviews based on their edits. If they added specific contact information for ${sentiment_type} reviews, include the literal contact info here. (1-2 sentences)"
+}`,
         },
       ],
       max_completion_tokens: 500,
