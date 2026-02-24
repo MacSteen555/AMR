@@ -88,13 +88,17 @@ export default function TeamsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Banner dismiss
-  const [showBanner, setShowBanner] = useState(true)
+  const [showBanner, setShowBanner] = useState(false)
+  const helpRef = useRef<HTMLDivElement>(null)
 
-  // Close menu on click outside
+  // Close menu/tooltip on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false)
+      }
+      if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
+        setShowBanner(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -316,40 +320,7 @@ export default function TeamsPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
         <div className="p-8">
 
-          {/* ── Explainer Banner ── */}
-          {showBanner && (
-            <div className="mb-6 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white relative overflow-hidden">
-              <button
-                onClick={() => setShowBanner(false)}
-                className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              {/* Background decoration */}
-              <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-              <div className="absolute -left-4 -bottom-4 w-24 h-24 bg-white/5 rounded-full blur-xl" />
-              <div className="relative">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-1">What are Teams?</h3>
-                    <p className="text-indigo-100 text-sm leading-relaxed max-w-2xl">
-                      Teams are how you organize your business locations. Each team can have multiple locations,
-                      members with different roles, and its own subscription plan. Set up brand voice settings
-                      per location so every review reply matches your brand perfectly.
-                      <span className="text-white font-medium"> Think of a team as your business or brand umbrella.</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+
 
           {/* ── Empty State: No Teams ── */}
           {!hasTeams && (
@@ -410,9 +381,32 @@ export default function TeamsPage() {
             <>
               {/* Header */}
               <div className="mb-8 flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
+                <div className="relative" ref={helpRef}>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
+                    <button
+                      onClick={() => setShowBanner(!showBanner)}
+                      className="w-6 h-6 rounded-full bg-gray-200 hover:bg-indigo-100 text-gray-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                      title="What are Teams?"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" />
+                      </svg>
+                    </button>
+                  </div>
                   <p className="text-gray-500 mt-1">Manage your teams, locations, and members</p>
+                  {showBanner && (
+                    <div className="absolute left-0 top-full mt-2 z-50 w-96 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl p-5 text-white shadow-xl shadow-indigo-200/50">
+                      <div className="absolute -top-1.5 left-10 w-3 h-3 bg-indigo-600 rotate-45 rounded-sm" />
+                      <h3 className="font-bold text-sm mb-1.5">What are Teams?</h3>
+                      <p className="text-indigo-100 text-xs leading-relaxed">
+                        Teams are how you organize your business locations. Each team can have multiple locations,
+                        members with different roles, and its own subscription plan. Set up brand voice settings
+                        per location so every review reply matches your brand perfectly.
+                        <span className="text-white font-medium"> Think of a team as your business or brand umbrella.</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => router.push('/teams/new')}
