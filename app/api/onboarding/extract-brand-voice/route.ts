@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       messages: [
         {
           role: 'system',
-          content: `You are an expert at analyzing writing style and tone by examining the literal diffs between two texts. Pay strict attention to the EXACT changes made by the user, such as punctuation (e.g., changing '!' to '.'), capitalization, use of emojis, sentence structure, specific word choices, and addition of contact information. Return valid JSON only.`,
+          content: `You are an expert at analyzing writing style and tone by examining the literal diffs between two texts. Pay strict attention to the EXACT changes made by the user, such as punctuation (e.g., changing '!' to '.'), capitalization, use of emojis, sentence structure, and specific word choices. Return valid JSON only.`,
         },
         {
           role: 'user',
@@ -46,13 +46,12 @@ User's edited version:
 INSTRUCTIONS for extracting rules:
 1. Look closely at granular differences. For instance, if they changed "Thank you so much!" to "Thank you so much.", a rule must be "Avoid overuse of exclamation marks when possible." If they removed emojis, a rule is "Never use emojis." 
 2. Synthesize these precise mechanical differences into a concise prompt that captures their preferred writing style.
-3. Determine how they want to handle ${sentiment_type} reviews.
-4. If they added ANY contact information (e.g., an email address like support@example.com, a phone number, or a website link), you MUST include a rule that explicitly states to provide that exact contact information in the response.
+3. Determine how they want to handle ${sentiment_type} reviews (e.g., if they added a specific contact email for complaints, note that as a rule for negative reviews).
 
 Return JSON with exactly these keys:
 {
-  "brand_voice_prompt": "Specific, actionable style instructions focusing on the granular changes made (punctuation, length, tone, emojis, specific phrasing preferred). Include any general contact info rules. (1-3 sentences)",
-  "sentiment_prompt": "Specific instructions for handling ${sentiment_type} reviews based on their edits. If they added specific contact information for ${sentiment_type} reviews, include the literal contact info here. (1-2 sentences)"
+  "brand_voice_prompt": "Specific, actionable style instructions focusing on the granular changes made (punctuation, length, tone, emojis, specific phrasing preferred). (1-3 sentences)",
+  "sentiment_prompt": "Specific instructions for handling ${sentiment_type} reviews based on their edits. (1-2 sentences)"
 }`,
         },
       ],
