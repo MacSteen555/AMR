@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { apiGet, apiPost, apiDelete, apiPatch } from '@/lib/api'
+import { Toast } from '@/components/Toast'
 
 interface Location {
   id: string
@@ -74,6 +75,7 @@ export default function TeamsPage() {
   // Menu State
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Banner dismiss
   const [showBanner, setShowBanner] = useState(true)
@@ -128,7 +130,7 @@ export default function TeamsPage() {
       await apiDelete(`/api/teams/${selectedTeamId}/locations/${locationId}`)
       loadTeamData(selectedTeamId)
     } catch (err: any) {
-      alert('Failed to remove location: ' + err.message)
+      setToast({ message: 'Failed to remove location: ' + err.message, type: 'error' })
       setLoadingData(false)
     }
   }
@@ -146,7 +148,7 @@ export default function TeamsPage() {
       await apiDelete(`/api/teams/${selectedTeamId}`)
       window.location.reload()
     } catch (err: any) {
-      alert('Failed to delete team: ' + err.message)
+      setToast({ message: 'Failed to delete team: ' + err.message, type: 'error' })
       setLoadingData(false)
       setIsDeleteModalOpen(false)
     }
@@ -162,11 +164,11 @@ export default function TeamsPage() {
         email: inviteEmail,
         role: 'member'
       })
-      alert('Invitation sent!')
+      setToast({ message: 'Invitation sent!', type: 'success' })
       setIsInviteModalOpen(false)
       setInviteEmail('')
     } catch (err: any) {
-      alert('Failed to send invite: ' + err.message)
+      setToast({ message: 'Failed to send invite: ' + err.message, type: 'error' })
     } finally {
       setSendingInvite(false)
     }
@@ -182,7 +184,7 @@ export default function TeamsPage() {
       })
       window.location.reload()
     } catch (err: any) {
-      alert('Failed to promote user: ' + err.message)
+      setToast({ message: 'Failed to promote user: ' + err.message, type: 'error' })
       setLoadingData(false)
     }
   }
@@ -209,7 +211,7 @@ export default function TeamsPage() {
       setIsLocationSettingsOpen(false)
       loadTeamData(selectedTeamId)
     } catch (err: any) {
-      alert('Failed to save settings: ' + err.message)
+      setToast({ message: 'Failed to save settings: ' + err.message, type: 'error' })
     } finally {
       setSavingSettings(false)
     }
@@ -907,6 +909,7 @@ export default function TeamsPage() {
           </div>
         )}
       </div>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </AppShell>
   )
 }

@@ -43,9 +43,15 @@ export default function TeamReviewsPage() {
     // Feedback
     const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
 
+    // Per-location posting permissions (returned from API)
+    const [manageableLocationIds, setManageableLocationIds] = useState<Set<string>>(new Set())
+
     // Stack Mode
     const [stackIndex, setStackIndex] = useState(0)
     const router = useRouter()
+
+    // Helper: can this user post replies for a given review's location?
+    const canPostFor = (review: Review) => manageableLocationIds.has(review.location_id || '')
 
     useEffect(() => {
         loadReviews()
@@ -54,8 +60,9 @@ export default function TeamReviewsPage() {
     const loadReviews = async () => {
         setLoading(true)
         try {
-            const { reviews: data } = await apiGet<{ reviews: Review[] }>(`/api/teams/${teamId}/reviews?limit=1000`)
+            const { reviews: data, manageableLocationIds: ids } = await apiGet<{ reviews: Review[], manageableLocationIds: string[] }>(`/api/teams/${teamId}/reviews?limit=1000`)
             setReviews(data)
+            setManageableLocationIds(new Set(ids || []))
         } catch (err) {
             console.error(err)
         } finally {
@@ -314,7 +321,7 @@ export default function TeamReviewsPage() {
                         <button
                             onClick={handleSync}
                             disabled={isSyncing}
-                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 disabled:opacity-50 font-medium"
+                            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-indigo-600 hover:bg-gray-50 font-medium disabled:opacity-50"
                         >
                             {isSyncing ? 'Syncing...' : 'Sync All'}
                         </button>
@@ -400,6 +407,11 @@ export default function TeamReviewsPage() {
                                                 >
                                                     {review.location_name}
                                                 </span>
+                                                {!canPostFor(review) && (
+                                                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium" title="No permission to post replies for this location">
+                                                        🔒 Read-only
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -452,8 +464,9 @@ export default function TeamReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 disabled:opacity-50"
+                                                        disabled={publishingId === review.id || !canPostFor(review)}
+                                                        title={!canPostFor(review) ? 'No permission to post replies for this location' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${!canPostFor(review) ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Updating...' : 'Update'}
                                                     </button>
@@ -489,8 +502,9 @@ export default function TeamReviewsPage() {
                                                     </button>
                                                     <button
                                                         onClick={() => handlePublishSingle(review.id, edits[review.id])}
-                                                        disabled={publishingId === review.id}
-                                                        className="text-xs bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                                                        disabled={publishingId === review.id || !canPostFor(review)}
+                                                        title={!canPostFor(review) ? 'No permission to post replies for this location' : undefined}
+                                                        className={`text-xs px-3 py-1 rounded disabled:opacity-50 disabled:cursor-not-allowed ${!canPostFor(review) ? 'bg-gray-300 text-gray-500' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
                                                     >
                                                         {publishingId === review.id ? 'Posting...' : 'Post Reply'}
                                                     </button>
@@ -580,10 +594,11 @@ export default function TeamReviewsPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleSwipe('post')}
-                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId}
-                                                className="flex-1 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg transition-colors flex items-center justify-center gap-2 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                                disabled={currentStackReview.reply_status !== 'draft' || !!publishingId || !canPostFor(currentStackReview)}
+                                                title={!canPostFor(currentStackReview) ? 'No permission to post replies for this location' : undefined}
+                                                className={`flex-1 py-4 rounded-xl font-bold shadow-lg transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed ${!canPostFor(currentStackReview) ? 'bg-gray-300 text-gray-500' : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300'}`}
                                             >
-                                                {publishingId === currentStackReview.id ? 'Posting...' : 'Post Reply'}
+                                                {publishingId === currentStackReview.id ? 'Posting...' : !canPostFor(currentStackReview) ? '🔒 Post Reply' : 'Post Reply'}
                                             </button>
                                         </div>
                                     </div>

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createTeamInviteSchema } from '@/lib/validation/schemas'
+import { sendEmail } from '@/lib/email/send'
+import { buildTeamInviteEmail } from '@/lib/email/templates/team-invite'
 import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
@@ -12,13 +14,38 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     const supabase = createSupabaseServerClient()
 
+    // Fetch team name for the email
+    const { data: team, error: teamError } = await supabase
+      .schema('app')
+      .from('teams')
+      .select('name')
+      .eq('id', params.teamId)
+      .single()
+
+    if (teamError || !team) {
+      throw new Error('Team not found')
+    }
+
+    // Fetch inviter details
+    const { data: inviter, error: inviterError } = await supabase
+      .schema('app')
+      .from('users')
+      .select('email, display_name')
+      .eq('id', admin.user_id)
+      .single()
+
+    if (inviterError || !inviter) {
+      throw new Error('Inviter not found')
+    }
+
     // Generate invite token
     const token = crypto.randomBytes(32).toString('hex')
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
 
     // Create invite
     const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days
+    const EXPIRY_DAYS = 7
+    expiresAt.setDate(expiresAt.getDate() + EXPIRY_DAYS)
 
     const { data: invite, error } = await supabase
       .schema('app')
@@ -35,17 +62,36 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       .single()
 
     if (error || !invite) {
+      // Check for unique constraint (already invited)
+      if (error?.code === '23505') {
+        return NextResponse.json(
+          { error: 'This email has already been invited to this team' },
+          { status: 409 }
+        )
+      }
       throw new Error(`Failed to create invite: ${error?.message}`)
     }
 
-    // In production, send email with token
-    // For now, return token (remove in production)
-    return NextResponse.json({ invite: { ...invite, token } }, { status: 201 })
+    // Send invite email
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const inviteUrl = `${appUrl}/invites/${token}`
+
+    const { subject, html } = buildTeamInviteEmail({
+      teamName: team.name,
+      inviterName: inviter.display_name || inviter.email,
+      inviterEmail: inviter.email,
+      inviteUrl,
+      expiresInDays: EXPIRY_DAYS,
+    })
+
+    await sendEmail({ to: data.email, subject, html })
+
+    return NextResponse.json({ invite }, { status: 201 })
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    console.error('Invite error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-

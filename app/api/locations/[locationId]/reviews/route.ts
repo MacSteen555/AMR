@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server'
 import { requireLocationAccess } from '@/lib/rbac'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request, { params }: { params: { locationId: string } }) {
   try {
-    await requireLocationAccess(params.locationId)
+    // RBAC check — returns canManage based on admin role or location_access table
+    const { canManage } = await requireLocationAccess(params.locationId)
+
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const since = searchParams.get('since')
     const limit = parseInt(searchParams.get('limit') || '50')
     const cursor = searchParams.get('cursor')
 
-    const supabase = createSupabaseServerClient()
+    const supabase = createSupabaseServiceRoleClient()
 
     let query = supabase
       .schema('app')
@@ -35,9 +37,11 @@ export async function GET(request: Request, { params }: { params: { locationId: 
 
     const { data: reviews } = await query
 
-    return NextResponse.json({ reviews: reviews || [] })
+    return NextResponse.json({
+      reviews: reviews || [],
+      canPostReplies: canManage
+    })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-
