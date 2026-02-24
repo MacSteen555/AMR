@@ -1,10 +1,49 @@
 import { NextResponse } from 'next/server'
-import { requireTeamAdmin } from '@/lib/rbac'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { requireTeamMember, requireTeamAdmin } from '@/lib/rbac'
+import { createSupabaseServerClient, createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { createTeamInviteSchema } from '@/lib/validation/schemas'
 import { sendEmail } from '@/lib/email/send'
 import { buildTeamInviteEmail } from '@/lib/email/templates/team-invite'
 import crypto from 'crypto'
+
+export async function GET(request: Request, { params }: { params: { teamId: string } }) {
+  try {
+    await requireTeamMember(params.teamId)
+    const supabase = createSupabaseServiceRoleClient()
+
+    const { data: invites, error } = await supabase
+      .schema('app')
+      .from('team_invites')
+      .select(`
+        id,
+        invited_email,
+        role,
+        created_at,
+        expires_at,
+        accepted_at,
+        inviter:users!team_invites_invited_by_fkey ( display_name, email )
+      `)
+      .eq('team_id', params.teamId)
+      .is('accepted_at', null)
+      .gte('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+
+    if (error) throw new Error(error.message)
+
+    return NextResponse.json({
+      invites: (invites || []).map((inv: any) => ({
+        id: inv.id,
+        invited_email: inv.invited_email,
+        role: inv.role,
+        created_at: inv.created_at,
+        expires_at: inv.expires_at,
+        inviter_name: inv.inviter?.display_name || inv.inviter?.email || 'Unknown',
+      }))
+    })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
   try {

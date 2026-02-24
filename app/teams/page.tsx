@@ -27,6 +27,15 @@ interface Member {
   role: string
 }
 
+interface PendingInvite {
+  id: string
+  invited_email: string
+  role: string
+  created_at: string
+  expires_at: string
+  inviter_name: string
+}
+
 interface LocationSettings {
   brand_voice?: string
   positive_sentiment?: string
@@ -48,6 +57,7 @@ export default function TeamsPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([])
   const [loadingData, setLoadingData] = useState(false)
 
   // Modals state
@@ -106,12 +116,14 @@ export default function TeamsPage() {
   const loadTeamData = async (teamId: string) => {
     setLoadingData(true)
     try {
-      const [locationsData, membersData] = await Promise.all([
+      const [locationsData, membersData, invitesData] = await Promise.all([
         apiGet<{ locations: Location[] }>(`/api/teams/${teamId}/locations`),
         apiGet<{ members: Member[] }>(`/api/teams/${teamId}/members`),
+        apiGet<{ invites: PendingInvite[] }>(`/api/teams/${teamId}/invites`),
       ])
       setLocations(locationsData.locations || [])
       setMembers(membersData.members || [])
+      setPendingInvites(invitesData.invites || [])
     } catch (error) {
       console.error('Failed to load team data:', error)
     } finally {
@@ -167,10 +179,33 @@ export default function TeamsPage() {
       setToast({ message: 'Invitation sent!', type: 'success' })
       setIsInviteModalOpen(false)
       setInviteEmail('')
+      if (selectedTeamId) loadTeamData(selectedTeamId)
     } catch (err: any) {
       setToast({ message: 'Failed to send invite: ' + err.message, type: 'error' })
     } finally {
       setSendingInvite(false)
+    }
+  }
+
+  const handleCancelInvite = async (inviteId: string) => {
+    if (!selectedTeamId || !confirm('Cancel this invitation?')) return
+    try {
+      await apiDelete(`/api/teams/${selectedTeamId}/invites/${inviteId}`)
+      setToast({ message: 'Invitation cancelled', type: 'success' })
+      setPendingInvites(prev => prev.filter(i => i.id !== inviteId))
+    } catch (err: any) {
+      setToast({ message: 'Failed to cancel invite: ' + err.message, type: 'error' })
+    }
+  }
+
+  const handleLeaveTeam = async () => {
+    if (!selectedTeamId || !confirm('Are you sure you want to leave this team? This cannot be undone.')) return
+    try {
+      await apiPost(`/api/teams/${selectedTeamId}/leave`, {})
+      setToast({ message: 'You have left the team', type: 'success' })
+      window.location.reload()
+    } catch (err: any) {
+      setToast({ message: err.message, type: 'error' })
     }
   }
 
@@ -446,7 +481,7 @@ export default function TeamsPage() {
                         </div>
 
                         {/* Three Dots Menu */}
-                        {team.id === selectedTeamId && isTeamAdmin && (
+                        {team.id === selectedTeamId && (
                           <div className="relative" ref={menuRef}>
                             <button
                               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -459,11 +494,19 @@ export default function TeamsPage() {
                             {isMenuOpen && (
                               <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-10 border border-gray-100">
                                 <button
-                                  onClick={() => { setIsMenuOpen(false); handleDeleteTeam(); }}
-                                  className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                  onClick={() => { setIsMenuOpen(false); handleLeaveTeam(); }}
+                                  className="block w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                                 >
-                                  Delete Team
+                                  Leave Team
                                 </button>
+                                {isTeamAdmin && (
+                                  <button
+                                    onClick={() => { setIsMenuOpen(false); handleDeleteTeam(); }}
+                                    className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                  >
+                                    Delete Team
+                                  </button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -621,6 +664,44 @@ export default function TeamsPage() {
                                 ))}
                               </div>
                             </div>
+
+                            {/* Pending Invites */}
+                            {pendingInvites.length > 0 && (
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">Pending Invites</h3>
+                                <div className="space-y-2">
+                                  {pendingInvites.map((invite) => (
+                                    <div
+                                      key={invite.id}
+                                      className="flex items-center justify-between p-4 border border-dashed border-amber-300 bg-amber-50/50 rounded-xl"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 text-lg">
+                                          ✉️
+                                        </div>
+                                        <div>
+                                          <div className="font-medium text-gray-900">{invite.invited_email}</div>
+                                          <div className="text-xs text-gray-500">
+                                            Invited by {invite.inviter_name} · Expires {new Date(invite.expires_at).toLocaleDateString()}
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-lg">
+                                          {invite.role} · pending
+                                        </span>
+                                        <button
+                                          onClick={() => handleCancelInvite(invite.id)}
+                                          className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
