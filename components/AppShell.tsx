@@ -26,14 +26,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, teams, loading, refresh } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(teams[0] || null)
+  // Restore selected team from localStorage, fallback to teams[0]
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(() => {
+    if (typeof window !== 'undefined') {
+      const savedId = localStorage.getItem('selectedTeamId')
+      if (savedId && teams.length) {
+        const saved = teams.find(t => t.id === savedId)
+        if (saved) return saved
+      }
+    }
+    return teams[0] || null
+  })
   const [locations, setLocations] = useState<Location[]>([])
   const [locationsOpen, setLocationsOpen] = useState(true)
   const [teamsOpen, setTeamsOpen] = useState(false)
   const teamDropdownRef = useRef<HTMLDivElement>(null)
 
   const [isRefreshing, setIsRefreshing] = useState(false)
-  // Sync selectedTeam with URL when navigating
+
+  // Persist selected team to localStorage
+  useEffect(() => {
+    if (selectedTeam?.id) {
+      localStorage.setItem('selectedTeamId', selectedTeam.id)
+    }
+  }, [selectedTeam?.id])
+
+  // Restore saved team once teams array loads from useAuth
+  useEffect(() => {
+    if (!teams.length) return
+    const savedId = localStorage.getItem('selectedTeamId')
+    if (savedId) {
+      const saved = teams.find(t => t.id === savedId)
+      if (saved && saved.id !== selectedTeam?.id) {
+        setSelectedTeam(saved)
+        return
+      }
+    }
+    // If no saved team or saved team not found, default to first
+    if (!selectedTeam) {
+      setSelectedTeam(teams[0])
+    }
+  }, [teams])
+
+  // Sync selectedTeam with URL when navigating (URL takes priority)
   useEffect(() => {
     if (!pathname || !teams.length) return
     const match = pathname.match(/\/teams\/([^/]+)/)
@@ -44,7 +79,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         if (urlTeam) {
           setSelectedTeam(urlTeam)
         } else if (!isRefreshing && refresh) {
-          // Team not found in state, we likely just created it! Refresh to fetch new teams.
           setIsRefreshing(true)
           refresh().finally(() => setIsRefreshing(false))
         }
