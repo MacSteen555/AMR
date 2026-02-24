@@ -61,7 +61,7 @@ export default function TeamsPage() {
   const [editingLocation, setEditingLocation] = useState<Location | null>(null)
   const [settingsForm, setSettingsForm] = useState<LocationSettings>({})
   const [savingSettings, setSavingSettings] = useState(false)
-  
+
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 
@@ -279,7 +279,7 @@ export default function TeamsPage() {
   return (
     <AppShell>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
-        <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="p-8">
 
           {/* ── Explainer Banner ── */}
           {showBanner && (
@@ -305,9 +305,9 @@ export default function TeamsPage() {
                   <div>
                     <h3 className="font-bold text-lg mb-1">What are Teams?</h3>
                     <p className="text-indigo-100 text-sm leading-relaxed max-w-2xl">
-                      Teams are how you organize your business locations. Each team can have multiple locations, 
-                      members with different roles, and its own subscription plan. Set up brand voice settings 
-                      per location so every review reply matches your brand perfectly. 
+                      Teams are how you organize your business locations. Each team can have multiple locations,
+                      members with different roles, and its own subscription plan. Set up brand voice settings
+                      per location so every review reply matches your brand perfectly.
                       <span className="text-white font-medium"> Think of a team as your business or brand umbrella.</span>
                     </p>
                   </div>
@@ -326,7 +326,7 @@ export default function TeamsPage() {
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-3">Get Started with Your First Team</h1>
               <p className="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
-                Create a team to connect your Google Business locations and start managing reviews with 
+                Create a team to connect your Google Business locations and start managing reviews with
                 AI-powered replies that match your brand voice.
               </p>
               <button
@@ -697,7 +697,7 @@ export default function TeamsPage() {
 
                 <form onSubmit={handleSaveLocationSettings} className="flex flex-col flex-1 overflow-hidden">
                   <div className="p-8 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
-                    
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Overall Tone & Style</label>
                       <textarea
@@ -748,8 +748,8 @@ export default function TeamsPage() {
                     >
                       {savingSettings ? (
                         <>
-                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                           Saving...
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Saving...
                         </>
                       ) : 'Save Settings'}
                     </button>
@@ -843,10 +843,10 @@ export default function TeamsPage() {
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
               {(() => {
                 const team = teams.find(t => t.id === selectedTeamId)
-                const hasActivePaidSub = team?.subscription?.tier && 
-                                       team.subscription.tier !== 'FREE' && 
-                                       (team.subscription.status === 'active' || team.subscription.status === 'trialing')
-                
+                const hasActivePaidSub = team?.subscription?.tier &&
+                  team.subscription.tier !== 'FREE' &&
+                  (team.subscription.status === 'active' || team.subscription.status === 'trialing')
+
                 return (
                   <>
                     <div className="flex items-start gap-4 mb-4">
@@ -877,14 +877,14 @@ export default function TeamsPage() {
 
                     <div className="flex flex-col gap-3 mt-6">
                       {hasActivePaidSub && (
-                         <button
-                           onClick={() => window.location.href = `/teams/${selectedTeamId}/billing`}
-                           className="w-full py-2 px-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-medium transition-colors mb-2"
-                         >
-                           Go to Billing to Cancel
-                         </button>
+                        <button
+                          onClick={() => window.location.href = `/teams/${selectedTeamId}/billing`}
+                          className="w-full py-2 px-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-medium transition-colors mb-2"
+                        >
+                          Go to Billing to Cancel
+                        </button>
                       )}
-                      
+
                       <div className="flex justify-end gap-3">
                         <button
                           onClick={() => setIsDeleteModalOpen(false)}
