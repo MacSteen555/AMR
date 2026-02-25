@@ -26,6 +26,7 @@ export default function LocationReviewsPage() {
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState<'list' | 'stack'>('list')
     const [tab, setTab] = useState<'inbox' | 'history'>('inbox')
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest')
 
     // Local State for Edits (Map<ReviewId, EditedText>)
     const [edits, setEdits] = useState<Record<string, string>>({})
@@ -56,7 +57,7 @@ export default function LocationReviewsPage() {
     const loadReviews = async () => {
         setLoading(true)
         try {
-            const { reviews: data, canPostReplies: canPost } = await apiGet<{ reviews: Review[], canPostReplies: boolean }>(`/api/locations/${locationId}/reviews?limit=100`)
+            const { reviews: data, canPostReplies: canPost } = await apiGet<{ reviews: Review[], canPostReplies: boolean }>(`/api/locations/${locationId}/reviews?limit=1000`)
             setReviews(data)
             setCanPostReplies(canPost)
         } catch (err) {
@@ -71,6 +72,14 @@ export default function LocationReviewsPage() {
         if (tab === 'inbox') return r.reply_status === 'none' || r.reply_status === 'draft'
         if (tab === 'history') return r.reply_status === 'posted' || r.reply_status === 'dismissed'
         return false
+    }).sort((a, b) => {
+        switch (sortBy) {
+            case 'oldest': return new Date(a.review_date).getTime() - new Date(b.review_date).getTime()
+            case 'highest': return b.rating - a.rating || new Date(b.review_date).getTime() - new Date(a.review_date).getTime()
+            case 'lowest': return a.rating - b.rating || new Date(b.review_date).getTime() - new Date(a.review_date).getTime()
+            case 'newest':
+            default: return new Date(b.review_date).getTime() - new Date(a.review_date).getTime()
+        }
     })
 
     // --- Stack Mode Helper ---
@@ -364,22 +373,34 @@ export default function LocationReviewsPage() {
                             History ({reviews.filter(r => r.reply_status === 'posted' || r.reply_status === 'dismissed').length})
                         </button>
                     </div>
-                    {tab === 'inbox' && (
-                        <div className="flex bg-gray-100 p-1 rounded-lg">
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
-                            >
-                                List
-                            </button>
-                            <button
-                                onClick={() => setViewMode('stack')}
-                                className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${viewMode === 'stack' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
-                            >
-                                Focus
-                            </button>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-3">
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="newest">Newest first</option>
+                            <option value="oldest">Oldest first</option>
+                            <option value="highest">Highest rating</option>
+                            <option value="lowest">Lowest rating</option>
+                        </select>
+                        {tab === 'inbox' && (
+                            <div className="flex bg-gray-100 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+                                >
+                                    List
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('stack')}
+                                    className={`px-3 py-1 text-sm font-medium rounded-md transition-all ${viewMode === 'stack' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+                                >
+                                    Focus
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Content */}
