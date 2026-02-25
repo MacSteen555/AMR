@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AutoMyReply - AI-Powered Review Management',
-  description: 'Automatically generate professional replies to Google Business Profile reviews',
+  title: 'AutoMyReply — AI-Powered Google Review Management',
+  description: 'Automatically generate professional, on-brand replies to your Google Business Profile reviews with AI. Save hours, stay consistent, and never miss a review.',
+  keywords: 'google reviews, review management, AI replies, business profile, review automation',
 }
 
 export default function RootLayout({
@@ -13,10 +14,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body>{children}</body>
     </html>
   )
 }
+
 
 
 

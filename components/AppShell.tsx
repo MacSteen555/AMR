@@ -105,9 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">
-              A
-            </div>
+            <img src="/images/logo.png" alt="AutoMyReply" className="h-8 w-auto" />
             <span className="text-xl font-bold text-gray-900">AutoMyReply</span>
           </button>
         </div>

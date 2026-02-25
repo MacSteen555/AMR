@@ -2,7 +2,7 @@ import Stripe from 'stripe'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2024-11-20.acacia' as any,
 })
 
 /**
@@ -48,11 +48,11 @@ export async function createCheckoutSession(
       const sub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id, {
         expand: ['schedule']
       })
-      
+
       if (sub.status === 'active' || sub.status === 'trialing') {
         const item = sub.items.data[0]
         const currentPriceId = item.price.id
-        
+
         if (currentPriceId === priceId) {
           console.log(`[Checkout] Already on this plan, no update needed`)
           return successUrl // Already on this plan
@@ -63,50 +63,50 @@ export async function createCheckoutSession(
         // Let's trust the Price IDs environment check we did above.
         // But to be safe, let's compare amounts from the retrieved prices.
         const newPriceObj = await stripe.prices.retrieve(priceId)
-        
+
         const currentAmount = item.price.unit_amount || 0
         const newAmount = newPriceObj.unit_amount || 0
         const isDowngrade = newAmount < currentAmount
 
         if (isDowngrade) {
-           console.log(`[Checkout] Downgrade detected (${currentAmount} -> ${newAmount}). Scheduling for end of period.`)
+          console.log(`[Checkout] Downgrade detected (${currentAmount} -> ${newAmount}). Scheduling for end of period.`)
 
-           // If there's an existing schedule, release it first
-           if (sub.schedule) {
-             const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule.id
-             console.log(`[Checkout] Releasing existing schedule ${scheduleId}`)
-             await stripe.subscriptionSchedules.release(scheduleId)
-           }
+          // If there's an existing schedule, release it first
+          if (sub.schedule) {
+            const scheduleId = typeof sub.schedule === 'string' ? sub.schedule : sub.schedule.id
+            console.log(`[Checkout] Releasing existing schedule ${scheduleId}`)
+            await stripe.subscriptionSchedules.release(scheduleId)
+          }
 
-           // Create a new schedule from the subscription
-           console.log(`[Checkout] Creating new subscription schedule`)
-           const schedule = await stripe.subscriptionSchedules.create({
-             from_subscription: sub.id,
-           })
+          // Create a new schedule from the subscription
+          console.log(`[Checkout] Creating new subscription schedule`)
+          const schedule = await stripe.subscriptionSchedules.create({
+            from_subscription: sub.id,
+          })
 
-           // Update the schedule to set the downgrade at period end
-           await stripe.subscriptionSchedules.update(schedule.id, {
-             phases: [
-               {
-                 items: [{ price: currentPriceId, quantity: 1 }],
-                 start_date: sub.current_period_start,
-                 end_date: sub.current_period_end,
-               },
-               {
-                 items: [{ price: priceId, quantity: 1 }],
-                 start_date: sub.current_period_end,
-                 // No end_date means it continues indefinitely
-               }
-             ]
-           })
+          // Update the schedule to set the downgrade at period end
+          await stripe.subscriptionSchedules.update(schedule.id, {
+            phases: [
+              {
+                items: [{ price: currentPriceId, quantity: 1 }],
+                start_date: sub.current_period_start,
+                end_date: sub.current_period_end,
+              },
+              {
+                items: [{ price: priceId, quantity: 1 }],
+                start_date: sub.current_period_end,
+                // No end_date means it continues indefinitely
+              }
+            ]
+          })
 
-           console.log(`[Checkout] Successfully scheduled downgrade to ${tier} at ${new Date(sub.current_period_end * 1000).toISOString()}`)
-           return successUrl
+          console.log(`[Checkout] Successfully scheduled downgrade to ${tier} at ${new Date(sub.current_period_end * 1000).toISOString()}`)
+          return successUrl
 
         } else {
           // Upgrade: Immediate
-           console.log(`[Checkout] Upgrade detected (${currentAmount} -> ${newAmount}). Invoicing immediately.`)
-           await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+          console.log(`[Checkout] Upgrade detected (${currentAmount} -> ${newAmount}). Invoicing immediately.`)
+          await stripe.subscriptions.update(subscription.stripe_subscription_id, {
             items: [{
               id: item.id,
               price: priceId,
@@ -151,7 +151,7 @@ export async function createCheckoutSession(
 
   // 5. Create Checkout Session (for new subscriptions or re-subscribing)
   console.log(`[Checkout] Creating new Stripe Checkout session for customer ${customerId}`)
-  
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId, // CRITICAL: Reuse existing customer ID to avoid duplicates
     mode: 'subscription',

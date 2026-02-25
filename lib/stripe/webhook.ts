@@ -3,7 +3,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { grantMonthlyCredits } from '@/lib/billing/credits'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2024-11-20.acacia' as any,
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
@@ -206,7 +206,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   if (teamSub) {
     console.log(`[Stripe Webhook] Canceling subscription for team: ${teamSub.team_id}`)
-    
+
     // 1. Reset subscription to FREE
     const { error } = await serviceClient
       .schema('app').from('team_subscriptions')
@@ -227,7 +227,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     }
 
     // 2. Hard reset credits to 5 (Design Requirement)
-    
+
     // Insert adjustment record
     await serviceClient
       .schema('app').from('team_credit_transactions')
@@ -249,8 +249,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         period_end: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'team_id' })
-      
-     console.log(`[Stripe Webhook] Reset team ${teamSub.team_id} to FREE tier with 5 credits`)
+
+    console.log(`[Stripe Webhook] Reset team ${teamSub.team_id} to FREE tier with 5 credits`)
   }
 }
 

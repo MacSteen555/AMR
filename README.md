@@ -1,38 +1,82 @@
-# AutoMyReply Backend
+# AutoMyReply
 
-A Next.js backend for managing Google Business Profile reviews, generating AI-powered replies, and running competitive analysis.
+> AI-powered Google Business Profile review management — generate professional, on-brand replies in seconds.
+
+AutoMyReply is a full-stack SaaS application that helps businesses respond to Google reviews with AI-generated replies. It supports multi-tenant teams, location-level brand voice customization, competitive intelligence, and credit-based billing via Stripe.
 
 ## Features
 
-- **Google OAuth Integration**: Secure authentication with Google Business Profile API access
-- **Team-based Multi-tenancy**: Isolated teams with role-based access control
-- **Review Management**: Sync and manage Google reviews with AI-generated draft replies
-- **Competitive Intelligence**: Track competitor reviews via SerpAPI
-- **AI Insights**: Generate insights and competitive analysis using OpenAI
-- **Credit-based Billing**: Flexible credit system with Stripe subscriptions and top-ups
-- **Idempotency**: Safe retry logic for credit-consuming operations
+- **AI Reply Generation** — Context-aware, brand-voice-aligned replies to positive, neutral, and negative reviews
+- **Google Integration** — OAuth-based sync with Google Business Profile; post replies directly back to Google
+- **Team Collaboration** — Multi-tenant teams with role-based access (admin / member), email invitations via Resend
+- **Multi-Location** — Import and manage multiple locations per team, each with its own brand voice settings
+- **AI Insights** — Location-level and team-level trend analysis with actionable recommendations
+- **Competitive Intelligence** — Track competitor reviews via SerpAPI, run competitive analysis reports
+- **Credit-Based Billing** — Stripe-powered subscriptions (Free / Pro / Business / Enterprise) with credit top-ups
+- **Idempotent Operations** — Safe retry logic for all credit-consuming API calls
+- **Onboarding Wizard** — Guided setup for new users (brand voice extraction, sample review generation)
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Database**: Supabase Postgres with RLS
-- **Authentication**: Supabase Auth + Google OAuth
-- **APIs**: Google My Business, Google Places, SerpAPI, OpenAI, Stripe
-- **Language**: TypeScript
-- **Validation**: Zod
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Database | Supabase Postgres with Row-Level Security |
+| Auth | Supabase Auth + Google OAuth |
+| AI | OpenAI GPT |
+| Payments | Stripe (subscriptions + one-time top-ups) |
+| Email | Resend |
+| APIs | Google My Business, Google Places, SerpAPI |
+| Validation | Zod |
+
+## Project Structure
+
+```
+app/
+├── page.tsx                    # Landing page
+├── login/                      # Google OAuth login
+├── invites/[token]/            # Team invite acceptance
+├── (app)/                      # Authenticated route group (AppShell layout)
+│   ├── layout.tsx              # Persistent AppShell wrapper
+│   ├── dashboard/              # Dashboard / redirect
+│   ├── teams/                  # Team management, creation
+│   ├── settings/               # User settings
+│   └── locations/              # Location management & reviews
+├── api/
+│   ├── auth/                   # Google OAuth start + callback
+│   ├── me/                     # Current user info
+│   ├── teams/                  # CRUD, members, invites, leave
+│   ├── invites/                # Validate + accept invite tokens
+│   ├── locations/              # Settings, reviews, access
+│   ├── reviews/                # Draft generation, posting
+│   ├── competitors/            # Competitor tracking
+│   ├── google/                 # Places search, entitlements
+│   ├── onboarding/             # Brand voice, sample reviews
+│   └── stripe/                 # Webhook handler
+components/
+├── AppShell.tsx                # Sidebar nav, team switcher
+lib/
+├── auth/                       # Session helpers
+├── api.ts                      # Typed fetch wrapper
+├── rbac.ts                     # Role-based access control
+├── email/                      # Resend integration + templates
+└── supabase/                   # Client factories
+```
 
 ## Prerequisites
 
 - Node.js 18+
 - Supabase project with migrations applied
-- Google Cloud Project with OAuth credentials
-- Stripe account
+- Google Cloud project with OAuth credentials + Business Profile API enabled
+- Stripe account with webhook configured
 - OpenAI API key
 - SerpAPI key
+- Resend API key (for team invitation emails)
 
 ## Environment Variables
 
-Create a `.env.local` file with the following variables:
+Create a `.env.local` file:
 
 ```bash
 # Supabase
@@ -55,12 +99,16 @@ GOOGLE_OAUTH_CLIENT_ID=your-client-id
 GOOGLE_OAUTH_CLIENT_SECRET=your-client-secret
 GOOGLE_OAUTH_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 
-# Google Maps API
+# Google Maps
 GOOGLE_MAPS_API_KEY=your-maps-api-key
 PLACES_API_URL=https://places.googleapis.com/v1/places:searchText
 
 # SerpAPI
 SERP_API_KEY=your-serpapi-key
+
+# Email (Resend)
+RESEND_API_KEY=re_...
+EMAIL_FROM=AutoMyReply <noreply@yourdomain.com>
 
 # Token Encryption
 TOKEN_ENCRYPTION_SECRET=your-32-char-secret-key
@@ -69,138 +117,127 @@ TOKEN_ENCRYPTION_SECRET=your-32-char-secret-key
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-## Installation
+## Getting Started
 
-1. Clone the repository:
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd AMR-Backend_Experiments
-```
 
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. Set up environment variables (see above)
+# Set up environment variables (see above)
 
-4. Run database migrations (ensure Migration 003 is applied)
+# Run database migrations in Supabase
 
-5. Start the development server:
-```bash
+# Start development server
 npm run dev
 ```
-
-## Database Setup
-
-Ensure the following migrations are applied to your Supabase database:
-
-- Migration 001: Core schema (users, teams, locations, reviews, etc.)
-- Migration 002: Additional tables (competitors, insights, etc.)
-- Migration 003: Google tokens encryption, idempotency, Stripe events, credit topups
-
-The database uses:
-- Schema: `app` for application tables
-- Schema: `authz` for RLS helper functions
-- Extensions: `citext` (case-insensitive emails)
-- Encryption: AES-256-GCM via Node.js (not pgcrypto)
 
 ## API Routes
 
 ### Authentication
-- `GET /api/me` - Get current user and teams
-- `GET /api/auth/google/start` - Start Google OAuth flow
-- `GET /api/auth/google/callback` - OAuth callback handler
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/me` | Current user + teams |
+| `GET` | `/api/auth/google/start` | Start Google OAuth flow |
+| `GET` | `/api/auth/google/callback` | OAuth callback handler |
 
 ### Teams
-- `GET /api/teams` - List user's teams
-- `POST /api/teams` - Create team
-- `GET /api/teams/:teamId/members` - List team members
-- `POST /api/teams/:teamId/invites` - Create team invite
-- `PATCH /api/teams/:teamId/members/:userId` - Update member role
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/teams` | List user's teams |
+| `POST` | `/api/teams` | Create a team |
+| `GET` | `/api/teams/:id` | Get team details |
+| `GET` | `/api/teams/:id/members` | List team members |
+| `PATCH` | `/api/teams/:id/members/:userId` | Update member role |
+| `POST` | `/api/teams/:id/invites` | Send team invitation email |
+| `DELETE` | `/api/teams/:id/invites/:inviteId` | Revoke pending invite |
+| `POST` | `/api/teams/:id/leave` | Leave a team |
+
+### Invitations
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/invites/validate?token=xxx` | Validate invite token (public) |
+| `POST` | `/api/invites/accept` | Accept invite (authenticated) |
 
 ### Locations
-- `GET /api/google/entitlements/locations` - List accessible Google locations
-- `POST /api/teams/:teamId/locations/import` - Import locations
-- `GET /api/teams/:teamId/locations` - List team locations
-- `PATCH /api/locations/:locationId/settings` - Update location settings
-- `POST /api/locations/:locationId/access` - Grant location access
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/google/entitlements/locations` | List accessible Google locations |
+| `POST` | `/api/teams/:id/locations/import` | Import locations to team |
+| `GET` | `/api/teams/:id/locations` | List team locations |
+| `PATCH` | `/api/locations/:id/settings` | Update location settings/brand voice |
+| `POST` | `/api/locations/:id/access` | Grant location access to member |
 
 ### Reviews
-- `POST /api/locations/:locationId/reviews/sync` - Sync Google reviews
-- `GET /api/locations/:locationId/reviews` - List reviews
-- `POST /api/reviews/:reviewId/draft` - Generate draft reply (1 credit)
-- `PATCH /api/reviews/:reviewId/draft` - Update draft
-- `POST /api/reviews/:reviewId/post-reply` - Post reply to Google
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/locations/:id/reviews/sync` | Sync reviews from Google |
+| `GET` | `/api/locations/:id/reviews` | List location reviews |
+| `GET` | `/api/teams/:id/reviews` | List all team reviews |
+| `POST` | `/api/reviews/:id/draft` | Generate AI draft reply (1 credit) |
+| `PATCH` | `/api/reviews/:id/draft` | Edit draft |
+| `POST` | `/api/reviews/:id/post-reply` | Post reply to Google |
 
-### Competitors
-- `POST /api/google/places/searchText` - Search for places
-- `POST /api/teams/:teamId/competitors` - Create competitor
-- `GET /api/teams/:teamId/competitors` - List competitors
-- `POST /api/competitors/:competitorId/reviews/sync` - Sync competitor reviews
-
-### Insights
-- `POST /api/teams/:teamId/insights/run` - Run team insights (3 credits, requires BUSINESS+)
-- `GET /api/teams/:teamId/insights` - List team insights
-- `POST /api/locations/:locationId/insights/run` - Run location insights (3 credits, requires PRO+)
-- `GET /api/locations/:locationId/insights` - List location insights
-
-### Competitive Analysis (BUSINESS+)
-- `POST /api/teams/:teamId/competitive-runs` - Create competitive run (5 credits, requires BUSINESS+)
-- `GET /api/teams/:teamId/competitive-runs` - List competitive runs
+### Insights & Competitive Analysis
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/locations/:id/insights/run` | Run location insights (3 credits, PRO+) |
+| `GET` | `/api/locations/:id/insights` | List location insights |
+| `POST` | `/api/teams/:id/insights/run` | Run team insights (3 credits, BUSINESS+) |
+| `GET` | `/api/teams/:id/insights` | List team insights |
+| `POST` | `/api/teams/:id/competitive-runs` | Run competitive analysis (5 credits, BUSINESS+) |
+| `GET` | `/api/teams/:id/competitive-runs` | List competitive runs |
 
 ### Billing
-- `GET /api/teams/:teamId/billing` - Get billing info
-- `POST /api/teams/:teamId/billing/checkout` - Create subscription checkout
-- `POST /api/teams/:teamId/billing/topup` - Create credit top-up checkout
-- `POST /api/teams/:teamId/billing/portal` - Create Stripe portal session
-- `POST /api/stripe/webhook` - Stripe webhook handler
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/teams/:id/billing` | Get billing info + credits |
+| `POST` | `/api/teams/:id/billing/checkout` | Create Stripe checkout session |
+| `POST` | `/api/teams/:id/billing/topup` | Create credit top-up checkout |
+| `POST` | `/api/teams/:id/billing/portal` | Create Stripe customer portal session |
+| `POST` | `/api/stripe/webhook` | Stripe webhook handler |
 
-## Credit Consumption
+## Credit System
 
-- **Draft Generate**: 1 credit (FREE+)
-- **Draft Regenerate**: 1 credit (FREE+)
-- **Location Insights Run**: 3 credits (PRO+)
-- **Team Insights Run**: 3 credits (BUSINESS+)
-- **Competitive Run**: 5 credits (BUSINESS+)
+| Operation | Cost | Required Tier |
+|-----------|------|--------------|
+| Draft Reply (generate/regenerate) | 1 credit | Free+ |
+| Location Insights | 3 credits | Pro+ |
+| Team Insights | 3 credits | Business+ |
+| Competitive Analysis | 5 credits | Business+ |
 
-## Idempotency
+All credit-consuming endpoints support idempotency via the `Idempotency-Key` header.
 
-Endpoints that consume credits support idempotency via the `Idempotency-Key` header:
-- `/api/reviews/:reviewId/draft` (POST)
-- `/api/reviews/:reviewId/post-reply` (POST)
-- `/api/teams/:teamId/insights/run` (POST)
-- `/api/locations/:locationId/insights/run` (POST)
-- `/api/teams/:teamId/competitive-runs` (POST)
+## Database
 
-## Testing
+- **Schema**: `app` for application tables, `authz` for RLS helper functions
+- **Extensions**: `citext` (case-insensitive emails)
+- **Security**: AES-256-GCM encryption for Google refresh tokens (Node.js `crypto`, not pgcrypto)
+- **RLS**: Row-Level Security policies enforce data isolation at the database level
 
-Run tests:
-```bash
-npm test
-```
+## Deployment
 
-## Production Deployment
-
-1. Set all environment variables in your hosting platform
-2. Ensure database migrations are applied
+1. Set all environment variables on your hosting platform
+2. Apply database migrations to Supabase
 3. Configure Stripe webhook endpoint: `https://your-domain.com/api/stripe/webhook`
-4. Update `NEXT_PUBLIC_APP_URL` to your production URL
-5. Build and deploy:
+4. Set `NEXT_PUBLIC_APP_URL` to your production URL
+
 ```bash
 npm run build
 npm start
 ```
 
-## Security Notes
+## Security
 
-- Never log tokens or sensitive data
-- Refresh tokens are encrypted using AES-256-GCM (Node.js crypto) before storage
-- RLS policies enforce data isolation at the database level
-- Use service role client only for webhooks and background jobs
-- All API routes validate authentication and authorization
+- Google refresh tokens encrypted with AES-256-GCM before storage
+- RLS policies enforce tenant-level data isolation
+- Service role client used only for webhooks and background operations
+- All API routes validate authentication and RBAC authorization
+- Sensitive data is never logged
 
 ## License
 
-[Your License Here]
-
+MIT
