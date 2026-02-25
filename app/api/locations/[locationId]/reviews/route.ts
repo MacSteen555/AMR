@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request, { params }: { params: { locationId: string } }) {
   try {
     // RBAC check — returns canManage based on admin role or location_access table

@@ -3,6 +3,8 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { getSupabaseUser } from '@/lib/auth/session'
 import crypto from 'crypto'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/invites/validate?token=xxx
  * Returns invite details for the acceptance page without requiring auth.

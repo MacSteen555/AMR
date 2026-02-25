@@ -4,6 +4,8 @@ import { createServerClient } from '@supabase/ssr'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Handles OAuth callback from Google
  * Validates state, exchanges code for tokens, creates session, redirects to app

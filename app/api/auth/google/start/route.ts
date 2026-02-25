@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { googleOAuthStart } from '@/lib/auth/google'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Initiates Google OAuth flow
  * Returns authorization URL and stores PKCE parameters in cookies

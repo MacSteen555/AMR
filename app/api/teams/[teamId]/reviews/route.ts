@@ -3,6 +3,8 @@ import { requireTeamMember } from '@/lib/rbac'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
     try {
         const membership = await requireTeamMember(params.teamId)
