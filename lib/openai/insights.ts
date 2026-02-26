@@ -1,5 +1,4 @@
 import OpenAI from 'openai'
-import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -11,16 +10,31 @@ export interface InsightsInput {
     comment: string | null
     review_date: string
     reviewer_name?: string | null
+    reply_status?: string | null
   }>
   periodStart: string
   periodEnd: string
   locationName?: string | null
+  teamName?: string | null
+}
+
+export interface GeneratedInsights {
+  executiveSummary: string
+  ratingTrend: 'improving' | 'declining' | 'stable'
+  ratingTrendDescription: string
+  keyStrengths: Array<{ theme: string; description: string; mentionCount: number }>
+  keyWeaknesses: Array<{ theme: string; description: string; mentionCount: number; severity: 'low' | 'medium' | 'high' }>
+  emergingTopics: Array<{ topic: string; sentiment: 'positive' | 'negative' | 'mixed'; description: string }>
+  riskAlerts: Array<{ title: string; description: string; urgency: 'low' | 'medium' | 'high' }>
+  recommendations: Array<{ title: string; description: string; impact: 'low' | 'medium' | 'high'; effort: 'low' | 'medium' | 'high' }>
+  customerPersona: string
+  notableQuotes: Array<{ quote: string; rating: number; sentiment: 'positive' | 'negative' }>
 }
 
 /**
- * Generates insights for a team or location based on reviews.
+ * Generates rich, structured insights for a team or location based on reviews.
  */
-export async function insightsRun(input: InsightsInput): Promise<any> {
+export async function insightsRun(input: InsightsInput): Promise<GeneratedInsights> {
   const prompt = buildInsightsPrompt(input)
 
   const completion = await openai.chat.completions.create({
@@ -28,8 +42,7 @@ export async function insightsRun(input: InsightsInput): Promise<any> {
     messages: [
       {
         role: 'system',
-        content:
-          'You are a business analytics expert. Analyze review data and provide structured insights in JSON format.',
+        content: `You are an expert business intelligence analyst specializing in customer review analysis for local businesses. You provide actionable, specific insights grounded in the actual review data. Be concrete, not generic. Reference specific patterns you see in the data. DO NOT USE EM DASHES.`,
       },
       {
         role: 'user',
@@ -54,39 +67,75 @@ export async function insightsRun(input: InsightsInput): Promise<any> {
 }
 
 function buildInsightsPrompt(input: InsightsInput): string {
-  let prompt = `Analyze the following review data and provide insights in JSON format:\n\n`
-  prompt += `Period: ${input.periodStart} to ${input.periodEnd}\n`
-  if (input.locationName) {
-    prompt += `Location: ${input.locationName}\n`
-  }
-  prompt += `Total Reviews: ${input.reviews.length}\n\n`
-
-  // Calculate basic stats
   const ratings = input.reviews.map((r) => r.rating)
-  const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length
+  const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0
   const ratingDistribution = [5, 4, 3, 2, 1].map((r) => ({
     rating: r,
     count: ratings.filter((rating) => rating === r).length,
   }))
 
-  prompt += `Average Rating: ${avgRating.toFixed(2)}\n`
-  prompt += `Rating Distribution:\n${ratingDistribution.map((d) => `  ${d.rating} stars: ${d.count}`).join('\n')}\n\n`
+  const repliedCount = input.reviews.filter(r => r.reply_status === 'posted' || r.reply_status === 'synced_external').length
+  const responseRate = ratings.length > 0 ? ((repliedCount / ratings.length) * 100).toFixed(1) : '0'
 
-  prompt += `Reviews:\n`
-  input.reviews.slice(0, 50).forEach((review, idx) => {
-    prompt += `${idx + 1}. [${review.rating}/5] ${review.comment || '(No comment)'}\n`
+  // Split reviews into time halves for trend detection
+  const sorted = [...input.reviews].sort((a, b) => new Date(a.review_date).getTime() - new Date(b.review_date).getTime())
+  const midpoint = Math.floor(sorted.length / 2)
+  const firstHalf = sorted.slice(0, midpoint)
+  const secondHalf = sorted.slice(midpoint)
+  const firstHalfAvg = firstHalf.length > 0 ? (firstHalf.reduce((s, r) => s + r.rating, 0) / firstHalf.length).toFixed(2) : 'N/A'
+  const secondHalfAvg = secondHalf.length > 0 ? (secondHalf.reduce((s, r) => s + r.rating, 0) / secondHalf.length).toFixed(2) : 'N/A'
+
+  let prompt = `Analyze the following review data and provide deep, actionable insights.\n\n`
+  prompt += `Period: ${input.periodStart} to ${input.periodEnd}\n`
+  if (input.locationName) prompt += `Location: ${input.locationName}\n`
+  if (input.teamName) prompt += `Team/Business: ${input.teamName}\n`
+  prompt += `Total Reviews: ${input.reviews.length}\n`
+  prompt += `Average Rating: ${avgRating.toFixed(2)}\n`
+  prompt += `Response Rate: ${responseRate}%\n`
+  prompt += `First-half average: ${firstHalfAvg} | Second-half average: ${secondHalfAvg}\n`
+  prompt += `Rating Distribution: ${ratingDistribution.map(d => `${d.rating}-star: ${d.count}`).join(', ')}\n\n`
+
+  prompt += `Reviews (up to 100):\n`
+  input.reviews.slice(0, 100).forEach((review, idx) => {
+    const date = new Date(review.review_date).toISOString().split('T')[0]
+    prompt += `${idx + 1}. [${review.rating}/5] [${date}] ${review.comment || '(No comment)'}\n`
   })
 
-  prompt += `\nProvide a JSON object with the following structure:\n`
-  prompt += `{\n`
-  prompt += `  "summary": "Overall summary of review trends",\n`
-  prompt += `  "averageRating": ${avgRating.toFixed(2)},\n`
-  prompt += `  "totalReviews": ${input.reviews.length},\n`
-  prompt += `  "ratingDistribution": { "5": ${ratingDistribution[0].count}, "4": ${ratingDistribution[1].count}, "3": ${ratingDistribution[2].count}, "2": ${ratingDistribution[3].count}, "1": ${ratingDistribution[4].count} },\n`
-  prompt += `  "topThemes": ["theme1", "theme2", "theme3"],\n`
-  prompt += `  "sentimentAnalysis": { "positive": 0, "neutral": 0, "negative": 0 },\n`
-  prompt += `  "recommendations": ["recommendation1", "recommendation2"]\n`
-  prompt += `}\n`
+  prompt += `\nReturn a JSON object with this EXACT structure:
+{
+  "executiveSummary": "A 2-3 sentence executive summary of the overall review landscape, written for a business owner. Be specific about what the data shows.",
+  "ratingTrend": "improving" | "declining" | "stable",
+  "ratingTrendDescription": "One sentence explaining the rating trajectory with specific numbers.",
+  "keyStrengths": [
+    { "theme": "Short theme name", "description": "Specific description with examples from reviews", "mentionCount": <estimated number of reviews mentioning this> }
+  ],
+  "keyWeaknesses": [
+    { "theme": "Short theme name", "description": "Specific description", "mentionCount": <number>, "severity": "low" | "medium" | "high" }
+  ],
+  "emergingTopics": [
+    { "topic": "Topic name", "sentiment": "positive" | "negative" | "mixed", "description": "What reviewers are saying" }
+  ],
+  "riskAlerts": [
+    { "title": "Alert title", "description": "Why this needs attention", "urgency": "low" | "medium" | "high" }
+  ],
+  "recommendations": [
+    { "title": "Action item", "description": "What to do and expected outcome", "impact": "low" | "medium" | "high", "effort": "low" | "medium" | "high" }
+  ],
+  "customerPersona": "A brief description of the typical reviewer based on review patterns.",
+  "notableQuotes": [
+    { "quote": "Exact quote from a review (abbreviated if long)", "rating": <number>, "sentiment": "positive" | "negative" }
+  ]
+}
+
+Rules:
+- Provide 3-5 keyStrengths and 2-4 keyWeaknesses
+- Provide 1-3 emergingTopics (things that appeared recently or are changing)
+- Provide 0-3 riskAlerts (only if there are genuine concerns)
+- Provide 3-5 recommendations, prioritized by impact
+- Provide 2-4 notableQuotes that capture representative customer voices
+- Be specific and data-driven, not generic. Reference actual patterns.
+- Do NOT use em dashes in any text.
+`
 
   return prompt
 }

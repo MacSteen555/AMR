@@ -1,9 +1,8 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import { apiGet, apiPost } from '@/lib/api'
-import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -19,29 +18,20 @@ interface KPIs {
   averageResponseTimeHours: number | null
   positivePercent: number
   negativePercent: number
-  locationCount: number
 }
 
 interface TimePoint { month: string; averageRating: number | null; count: number }
 interface VolumePoint { month: string; total: number; positive: number; neutral: number; negative: number }
 interface ResponseRatePoint { month: string; rate: number | null; replied: number; total: number }
 interface RatingBucket { rating: number; count: number }
-interface LocationStat {
-  locationId: string
-  locationName: string
-  totalReviews: number
-  averageRating: number
-  responseRate: number
-}
 
-interface TeamAnalytics {
+interface AnalyticsData {
   kpis: KPIs
   ratingOverTime: TimePoint[]
   volumeOverTime: VolumePoint[]
   responseRateOverTime: ResponseRatePoint[]
   ratingDistribution: RatingBucket[]
   sentimentBreakdown: { positive: number; neutral: number; negative: number }
-  perLocation: LocationStat[]
 }
 
 interface AIInsight {
@@ -60,6 +50,7 @@ interface AIInsight {
     recommendations?: Array<{ title: string; description: string; impact: string; effort: string }>
     customerPersona?: string
     notableQuotes?: Array<{ quote: string; rating: number; sentiment: string }>
+    // Legacy format support
     summary?: string
     topThemes?: string[]
   }
@@ -93,6 +84,8 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: 'all', label: 'All time' },
 ]
 
+// ─── Chart Formatters ────────────────────────────────────────────────────────
+
 function formatMonth(month: any): string {
   if (typeof month !== 'string') return String(month)
   const [y, m] = month.split('-')
@@ -108,34 +101,28 @@ const SENTIMENT_COLORS = { positive: '#22c55e', neutral: '#eab308', negative: '#
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function TeamInsightsPage() {
-  const { teamId } = useParams() as { teamId: string }
-  const router = useRouter()
-  const { teams } = useAuth()
+export default function LocationInsightsPage() {
+  const { locationId } = useParams() as { locationId: string }
   const [period, setPeriod] = useState<PeriodKey>('6m')
-  const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([])
   const [loading, setLoading] = useState(true)
+  const [aiLoading, setAiLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-
-  const currentTeam = teams.find(t => t.id === teamId)
-  const tier = currentTeam?.subscription?.tier || 'FREE'
-  const insightsEnabled = tier !== 'FREE'
 
   const { start, end } = useMemo(() => getPeriodDates(period), [period])
 
   useEffect(() => {
-    if (!insightsEnabled) return
     loadData()
-  }, [teamId, start, end, insightsEnabled])
+  }, [locationId, start, end])
 
   const loadData = async () => {
     setLoading(true)
     try {
       const [analyticsRes, insightsRes] = await Promise.all([
-        apiGet<{ analytics: TeamAnalytics }>(`/api/teams/${teamId}/insights/data?period_start=${start}&period_end=${end}`),
-        apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}`),
+        apiGet<{ analytics: AnalyticsData }>(`/api/locations/${locationId}/insights/data?period_start=${start}&period_end=${end}`),
+        apiGet<{ insights: AIInsight[] }>(`/api/locations/${locationId}/insights/run?period_window=${period}`),
       ])
       setAnalytics(analyticsRes.analytics)
       setAiInsights(insightsRes.insights || [])
@@ -149,45 +136,19 @@ export default function TeamInsightsPage() {
   const handleGenerateInsights = async () => {
     setGenerating(true)
     try {
-      await apiPost(`/api/teams/${teamId}/insights/run`, {
+      await apiPost(`/api/locations/${locationId}/insights/run`, {
         period_start: start,
         period_end: end,
         period_window: period,
       })
       setToast({ message: 'AI insights generated!', type: 'success' })
-      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}`)
+      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/locations/${locationId}/insights/run?period_window=${period}`)
       setAiInsights(insightsRes.insights || [])
     } catch (err: any) {
       setToast({ message: err.message || 'Failed to generate insights', type: 'error' })
     } finally {
       setGenerating(false)
     }
-  }
-
-  // Gate for FREE tier
-  if (!insightsEnabled) {
-    return (
-      <div className="p-8 flex items-center justify-center h-full">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Unlock Insights</h1>
-          <p className="text-gray-500 mb-6">
-            Get powerful analytics and AI-powered insights into your review performance.
-            Upgrade to Pro or higher to access this feature.
-          </p>
-          <button
-            onClick={() => router.push(`/teams/${teamId}/billing`)}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
-          >
-            Upgrade Plan
-          </button>
-        </div>
-      </div>
-    )
   }
 
   const kpis = analytics?.kpis
@@ -200,8 +161,8 @@ export default function TeamInsightsPage() {
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Team Insights</h1>
-            <p className="text-gray-500 mt-1">Review analytics across all your locations.</p>
+            <h1 className="text-3xl font-bold text-gray-900">Insights</h1>
+            <p className="text-gray-500 mt-1">Review analytics and AI-powered insights for this location.</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -233,18 +194,38 @@ export default function TeamInsightsPage() {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-              <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="indigo" />
-              <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
-              <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" />
-              <KPICard label="Positive" value={`${kpis!.positivePercent.toFixed(0)}%`} icon={<ThumbsUpIcon />} color="emerald" />
-              <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="purple" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <KPICard
+                label="Total Reviews"
+                value={kpis!.totalReviews.toLocaleString()}
+                icon={<ChatIcon />}
+                color="indigo"
+              />
+              <KPICard
+                label="Average Rating"
+                value={kpis!.averageRating.toFixed(1)}
+                suffix="/ 5"
+                icon={<StarIcon />}
+                color="yellow"
+              />
+              <KPICard
+                label="Response Rate"
+                value={`${kpis!.responseRate.toFixed(0)}%`}
+                icon={<ReplyIcon />}
+                color="green"
+              />
+              <KPICard
+                label="Positive Reviews"
+                value={`${kpis!.positivePercent.toFixed(0)}%`}
+                icon={<ThumbsUpIcon />}
+                color="emerald"
+              />
             </div>
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Rating Over Time */}
-              <ChartCard title="Average Rating Over Time" subtitle="Monthly trend across all locations">
+              <ChartCard title="Average Rating Over Time" subtitle="Monthly trend">
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={analytics.ratingOverTime.filter(d => d.averageRating !== null)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -255,7 +236,14 @@ export default function TeamInsightsPage() {
                       labelFormatter={(label: any) => formatMonth(label)}
                       contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
-                    <Line type="monotone" dataKey="averageRating" stroke="#6366f1" strokeWidth={2.5} dot={{ fill: '#6366f1', r: 4 }} activeDot={{ r: 6 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="averageRating"
+                      stroke="#6366f1"
+                      strokeWidth={2.5}
+                      dot={{ fill: '#6366f1', r: 4 }}
+                      activeDot={{ r: 6 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -267,8 +255,11 @@ export default function TeamInsightsPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" allowDecimals={false} />
-                    <Tooltip labelFormatter={(label: any) => formatMonth(label)} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                    <Bar dataKey="positive" stackId="a" fill="#22c55e" name="Positive (4-5)" />
+                    <Tooltip
+                      labelFormatter={(label: any) => formatMonth(label)}
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
+                    />
+                    <Bar dataKey="positive" stackId="a" fill="#22c55e" name="Positive (4-5)" radius={[0, 0, 0, 0]} />
                     <Bar dataKey="neutral" stackId="a" fill="#eab308" name="Neutral (3)" />
                     <Bar dataKey="negative" stackId="a" fill="#ef4444" name="Negative (1-2)" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -288,12 +279,19 @@ export default function TeamInsightsPage() {
                       contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
                     <defs>
-                      <linearGradient id="teamResponseGradient" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="responseGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
                         <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <Area type="monotone" dataKey="rate" stroke="#6366f1" strokeWidth={2.5} fill="url(#teamResponseGradient)" dot={{ fill: '#6366f1', r: 3 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="rate"
+                      stroke="#6366f1"
+                      strokeWidth={2.5}
+                      fill="url(#responseGradient)"
+                      dot={{ fill: '#6366f1', r: 3 }}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -302,7 +300,9 @@ export default function TeamInsightsPage() {
               <ChartCard title="Rating Distribution" subtitle="Breakdown by star rating">
                 <div className="px-4 pt-2">
                   {analytics.ratingDistribution.map(bucket => {
-                    const pct = kpis!.totalReviews > 0 ? (bucket.count / kpis!.totalReviews) * 100 : 0
+                    const pct = kpis!.totalReviews > 0
+                      ? (bucket.count / kpis!.totalReviews) * 100
+                      : 0
                     return (
                       <div key={bucket.rating} className="flex items-center gap-3 mb-3">
                         <div className="flex items-center gap-1 w-16 text-sm font-medium text-gray-700">
@@ -311,7 +311,10 @@ export default function TeamInsightsPage() {
                         <div className="flex-1 h-7 bg-gray-100 rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: RATING_COLORS[bucket.rating] }}
+                            style={{
+                              width: `${Math.max(pct, 1)}%`,
+                              backgroundColor: RATING_COLORS[bucket.rating],
+                            }}
                           />
                         </div>
                         <div className="w-20 text-right text-sm text-gray-600">
@@ -321,10 +324,14 @@ export default function TeamInsightsPage() {
                     )
                   })}
                 </div>
+                {/* Sentiment Donut */}
                 <div className="flex items-center justify-center gap-6 pt-2 pb-1 border-t border-gray-100 mt-2">
                   {Object.entries(analytics.sentimentBreakdown).map(([key, val]) => (
                     <div key={key} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] }} />
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] }}
+                      />
                       <span className="text-sm text-gray-600 capitalize">{key}</span>
                       <span className="text-sm font-semibold text-gray-900">{val}</span>
                     </div>
@@ -332,63 +339,6 @@ export default function TeamInsightsPage() {
                 </div>
               </ChartCard>
             </div>
-
-            {/* Per-Location Breakdown */}
-            {analytics.perLocation.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 mb-8 overflow-hidden">
-                <div className="p-5 border-b border-gray-100">
-                  <h3 className="text-base font-semibold text-gray-900">Location Breakdown</h3>
-                  <p className="text-xs text-gray-400">Performance comparison across locations</p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reviews</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg Rating</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Response Rate</th>
-                        <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-48">Rating</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {analytics.perLocation.map((loc, i) => (
-                        <tr
-                          key={loc.locationId}
-                          className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-gray-25'}`}
-                          onClick={() => router.push(`/locations/${loc.locationId}/insights`)}
-                        >
-                          <td className="px-5 py-3.5">
-                            <span className="text-sm font-medium text-gray-900 hover:text-indigo-600">{loc.locationName}</span>
-                          </td>
-                          <td className="px-5 py-3.5 text-right text-sm text-gray-600">{loc.totalReviews}</td>
-                          <td className="px-5 py-3.5 text-right">
-                            <span className="text-sm font-semibold text-gray-900">{loc.averageRating.toFixed(1)}</span>
-                            <span className="text-yellow-400 ml-1 text-xs">★</span>
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <span className={`text-sm font-semibold ${loc.responseRate >= 80 ? 'text-green-600' : loc.responseRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                              {loc.responseRate.toFixed(0)}%
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{
-                                  width: `${(loc.averageRating / 5) * 100}%`,
-                                  backgroundColor: loc.averageRating >= 4 ? '#22c55e' : loc.averageRating >= 3 ? '#eab308' : '#ef4444',
-                                }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
 
             {/* AI Insights Section */}
             <div className="mb-8">
@@ -421,7 +371,7 @@ export default function TeamInsightsPage() {
                   ) : (
                     <>
                       <SparklesIcon />
-                      Generate Team Insights (3 credits)
+                      Generate Insights (3 credits)
                     </>
                   )}
                 </button>
@@ -433,7 +383,7 @@ export default function TeamInsightsPage() {
                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-12 text-center">
                   <div className="text-4xl mb-3">✨</div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">No AI insights yet</h3>
-                  <p className="text-gray-500 text-sm mb-4">Generate AI-powered analysis to uncover hidden patterns across all your locations.</p>
+                  <p className="text-gray-500 text-sm mb-4">Generate AI-powered analysis to uncover hidden patterns in your reviews.</p>
                   <button
                     onClick={handleGenerateInsights}
                     disabled={generating}
@@ -444,6 +394,7 @@ export default function TeamInsightsPage() {
                 </div>
               )}
 
+              {/* Past Insights */}
               {aiInsights.length > 1 && (
                 <div className="mt-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Past Reports</h3>
@@ -452,7 +403,9 @@ export default function TeamInsightsPage() {
                       <details key={insight.id} className="bg-white border border-gray-200 rounded-lg">
                         <summary className="px-4 py-3 cursor-pointer text-sm text-gray-700 hover:bg-gray-50 rounded-lg">
                           <span className="font-medium">{insight.period_start} to {insight.period_end}</span>
-                          <span className="text-gray-400 ml-3">Generated {new Date(insight.generated_at).toLocaleDateString()}</span>
+                          <span className="text-gray-400 ml-3">
+                            Generated {new Date(insight.generated_at).toLocaleDateString()}
+                          </span>
                         </summary>
                         <div className="px-4 pb-4">
                           <AIInsightsPanel insight={insight} />
@@ -473,15 +426,23 @@ export default function TeamInsightsPage() {
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function KPICard({ label, value, suffix, icon, color }: {
-  label: string; value: string; suffix?: string; icon: React.ReactNode; color: string
+  label: string
+  value: string
+  suffix?: string
+  icon: React.ReactNode
+  color: string
 }) {
   const bgMap: Record<string, string> = {
-    indigo: 'bg-indigo-50', yellow: 'bg-yellow-50', green: 'bg-green-50',
-    emerald: 'bg-emerald-50', purple: 'bg-purple-50',
+    indigo: 'bg-indigo-50',
+    yellow: 'bg-yellow-50',
+    green: 'bg-green-50',
+    emerald: 'bg-emerald-50',
   }
   const iconColorMap: Record<string, string> = {
-    indigo: 'text-indigo-600', yellow: 'text-yellow-600', green: 'text-green-600',
-    emerald: 'text-emerald-600', purple: 'text-purple-600',
+    indigo: 'text-indigo-600',
+    yellow: 'text-yellow-600',
+    green: 'text-green-600',
+    emerald: 'text-emerald-600',
   }
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
@@ -499,7 +460,11 @@ function KPICard({ label, value, suffix, icon, color }: {
   )
 }
 
-function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function ChartCard({ title, subtitle, children }: {
+  title: string
+  subtitle: string
+  children: React.ReactNode
+}) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
       <div className="mb-4">
@@ -513,6 +478,8 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle: str
 
 function AIInsightsPanel({ insight }: { insight: AIInsight }) {
   const d = insight.data
+
+  // Support both new and legacy formats
   const summary = d.executiveSummary || d.summary || ''
   const strengths = d.keyStrengths || []
   const weaknesses = d.keyWeaknesses || []
@@ -526,6 +493,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
     medium: 'bg-amber-100 text-amber-700 border-amber-200',
     low: 'bg-blue-100 text-blue-700 border-blue-200',
   }
+
   const impactColors: Record<string, string> = {
     high: 'bg-green-100 text-green-700',
     medium: 'bg-yellow-100 text-yellow-700',
@@ -534,6 +502,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
 
   return (
     <div className="space-y-6">
+      {/* Executive Summary */}
       {summary && (
         <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-100">
           <h4 className="text-sm font-semibold text-indigo-800 mb-2 flex items-center gap-2">
@@ -544,17 +513,21 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
             <div className="mt-3 flex items-center gap-2">
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
                 d.ratingTrend === 'improving' ? 'bg-green-100 text-green-700' :
-                d.ratingTrend === 'declining' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                d.ratingTrend === 'declining' ? 'bg-red-100 text-red-700' :
+                'bg-gray-100 text-gray-700'
               }`}>
                 {d.ratingTrend === 'improving' ? '↑' : d.ratingTrend === 'declining' ? '↓' : '→'}
                 {d.ratingTrend.charAt(0).toUpperCase() + d.ratingTrend.slice(1)}
               </span>
-              {d.ratingTrendDescription && <span className="text-sm text-gray-500">{d.ratingTrendDescription}</span>}
+              {d.ratingTrendDescription && (
+                <span className="text-sm text-gray-500">{d.ratingTrendDescription}</span>
+              )}
             </div>
           )}
         </div>
       )}
 
+      {/* Risk Alerts */}
       {alerts.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Risk Alerts</h4>
@@ -572,6 +545,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
         </div>
       )}
 
+      {/* Strengths & Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {strengths.length > 0 && (
           <div>
@@ -583,7 +557,9 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                 <div key={i} className="bg-green-50 border border-green-100 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-semibold text-sm text-green-800">{s.theme}</span>
-                    {s.mentionCount > 0 && <span className="text-xs text-green-600">{s.mentionCount} mentions</span>}
+                    {s.mentionCount > 0 && (
+                      <span className="text-xs text-green-600">{s.mentionCount} mentions</span>
+                    )}
                   </div>
                   <p className="text-sm text-green-700">{s.description}</p>
                 </div>
@@ -602,10 +578,13 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-semibold text-sm text-red-800">{w.theme}</span>
                     <div className="flex items-center gap-2">
-                      {w.mentionCount > 0 && <span className="text-xs text-red-600">{w.mentionCount} mentions</span>}
+                      {w.mentionCount > 0 && (
+                        <span className="text-xs text-red-600">{w.mentionCount} mentions</span>
+                      )}
                       <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
                         w.severity === 'high' ? 'bg-red-200 text-red-800' :
-                        w.severity === 'medium' ? 'bg-amber-200 text-amber-800' : 'bg-gray-200 text-gray-700'
+                        w.severity === 'medium' ? 'bg-amber-200 text-amber-800' :
+                        'bg-gray-200 text-gray-700'
                       }`}>{w.severity}</span>
                     </div>
                   </div>
@@ -617,6 +596,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
         )}
       </div>
 
+      {/* Emerging Topics */}
       {topics.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Emerging Topics</h4>
@@ -635,6 +615,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
         </div>
       )}
 
+      {/* Recommendations */}
       {recs.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Recommendations</h4>
@@ -647,7 +628,9 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${impactColors[r.impact] || impactColors.low}`}>
                       {r.impact} impact
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{r.effort} effort</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                      {r.effort} effort
+                    </span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600">{r.description}</p>
@@ -657,6 +640,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
         </div>
       )}
 
+      {/* Notable Quotes */}
       {quotes.length > 0 && (
         <div>
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Notable Customer Voices</h4>
@@ -675,6 +659,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
         </div>
       )}
 
+      {/* Customer Persona */}
       {d.customerPersona && (
         <div className="bg-purple-50 border border-purple-100 rounded-lg p-4">
           <h4 className="text-sm font-semibold text-purple-800 mb-1">Typical Reviewer</h4>
@@ -682,6 +667,7 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
         </div>
       )}
 
+      {/* Metadata */}
       <div className="flex items-center gap-4 text-xs text-gray-400 pt-2 border-t border-gray-100">
         <span>Generated {new Date(insight.generated_at).toLocaleString()}</span>
         <span>Model: {insight.model}</span>
@@ -700,6 +686,7 @@ function ChatIcon() {
     </svg>
   )
 }
+
 function StarIcon() {
   return (
     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -707,6 +694,7 @@ function StarIcon() {
     </svg>
   )
 }
+
 function ReplyIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -714,6 +702,7 @@ function ReplyIcon() {
     </svg>
   )
 }
+
 function ThumbsUpIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -721,14 +710,7 @@ function ThumbsUpIcon() {
     </svg>
   )
 }
-function LocationIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  )
-}
+
 function SparklesIcon() {
   return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
     const { data: reviews } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('rating, comment, review_date')
+      .select('rating, comment, review_date, reply_status')
       .eq('location_id', params.locationId)
       .gte('review_date', data.period_start)
       .lte('review_date', data.period_end)
@@ -56,6 +56,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
         rating: r.rating,
         comment: r.comment,
         review_date: r.review_date,
+        reply_status: r.reply_status,
       })),
       periodStart: data.period_start,
       periodEnd: data.period_end,
@@ -71,6 +72,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
         location_id: params.locationId,
         period_start: data.period_start,
         period_end: data.period_end,
+        period_window: data.period_window || null,
         kind: 'standard',
         data: insightsData,
         generated_by_user_id: user.id,
@@ -100,12 +102,21 @@ export async function GET(request: Request, { params }: { params: { locationId: 
     await requireLocationAccess(params.locationId)
     const supabase = createSupabaseServerClient()
 
-    const { data: insights } = await supabase
+    const { searchParams } = new URL(request.url)
+    const periodWindow = searchParams.get('period_window')
+
+    let query = supabase
       .schema('app')
       .from('insights')
       .select('*')
       .eq('location_id', params.locationId)
       .order('generated_at', { ascending: false })
+
+    if (periodWindow) {
+      query = query.eq('period_window', periodWindow)
+    }
+
+    const { data: insights } = await query
 
     return NextResponse.json({ insights: insights || [] })
   } catch (error: any) {

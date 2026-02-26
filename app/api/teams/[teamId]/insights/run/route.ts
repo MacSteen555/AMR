@@ -18,7 +18,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const body = await request.json()
     const data = runInsightsSchema.parse(body)
 
-    // Spend credits (requires BUSINESS or higher)
     await spendCredits(
       params.teamId,
       user.id,
@@ -27,20 +26,30 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       'team',
       params.teamId,
       idempotencyKey,
-      { requiredTier: 'BUSINESS' }
+      { feature: 'insights' }
     )
 
     const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
 
     // Get all reviews for team locations in period
-    const { data: reviews } = await supabase
+    const { data: locations } = await serviceClient
       .schema('app')
-      .from('google_reviews')
-      .select('rating, comment, review_date, location:locations!inner(team_id, name)')
-      .eq('locations.team_id', params.teamId)
-      .gte('review_date', data.period_start)
-      .lte('review_date', data.period_end)
+      .from('locations')
+      .select('id')
+      .eq('team_id', params.teamId)
+
+    const locationIds = (locations || []).map(l => l.id)
+
+    const { data: reviews } = locationIds.length > 0
+      ? await supabase
+          .schema('app')
+          .from('google_reviews')
+          .select('rating, comment, review_date, reply_status')
+          .in('location_id', locationIds)
+          .gte('review_date', data.period_start)
+          .lte('review_date', data.period_end)
+      : { data: [] }
 
     // Generate insights
     const insightsData = await insightsRun({
@@ -48,6 +57,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         rating: r.rating,
         comment: r.comment,
         review_date: r.review_date,
+        reply_status: r.reply_status,
       })),
       periodStart: data.period_start,
       periodEnd: data.period_end,
@@ -62,6 +72,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         location_id: null,
         period_start: data.period_start,
         period_end: data.period_end,
+        period_window: data.period_window || null,
         kind: 'standard',
         data: insightsData,
         generated_by_user_id: user.id,
@@ -91,13 +102,22 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     await requireTeamMember(params.teamId)
     const supabase = createSupabaseServerClient()
 
-    const { data: insights } = await supabase
+    const { searchParams } = new URL(request.url)
+    const periodWindow = searchParams.get('period_window')
+
+    let query = supabase
       .schema('app')
       .from('insights')
       .select('*')
       .eq('team_id', params.teamId)
       .is('location_id', null)
       .order('generated_at', { ascending: false })
+
+    if (periodWindow) {
+      query = query.eq('period_window', periodWindow)
+    }
+
+    const { data: insights } = await query
 
     return NextResponse.json({ insights: insights || [] })
   } catch (error: any) {

@@ -248,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 active={pathname?.includes('/reviews') && !activeLocationId}
               />
               <NavItem
-                href={`/teams/${currentTeam.id}/insights`}
+                href={activeLocationId ? `/locations/${activeLocationId}/insights` : `/teams/${currentTeam.id}/insights`}
                 icon={<InsightsIcon />}
                 label="Insights"
                 active={pathname?.includes('/insights')}
