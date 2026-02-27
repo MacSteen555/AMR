@@ -92,8 +92,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  // Derive active location from pathname
+  // Derive active location and current section from pathname
   const activeLocationId = pathname?.match(/\/locations\/([^/]+)/)?.[1] || null
+
+  function getCurrentSection(): string {
+    if (!pathname) return 'reviews'
+    if (pathname.includes('/insights')) return 'insights'
+    if (pathname.includes('/competitive')) return 'competitive'
+    if (pathname.includes('/billing')) return 'billing'
+    return 'reviews'
+  }
+
+  function buildLocationUrl(locationId: string): string {
+    const section = getCurrentSection()
+    if (section === 'insights') return `/locations/${locationId}/insights`
+    return `/locations/${locationId}/reviews`
+  }
+
+  function buildTeamUrl(teamId: string, section?: string): string {
+    const s = section || getCurrentSection()
+    switch (s) {
+      case 'insights': return `/teams/${teamId}/insights`
+      case 'competitive': return `/teams/${teamId}/competitive`
+      case 'billing': return `/teams/${teamId}/billing`
+      default: return `/teams/${teamId}/reviews`
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -147,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         apiGet<{ locations: Location[] }>(`/api/teams/${team.id}/locations`)
                           .then(res => setLocations(res.locations || []))
                           .catch(() => setLocations([]))
-                        router.push(`/teams/${team.id}/reviews`)
+                        router.push(buildTeamUrl(team.id))
                       }}
                       className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between transition-colors ${team.id === currentTeam.id ? 'bg-indigo-50' : ''}`}
                     >
@@ -208,27 +232,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="mt-1 ml-4 pl-3 border-l-2 border-gray-100 space-y-0.5">
                     {/* All Locations (Team View) */}
                     <button
-                      onClick={() => router.push(`/teams/${currentTeam.id}/reviews`)}
-                      className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${pathname === `/teams/${currentTeam.id}/reviews` && !activeLocationId
+                      onClick={() => router.push(buildTeamUrl(currentTeam.id))}
+                      className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${!activeLocationId && pathname?.includes(`/teams/${currentTeam.id}`)
                         ? 'bg-indigo-50 text-indigo-700 font-semibold'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                     >
-                      📊 All Locations
+                      All Locations
                     </button>
 
                     {/* Individual Locations */}
                     {locations.map(loc => (
                       <button
                         key={loc.id}
-                        onClick={() => router.push(`/locations/${loc.id}/reviews`)}
+                        onClick={() => router.push(buildLocationUrl(loc.id))}
                         className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors truncate ${activeLocationId === loc.id
                           ? 'bg-indigo-50 text-indigo-700 font-semibold'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                           }`}
                         title={loc.name}
                       >
-                        📍 {loc.name}
+                        {loc.name}
                       </button>
                     ))}
 
@@ -242,13 +266,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
 
               <NavItem
-                href={`/teams/${currentTeam.id}/reviews`}
+                href={activeLocationId ? `/locations/${activeLocationId}/reviews` : `/teams/${currentTeam.id}/reviews`}
                 icon={<ReviewIcon />}
                 label="Reviews"
-                active={pathname?.includes('/reviews') && !activeLocationId}
+                active={pathname?.includes('/reviews')}
               />
               <NavItem
-                href={`/teams/${currentTeam.id}/insights`}
+                href={activeLocationId ? `/locations/${activeLocationId}/insights` : `/teams/${currentTeam.id}/insights`}
                 icon={<InsightsIcon />}
                 label="Insights"
                 active={pathname?.includes('/insights')}

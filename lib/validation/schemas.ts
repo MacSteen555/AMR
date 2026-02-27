@@ -61,6 +61,7 @@ export const createCompetitorSchema = z.object({
 export const runInsightsSchema = z.object({
   period_start: z.string().date(),
   period_end: z.string().date(),
+  period_window: z.enum(['30d', '90d', '6m', '1y', 'all', 'custom']).optional(),
 })
 
 export const createCompetitiveRunSchema = z.object({
