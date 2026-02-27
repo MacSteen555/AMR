@@ -23,25 +23,22 @@ export interface ReviewData {
 const SYSTEM_PROMPT = `You are a review reply writer for a local business. Your tone, personality, and style come ENTIRELY from the brand voice provided by the user. Do not impose your own tone. If no brand voice is provided, default to warm and professional.
 
 STRUCTURAL RULES (apply these invisibly regardless of brand voice):
-- Shape every reply as: natural greeting using reviewer's first name -> substantive body that references specifics from the review -> warm close or invitation to return
-- Write 2-4 sentences for reviews with text. Write 1-2 sentences for rating-only reviews (no comment).
 - For detailed reviews (3+ sentences from the reviewer), write a proportionally substantive reply that addresses their key points.
 - If the reviewer left a short review or just a rating, keep the reply concise and gracious.
 - If the brand voice includes a signature, end the reply with it naturally as a sign-off.
 
 SEO (apply naturally, never force):
-- If the review or brand voice mentions a specific service, product, or location, reference it once naturally in the reply.
 - Do not keyword-stuff. If there is no natural place for it, skip it.
 
 HARD CONSTRAINTS:
 - NEVER use em dashes (—). Use commas, periods, or semicolons instead.
 - NEVER start with "Dear [Name]". Use their first name naturally in the greeting (e.g., "Hi Sarah," or "Sarah, thank you...").
-- NEVER use these phrases: "valued customer", "we strive to", "your feedback is important to us", "at [Business] we pride ourselves", "we appreciate your feedback".
-- Maximum ONE exclamation mark per reply.
+- NEVER use these phrases: "valued customer", "we strive to"
 - For negative reviews: NEVER repeat the reviewer's negative language back to them verbatim. Acknowledge the concern in your own words.
 - NEVER make unverifiable promises like "we've already fixed this" or "this won't happen again".
 - Vary your opening phrases. Do not start every reply with "Thank you for...".
-- Output ONLY the reply text. No labels, no quotation marks wrapping the reply, no preamble.`
+- Output ONLY the reply text. No labels, no quotation marks wrapping the reply, no preamble.
+- The review MUST be good to go out of the box, the user MUST not need to input their name etc.`
 
 const DEFAULT_SENTIMENTS = {
   positive: 'Express genuine appreciation, reference what went well specifically, and warmly encourage them to return.',
@@ -65,15 +62,14 @@ const FEW_SHOT_NEUTRAL = {
 }
 
 /**
- * Generates a draft reply for a review using OpenAI.
- * Brand voice and sentiment settings are the primary creative direction;
- * the system prompt provides invisible structural guardrails.
+ * Generates a draft reply for a review using OpenAI (non-streaming).
+ * Used by bulk-generate and anywhere streaming isn't needed.
  */
 export async function draftReply(review: ReviewData, locationSettings: LocationSettings, previousDraft?: string): Promise<string> {
   const prompt = buildPrompt(review, locationSettings, previousDraft)
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-5-nano',
+    model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: prompt },
@@ -88,6 +84,31 @@ export async function draftReply(review: ReviewData, locationSettings: LocationS
   }
 
   return draftText
+}
+
+/**
+ * Generates a draft reply with OpenAI streaming enabled.
+ * Returns an async generator that yields string chunks as they arrive.
+ */
+export async function* draftReplyStream(review: ReviewData, locationSettings: LocationSettings, previousDraft?: string): AsyncGenerator<string> {
+  const prompt = buildPrompt(review, locationSettings, previousDraft)
+
+  const stream = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+    max_completion_tokens: 4000,
+    stream: true,
+  })
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content
+    if (delta) {
+      yield delta
+    }
+  }
 }
 
 export function buildPrompt(review: ReviewData, settings: LocationSettings, previousDraft?: string): string {

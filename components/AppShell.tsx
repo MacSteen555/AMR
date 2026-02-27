@@ -252,7 +252,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           }`}
                         title={loc.name}
                       >
-                        {loc.name}
+                        📍{loc.name}
                       </button>
                     ))}
 
