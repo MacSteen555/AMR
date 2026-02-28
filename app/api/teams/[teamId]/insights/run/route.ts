@@ -29,7 +29,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       { feature: 'insights' }
     )
 
-    const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
 
     // Get all reviews for team locations in period
@@ -42,7 +41,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const locationIds = (locations || []).map(l => l.id)
 
     const { data: reviews } = locationIds.length > 0
-      ? await supabase
+      ? await serviceClient
           .schema('app')
           .from('google_reviews')
           .select('rating, comment, review_date, reply_status')
