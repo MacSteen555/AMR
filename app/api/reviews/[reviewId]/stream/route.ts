@@ -1,12 +1,13 @@
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReplyStream } from '@/lib/openai/draft'
+import { resolveSignature } from '@/lib/draft-signature'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
   try {
-    await requireUser()
+    const user = await requireUser()
     const serviceClient = createSupabaseServiceRoleClient()
 
     const { data: review } = await serviceClient
@@ -25,6 +26,23 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     const locData = review.locations
     const location = Array.isArray(locData) ? locData[0] : locData
+
+    let teamName: string | undefined
+    if (location?.team_id) {
+      const { data: team } = await serviceClient
+        .schema('app')
+        .from('teams')
+        .select('name')
+        .eq('id', location.team_id)
+        .single()
+      teamName = team?.name
+    }
+
+    const resolvedSignature = resolveSignature(location?.signature, {
+      locationName: location?.name,
+      teamName,
+      userName: user.display_name || user.email,
+    })
 
     const body = await request.json().catch(() => ({}))
     const previousDraft = body.previous_draft
@@ -47,7 +65,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
               brand_voice: location.brand_voice,
               positive_sentiment: location.positive_sentiment,
               negative_sentiment: location.negative_sentiment,
-              signature: location.signature,
+              signature: resolvedSignature,
               reply_language: location.reply_language,
             },
             previousDraft,

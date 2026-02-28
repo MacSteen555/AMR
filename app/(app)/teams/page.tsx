@@ -16,6 +16,16 @@ interface Location {
   positive_sentiment?: string
   negative_sentiment?: string
   reply_language?: string
+  signature?: string | null
+}
+
+const SIGNATURE_PRESETS = ['store_name', 'team_name', 'user_name'] as const
+type SignaturePreset = (typeof SIGNATURE_PRESETS)[number]
+
+function getSignatureType(value: string | null | undefined): SignaturePreset | 'custom' {
+  if (!value) return 'store_name'
+  if (SIGNATURE_PRESETS.includes(value as SignaturePreset)) return value as SignaturePreset
+  return 'custom'
 }
 
 interface Member {
@@ -40,6 +50,9 @@ interface LocationSettings {
   positive_sentiment?: string
   negative_sentiment?: string
   reply_language?: string
+  signature?: string | null
+  signature_type?: SignaturePreset | 'custom'
+  signature_custom?: string
 }
 
 type GoogleLocation = {
@@ -231,11 +244,14 @@ export default function TeamsPage() {
   const openLocationSettings = (loc: Location, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingLocation(loc)
+    const sigType = getSignatureType(loc.signature)
     setSettingsForm({
       brand_voice: loc.brand_voice || '',
       positive_sentiment: '',
       negative_sentiment: loc.negative_sentiment || '',
       reply_language: loc.reply_language || 'en',
+      signature_type: sigType,
+      signature_custom: sigType === 'custom' ? (loc.signature || '') : '',
     })
     setIsLocationSettingsOpen(true)
   }
@@ -243,9 +259,19 @@ export default function TeamsPage() {
   const handleSaveLocationSettings = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedTeamId || !editingLocation) return
+    const sigValue =
+      settingsForm.signature_type === 'custom'
+        ? (settingsForm.signature_custom || null)
+        : settingsForm.signature_type || null
     try {
       setSavingSettings(true)
-      await apiPatch(`/api/teams/${selectedTeamId}/locations/${editingLocation.id}`, settingsForm)
+      await apiPatch(`/api/teams/${selectedTeamId}/locations/${editingLocation.id}`, {
+        brand_voice: settingsForm.brand_voice || null,
+        positive_sentiment: settingsForm.positive_sentiment || null,
+        negative_sentiment: settingsForm.negative_sentiment || null,
+        reply_language: settingsForm.reply_language || 'en',
+        signature: sigValue,
+      })
       setIsLocationSettingsOpen(false)
       loadTeamData(selectedTeamId)
     } catch (err: any) {
@@ -790,19 +816,49 @@ export default function TeamsPage() {
                         placeholder="Specific instructions for how to respond to negative reviews..."
                       />
                     </div>
-                    <div className="pt-2">
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reply Language</label>
-                      <select
-                        value={settingsForm.reply_language || 'en'}
-                        onChange={e => setSettingsForm({ ...settingsForm, reply_language: e.target.value })}
-                        className="w-full md:w-1/2 px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
-                      >
-                        <option value="en">English (US)</option>
-                        <option value="es">Español</option>
-                        <option value="fr">Français</option>
-                        <option value="de">Deutsch</option>
-                      </select>
-                      <p className="text-sm text-gray-500 mt-2 pl-1">The main language the AI will use to generate replies.</p>
+                    <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="min-w-0">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reply Language</label>
+                        <select
+                          value={settingsForm.reply_language || 'en'}
+                          onChange={e => setSettingsForm({ ...settingsForm, reply_language: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                        >
+                          <option value="en">English (US)</option>
+                          <option value="es">Español</option>
+                          <option value="fr">Français</option>
+                          <option value="de">Deutsch</option>
+                        </select>
+                        <p className="text-sm text-gray-500 mt-2 pl-1">Language for AI replies.</p>
+                      </div>
+                      <div className="min-w-0">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Reply Signature</label>
+                        <select
+                          value={settingsForm.signature_type || 'store_name'}
+                          onChange={e =>
+                            setSettingsForm({
+                              ...settingsForm,
+                              signature_type: e.target.value as SignaturePreset | 'custom',
+                            })
+                          }
+                          className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                        >
+                          <option value="store_name">Location Name</option>
+                          <option value="team_name">Team Name</option>
+                          <option value="user_name">User</option>
+                          <option value="custom">Custom</option>
+                        </select>
+                        {settingsForm.signature_type === 'custom' && (
+                          <input
+                            type="text"
+                            value={settingsForm.signature_custom || ''}
+                            onChange={e => setSettingsForm({ ...settingsForm, signature_custom: e.target.value })}
+                            placeholder="e.g. - The Team"
+                            className="mt-2 w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                          />
+                        )}
+                        <p className="text-sm text-gray-500 mt-2 pl-1">Sign-off for replies.</p>
+                      </div>
                     </div>
 
                   </div>

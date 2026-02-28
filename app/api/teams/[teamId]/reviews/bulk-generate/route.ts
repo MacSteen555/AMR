@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth/session'
 import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
+import { resolveSignature } from '@/lib/draft-signature'
 
 // POST /api/teams/[teamId]/reviews/bulk-generate
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
     try {
+        const user = await requireUser()
         await requireTeamMember(params.teamId)
         const body = await request.json()
         const limit = body.limit || 20
@@ -13,15 +16,31 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const serviceClient = createSupabaseServiceRoleClient()
 
         // 1. Get All Locations & Settings
-        const { data: locations } = await serviceClient
-            .schema('app')
-            .from('locations')
-            .select('id, brand_voice, positive_sentiment, negative_sentiment, reply_language')
-            .eq('team_id', params.teamId)
+        const [{ data: locations }, { data: team }] = await Promise.all([
+            serviceClient
+                .schema('app')
+                .from('locations')
+                .select('id, name, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language')
+                .eq('team_id', params.teamId),
+            serviceClient.schema('app').from('teams').select('name').eq('id', params.teamId).single(),
+        ])
 
         if (!locations || locations.length === 0) return NextResponse.json({ generated: 0 })
 
-        const locationSettingsMap = new Map(locations.map(l => [l.id, l]))
+        const teamName = team?.name
+        const locationSettingsMap = new Map(
+            locations.map(l => [
+                l.id,
+                {
+                    ...l,
+                    resolvedSignature: resolveSignature(l.signature, {
+                        locationName: l.name,
+                        teamName,
+                        userName: user.display_name || user.email,
+                    }),
+                },
+            ])
+        )
         const locationIds = locations.map(l => l.id)
 
         // 2. Fetch unreplied reviews for these locations
@@ -54,6 +73,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                     brand_voice: settings.brand_voice,
                     positive_sentiment: settings.positive_sentiment,
                     negative_sentiment: settings.negative_sentiment,
+                    signature: settings.resolvedSignature,
                     reply_language: settings.reply_language
                 })
 
