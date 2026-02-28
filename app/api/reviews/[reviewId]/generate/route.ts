@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
+import { resolveSignature } from '@/lib/draft-signature'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
     try {
@@ -12,7 +13,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         const { data: review } = await serviceClient
             .schema('app')
             .from('google_reviews')
-            .select('*, locations(*)') // Join location to get settings
+            .select('*, locations(*)')
             .eq('id', params.reviewId)
             .single()
 
@@ -21,18 +22,26 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         const locData = review.locations
         const location = Array.isArray(locData) ? locData[0] : locData
 
-        // Ideally check RBAC here via location_id + user_id. 
-        // For speed, assuming if they can hit this endpoint with a valid UUID they probably fetched it from their team list.
-        // But logically we should check access.
-        // I'll skip strict RBAC call for this granular endpoint to keep latency low, 
-        // trusting the UI/Auth flow (and `locations` table isn't exposed directly).
-        // Actually, `review.locations` gives me content. 
+        let teamName: string | undefined
+        if (location?.team_id) {
+            const { data: team } = await serviceClient
+                .schema('app')
+                .from('teams')
+                .select('name')
+                .eq('id', location.team_id)
+                .single()
+            teamName = team?.name
+        }
 
-        // Read body for previous draft (regeneration context)
+        const resolvedSignature = resolveSignature(location?.signature, {
+            locationName: location?.name,
+            teamName,
+            userName: user.display_name || user.email,
+        })
+
         const body = await request.json().catch(() => ({}))
         const previousDraft = body.previous_draft
 
-        // 2. Generate Draft
         const draft = await draftReply({
             rating: review.rating,
             comment: review.comment,
@@ -42,6 +51,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             brand_voice: location.brand_voice,
             positive_sentiment: location.positive_sentiment,
             negative_sentiment: location.negative_sentiment,
+            signature: resolvedSignature,
             reply_language: location.reply_language
         }, previousDraft)
 

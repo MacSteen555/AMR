@@ -30,11 +30,10 @@ export async function POST(request: Request, { params }: { params: { locationId:
       { feature: 'insights' }
     )
 
-    const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
 
     // Get reviews for location in period
-    const { data: reviews } = await supabase
+    const { data: reviews } = await serviceClient
       .schema('app')
       .from('google_reviews')
       .select('rating, comment, review_date, reply_status')
@@ -43,7 +42,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
       .lte('review_date', data.period_end)
 
     // Get location name
-    const { data: loc } = await supabase
+    const { data: loc } = await serviceClient
       .schema('app')
       .from('locations')
       .select('name')

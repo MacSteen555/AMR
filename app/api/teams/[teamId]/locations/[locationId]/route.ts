@@ -49,7 +49,8 @@ export async function PATCH(
             brand_voice,
             positive_sentiment,
             negative_sentiment,
-            reply_language
+            reply_language,
+            signature
         } = body
 
         const serviceClient = createSupabaseServiceRoleClient()
@@ -61,8 +62,8 @@ export async function PATCH(
                 brand_voice,
                 positive_sentiment,
                 negative_sentiment,
-                reply_language
-                // use_team_defaults removed
+                reply_language,
+                signature
             })
             .eq('id', params.locationId)
             .eq('team_id', params.teamId)

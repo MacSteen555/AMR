@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth/session'
 import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
+import { resolveSignature } from '@/lib/draft-signature'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
     try {
+        const user = await requireUser()
         await requireLocationAccess(params.locationId)
         const body = await request.json()
-        const limit = body.limit || 10 // Safety limit default
+        const limit = body.limit || 10
 
         const serviceClient = createSupabaseServiceRoleClient()
 
@@ -15,11 +18,28 @@ export async function POST(request: Request, { params }: { params: { locationId:
         const { data: location } = await serviceClient
             .schema('app')
             .from('locations')
-            .select('brand_voice, positive_sentiment, negative_sentiment, reply_language')
+            .select('id, name, team_id, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language')
             .eq('id', params.locationId)
             .single()
 
         if (!location) throw new Error('Location not found')
+
+        let teamName: string | undefined
+        if (location.team_id) {
+            const { data: team } = await serviceClient
+                .schema('app')
+                .from('teams')
+                .select('name')
+                .eq('id', location.team_id)
+                .single()
+            teamName = team?.name
+        }
+
+        const resolvedSignature = resolveSignature(location.signature, {
+            locationName: location.name,
+            teamName,
+            userName: user.display_name || user.email,
+        })
 
         // 2. Fetch unreplied reviews without drafts
         // We target reviews that have no reply_text (or reply_status is 'none')
@@ -53,6 +73,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
                     brand_voice: location.brand_voice,
                     positive_sentiment: location.positive_sentiment,
                     negative_sentiment: location.negative_sentiment,
+                    signature: resolvedSignature,
                     reply_language: location.reply_language
                 })
 
