@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiPost, apiGet, apiPatch } from '@/lib/api'
 
@@ -125,6 +125,10 @@ export default function NewTeamPage() {
   const [sampleReviews, setSampleReviews] = useState<SampleReviews | null>(null)
   const [loadingSamples, setLoadingSamples] = useState(false)
 
+  // Caching references
+  const reviewCacheRef = useRef<Record<string, SampleReviews>>({})
+  const activeFetchesRef = useRef<Record<string, Promise<SampleReviews>>>({})
+
   const [positiveVoice, setPositiveVoice] = useState<BrandVoiceOption>('friendly')
   const [negativeVoice, setNegativeVoice] = useState<BrandVoiceOption>('professional')
 
@@ -212,36 +216,76 @@ export default function NewTeamPage() {
 
   // ── Step 3: Brand Voice ──
 
-  const loadSampleReviews = async (locationName: string) => {
-    setLoadingSamples(true)
-    setSampleReviews(null)
+  const loadSampleReviews = async (locationName: string, isBackground = false) => {
+    // 1. Check cache immediately
+    if (reviewCacheRef.current[locationName]) {
+      if (!isBackground) {
+        initializeBrandVoiceUI(reviewCacheRef.current[locationName])
+      }
+      return
+    }
+
+    if (!isBackground) {
+      setLoadingSamples(true)
+      setSampleReviews(null)
+    }
+
     try {
-      const data = await apiPost<SampleReviews>('/api/onboarding/generate-sample-reviews', {
-        location_name: locationName,
-      })
-      setSampleReviews(data)
+      // 2. Do we already have an active fetch for this location?
+      let fetchPromise = activeFetchesRef.current[locationName]
+      if (!fetchPromise) {
+        fetchPromise = apiPost<SampleReviews>('/api/onboarding/generate-sample-reviews', {
+          location_name: locationName,
+        })
+        activeFetchesRef.current[locationName] = fetchPromise
+      }
 
-      const initPosVoice = 'friendly'
-      const initNegVoice = 'professional'
+      const data = await fetchPromise
 
-      setPositiveVoice(initPosVoice)
-      setNegativeVoice(initNegVoice)
+      // 3. Save to cache
+      reviewCacheRef.current[locationName] = data
 
-      setPositiveReplyText(data.positive_review.replies[initPosVoice])
-      setNegativeReplyText(data.negative_review.replies[initNegVoice])
-      setPositiveOriginal(data.positive_review.replies[initPosVoice])
-      setNegativeOriginal(data.negative_review.replies[initNegVoice])
-
-      if (!userEditedPrompt) {
-        setBrandVoice(`${initPosVoice} and ${initNegVoice}`)
-        setNegativeSentiment(`Use a ${initNegVoice} tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.`)
+      if (!isBackground) {
+        initializeBrandVoiceUI(data)
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate sample reviews')
+      if (!isBackground) setError(err.message || 'Failed to generate sample reviews')
     } finally {
-      setLoadingSamples(false)
+      // Clean up active fetch
+      delete activeFetchesRef.current[locationName]
+      if (!isBackground) setLoadingSamples(false)
     }
   }
+
+  const initializeBrandVoiceUI = (data: SampleReviews) => {
+    setSampleReviews(data)
+
+    const initPosVoice = 'friendly'
+    const initNegVoice = 'professional'
+
+    setPositiveVoice(initPosVoice)
+    setNegativeVoice(initNegVoice)
+
+    setPositiveReplyText(data.positive_review.replies[initPosVoice])
+    setNegativeReplyText(data.negative_review.replies[initNegVoice])
+    setPositiveOriginal(data.positive_review.replies[initPosVoice])
+    setNegativeOriginal(data.negative_review.replies[initNegVoice])
+
+    if (!userEditedPrompt) {
+      setBrandVoice(`${initPosVoice} and ${initNegVoice}`)
+      setNegativeSentiment(`Use a ${initNegVoice} tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.`)
+    }
+  }
+
+  // Pre-fetch next location's samples in the background
+  useEffect(() => {
+    if (step === 3 && importedLocationIds.length > 0) {
+      const nextLoc = importedLocationIds[currentLocationIdx + 1]
+      if (nextLoc && !reviewCacheRef.current[nextLoc.name] && !activeFetchesRef.current[nextLoc.name]) {
+        loadSampleReviews(nextLoc.name, true)
+      }
+    }
+  }, [step, currentLocationIdx, importedLocationIds])
 
   // When voice selection changes, update the reply text (and optionally prompt if they haven't edited it)
   const handleSelectPositiveVoice = (voice: BrandVoiceOption) => {
