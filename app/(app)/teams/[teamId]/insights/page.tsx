@@ -6,7 +6,7 @@ import { apiGet, apiPost } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
 import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area,
+  LineChart, Line, BarChart, Bar, AreaChart, Area, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
@@ -126,9 +126,8 @@ export default function TeamInsightsPage() {
   const { start, end } = useMemo(() => getPeriodDates(period), [period])
 
   useEffect(() => {
-    if (!insightsEnabled) return
     loadData()
-  }, [teamId, start, end, insightsEnabled])
+  }, [teamId, start, end])
 
   const loadData = async () => {
     setLoading(true)
@@ -164,31 +163,7 @@ export default function TeamInsightsPage() {
     }
   }
 
-  // Gate for FREE tier
-  if (!insightsEnabled) {
-    return (
-      <div className="p-8 flex items-center justify-center h-full">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Unlock Insights</h1>
-          <p className="text-gray-500 mb-6">
-            Get powerful analytics and AI-powered insights into your review performance.
-            Upgrade to Pro or higher to access this feature.
-          </p>
-          <button
-            onClick={() => router.push(`/teams/${teamId}/billing`)}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
-          >
-            Upgrade Plan
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // removed full page gate
 
   const kpis = analytics?.kpis
   const latestAI = aiInsights[0] || null
@@ -209,9 +184,8 @@ export default function TeamInsightsPage() {
                 <button
                   key={opt.key}
                   onClick={() => setPeriod(opt.key)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                    period === opt.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${period === opt.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                    }`}
                 >
                   {opt.label}
                 </button>
@@ -251,11 +225,22 @@ export default function TeamInsightsPage() {
                     <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <Tooltip
-                      formatter={(value: any) => [Number(value).toFixed(2), 'Avg Rating']}
+                      formatter={(value: any, name: any) => [Number(value).toFixed(2), name === 'averageRating' ? 'Team Avg' : name]}
                       labelFormatter={(label: any) => formatMonth(label)}
                       contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
-                    <Line type="monotone" dataKey="averageRating" stroke="#6366f1" strokeWidth={2.5} dot={{ fill: '#6366f1', r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="averageRating" name="Team Avg" stroke="#6366f1" strokeWidth={3} dot={{ fill: '#6366f1', r: 4 }} activeDot={{ r: 6 }} />
+                    {analytics.perLocation.map((loc, i) => (
+                      <Line
+                        key={loc.locationId}
+                        type="monotone"
+                        dataKey={loc.locationName}
+                        name={loc.locationName}
+                        stroke={`hsl(${i * 137.5 % 360}, 70%, 50%)`}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    ))}
                   </LineChart>
                 </ResponsiveContainer>
               </ChartCard>
@@ -278,12 +263,12 @@ export default function TeamInsightsPage() {
               {/* Response Rate Over Time */}
               <ChartCard title="Response Rate Over Time" subtitle="Percentage of reviews replied to">
                 <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
+                  <ComposedChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={v => `${v}%`} />
                     <Tooltip
-                      formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Response Rate']}
+                      formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name === 'rate' ? 'Team Avg' : name]}
                       labelFormatter={(label: any) => formatMonth(label)}
                       contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
@@ -293,8 +278,19 @@ export default function TeamInsightsPage() {
                         <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <Area type="monotone" dataKey="rate" stroke="#6366f1" strokeWidth={2.5} fill="url(#teamResponseGradient)" dot={{ fill: '#6366f1', r: 3 }} />
-                  </AreaChart>
+                    <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#6366f1" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#6366f1', r: 3 }} />
+                    {analytics.perLocation.map((loc, i) => (
+                      <Line
+                        key={loc.locationId}
+                        type="monotone"
+                        dataKey={loc.locationName}
+                        name={loc.locationName}
+                        stroke={`hsl(${i * 137.5 % 360}, 70%, 50%)`}
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    ))}
+                  </ComposedChart>
                 </ResponsiveContainer>
               </ChartCard>
 
@@ -403,31 +399,56 @@ export default function TeamInsightsPage() {
                     )}
                   </p>
                 </div>
-                <button
-                  onClick={handleGenerateInsights}
-                  disabled={generating}
-                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-colors"
-                >
-                  {generating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Generating...
-                    </>
-                  ) : latestAI ? (
-                    <>
-                      <SparklesIcon />
-                      Regenerate (3 credits)
-                    </>
-                  ) : (
-                    <>
-                      <SparklesIcon />
-                      Generate Team Insights (3 credits)
-                    </>
-                  )}
-                </button>
+                {!insightsEnabled ? (
+                  <button
+                    onClick={() => router.push(`/teams/${teamId}/billing`)}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-medium text-sm flex items-center gap-2 shadow hover:shadow-md transition-all"
+                  >
+                    <SparklesIcon /> Upgrade Now
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleGenerateInsights}
+                    disabled={generating}
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-colors"
+                  >
+                    {generating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Generating...
+                      </>
+                    ) : latestAI ? (
+                      <>
+                        <SparklesIcon />
+                        Regenerate (3 credits)
+                      </>
+                    ) : (
+                      <>
+                        <SparklesIcon />
+                        Generate Team Insights (3 credits)
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
 
-              {latestAI ? (
+              {!insightsEnabled ? (
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-12 text-center shadow-inner">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-amber-500">
+                    <SparklesIcon />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">PRO Subscription Required</h3>
+                  <p className="text-gray-600 text-sm mb-6 max-w-md mx-auto">
+                    Upgrade to the PRO plan to automatically analyze customer sentiment, extract key themes, and get actionable recommendations.
+                  </p>
+                  <button
+                    onClick={() => router.push(`/teams/${teamId}/billing`)}
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-bold shadow transition-all"
+                  >
+                    Upgrade Now
+                  </button>
+                </div>
+              ) : latestAI ? (
                 <AIInsightsPanel insight={latestAI} />
               ) : (
                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-12 text-center">
@@ -542,10 +563,9 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           <p className="text-gray-700 leading-relaxed">{summary}</p>
           {d.ratingTrend && (
             <div className="mt-3 flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                d.ratingTrend === 'improving' ? 'bg-green-100 text-green-700' :
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${d.ratingTrend === 'improving' ? 'bg-green-100 text-green-700' :
                 d.ratingTrend === 'declining' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
-              }`}>
+                }`}>
                 {d.ratingTrend === 'improving' ? '↑' : d.ratingTrend === 'declining' ? '↓' : '→'}
                 {d.ratingTrend.charAt(0).toUpperCase() + d.ratingTrend.slice(1)}
               </span>
@@ -603,10 +623,9 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     <span className="font-semibold text-sm text-red-800">{w.theme}</span>
                     <div className="flex items-center gap-2">
                       {w.mentionCount > 0 && <span className="text-xs text-red-600">{w.mentionCount} mentions</span>}
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${
-                        w.severity === 'high' ? 'bg-red-200 text-red-800' :
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${w.severity === 'high' ? 'bg-red-200 text-red-800' :
                         w.severity === 'medium' ? 'bg-amber-200 text-amber-800' : 'bg-gray-200 text-gray-700'
-                      }`}>{w.severity}</span>
+                        }`}>{w.severity}</span>
                     </div>
                   </div>
                   <p className="text-sm text-red-700">{w.description}</p>
@@ -622,11 +641,10 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Emerging Topics</h4>
           <div className="flex flex-wrap gap-2">
             {topics.map((t, i) => (
-              <div key={i} className={`px-4 py-2 rounded-lg border text-sm ${
-                t.sentiment === 'positive' ? 'bg-green-50 border-green-200 text-green-800' :
+              <div key={i} className={`px-4 py-2 rounded-lg border text-sm ${t.sentiment === 'positive' ? 'bg-green-50 border-green-200 text-green-800' :
                 t.sentiment === 'negative' ? 'bg-red-50 border-red-200 text-red-800' :
-                'bg-yellow-50 border-yellow-200 text-yellow-800'
-              }`}>
+                  'bg-yellow-50 border-yellow-200 text-yellow-800'
+                }`}>
                 <span className="font-semibold">{t.topic}</span>
                 <span className="opacity-60 ml-1">- {t.description}</span>
               </div>
@@ -662,9 +680,8 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           <h4 className="text-sm font-semibold text-gray-900 mb-3">Notable Customer Voices</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {quotes.map((q, i) => (
-              <div key={i} className={`p-4 rounded-lg border-l-4 bg-gray-50 ${
-                q.sentiment === 'positive' ? 'border-l-green-500' : 'border-l-red-500'
-              }`}>
+              <div key={i} className={`p-4 rounded-lg border-l-4 bg-gray-50 ${q.sentiment === 'positive' ? 'border-l-green-500' : 'border-l-red-500'
+                }`}>
                 <p className="text-sm text-gray-700 italic mb-2">"{q.quote}"</p>
                 <div className="flex text-yellow-400 text-xs">
                   {'★'.repeat(q.rating)}{'☆'.repeat(5 - q.rating)}

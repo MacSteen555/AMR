@@ -136,7 +136,7 @@ function computeAnalytics(reviews: ReviewRow[], periodStart: string, periodEnd: 
 
 export async function GET(request: Request, { params }: { params: { locationId: string } }) {
   try {
-    await requireLocationAccess(params.locationId)
+    const { location } = await requireLocationAccess(params.locationId)
 
     const { searchParams } = new URL(request.url)
     const periodStart = searchParams.get('period_start')
@@ -147,6 +147,17 @@ export async function GET(request: Request, { params }: { params: { locationId: 
     }
 
     const supabase = createSupabaseServiceRoleClient()
+
+    // Get team's tier
+    const teamId = (location as any).team?.id || (location as any).team_id
+    const { data: subscription } = teamId ? await supabase
+      .schema('app')
+      .from('team_subscriptions')
+      .select('tier')
+      .eq('team_id', teamId)
+      .single() : { data: null }
+
+    const tier = subscription?.tier || 'FREE'
 
     const { data: reviews, error } = await supabase
       .schema('app')
@@ -163,7 +174,7 @@ export async function GET(request: Request, { params }: { params: { locationId: 
 
     const analytics = computeAnalytics(reviews || [], periodStart, periodEnd)
 
-    return NextResponse.json({ analytics })
+    return NextResponse.json({ analytics, tier, teamId })
   } catch (error: any) {
     if (error.message === 'Not a team member' || error.message === 'No access to location') {
       return NextResponse.json({ error: error.message }, { status: 403 })

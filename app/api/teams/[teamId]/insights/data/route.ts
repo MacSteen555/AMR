@@ -78,6 +78,9 @@ function computeTeamAnalytics(
     count: reviews.filter(r => r.rating === rating).length,
   }))
 
+  // Per-location breakdown
+  const locationMap = new Map(locations.map(l => [l.id, l.name]))
+
   // Monthly time series
   const monthBuckets = new Map<string, ReviewRow[]>()
   const start = new Date(periodStart)
@@ -95,13 +98,24 @@ function computeTeamAnalytics(
   }
   const sortedMonths = [...monthBuckets.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 
-  const ratingOverTime = sortedMonths.map(([month, bucket]) => ({
-    month,
-    averageRating: bucket.length > 0
-      ? Math.round((bucket.reduce((s, r) => s + r.rating, 0) / bucket.length) * 100) / 100
-      : null,
-    count: bucket.length,
-  }))
+  const ratingOverTime = sortedMonths.map(([month, bucket]) => {
+    const data: any = {
+      month,
+      averageRating: bucket.length > 0
+        ? Math.round((bucket.reduce((s, r) => s + r.rating, 0) / bucket.length) * 100) / 100
+        : null,
+      count: bucket.length,
+    }
+
+    // Per-location
+    for (const loc of locations) {
+      const locReviews = bucket.filter(r => r.location_id === loc.id)
+      data[loc.name] = locReviews.length > 0
+        ? Math.round((locReviews.reduce((s, r) => s + r.rating, 0) / locReviews.length) * 100) / 100
+        : null
+    }
+    return data
+  })
 
   const volumeOverTime = sortedMonths.map(([month, bucket]) => ({
     month,
@@ -113,16 +127,24 @@ function computeTeamAnalytics(
 
   const responseRateOverTime = sortedMonths.map(([month, bucket]) => {
     const replied = bucket.filter(r => repliedStatuses.includes(r.reply_status)).length
-    return {
+    const data: any = {
       month,
       rate: bucket.length > 0 ? Math.round((replied / bucket.length) * 10000) / 100 : null,
       replied,
       total: bucket.length,
     }
+
+    // Per-location
+    for (const loc of locations) {
+      const locReviews = bucket.filter(r => r.location_id === loc.id)
+      const locReplied = locReviews.filter(r => repliedStatuses.includes(r.reply_status)).length
+      data[loc.name] = locReviews.length > 0
+        ? Math.round((locReplied / locReviews.length) * 10000) / 100
+        : null
+    }
+    return data
   })
 
-  // Per-location breakdown
-  const locationMap = new Map(locations.map(l => [l.id, l.name]))
   const perLocationMap = new Map<string, ReviewRow[]>()
   for (const r of reviews) {
     if (!perLocationMap.has(r.location_id)) perLocationMap.set(r.location_id, [])

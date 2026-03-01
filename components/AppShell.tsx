@@ -276,8 +276,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 icon={<InsightsIcon />}
                 label="Insights"
                 active={pathname?.includes('/insights')}
-                badge={tier === 'FREE' ? 'PRO+' : undefined}
-                disabled={tier === 'FREE'}
               />
               <NavItem
                 href={`/teams/${currentTeam.id}/competitive`}
