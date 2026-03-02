@@ -42,12 +42,14 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     // Generate draft
     const draftText = await draftReply(
       {
+        id: review.id,
         rating: review.rating,
         comment: review.comment,
         reviewer_name: review.reviewer_name,
         review_date: review.review_date,
       },
       {
+        location_id: review.location_id,
         brand_voice: review.location.brand_voice,
         positive_sentiment: review.location.positive_sentiment,
         negative_sentiment: review.location.negative_sentiment,

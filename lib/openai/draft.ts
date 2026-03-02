@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -11,9 +12,11 @@ export interface LocationSettings {
   neutral_sentiment?: string | null
   signature?: string | null
   reply_language?: string | null
+  location_id?: string
 }
 
 export interface ReviewData {
+  id?: string
   rating: number
   comment: string | null
   reviewer_name?: string | null
@@ -62,11 +65,39 @@ const FEW_SHOT_NEUTRAL = {
 }
 
 /**
+ * Helper to fetch recent drafts for this location to ensure variety.
+ */
+async function getRecentDrafts(locationId?: string, currentReviewId?: string): Promise<string[]> {
+  if (!locationId) return []
+  try {
+    const client = createSupabaseServiceRoleClient()
+    let query = client
+      .schema('app')
+      .from('google_reviews')
+      .select('draft_text')
+      .eq('location_id', locationId)
+      .not('draft_text', 'is', null)
+      .order('draft_updated_at', { ascending: false })
+      .limit(4)
+
+    if (currentReviewId) {
+      query = query.neq('id', currentReviewId)
+    }
+
+    const { data } = await query
+    return data?.map(r => r.draft_text).filter(Boolean) as string[] || []
+  } catch (e) {
+    return []
+  }
+}
+
+/**
  * Generates a draft reply for a review using OpenAI (non-streaming).
  * Used by bulk-generate and anywhere streaming isn't needed.
  */
 export async function draftReply(review: ReviewData, locationSettings: LocationSettings, previousDraft?: string): Promise<string> {
-  const prompt = buildPrompt(review, locationSettings, previousDraft)
+  const recentDrafts = await getRecentDrafts(locationSettings.location_id, review.id)
+  const prompt = buildPrompt(review, locationSettings, previousDraft, recentDrafts)
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -91,7 +122,8 @@ export async function draftReply(review: ReviewData, locationSettings: LocationS
  * Returns an async generator that yields string chunks as they arrive.
  */
 export async function* draftReplyStream(review: ReviewData, locationSettings: LocationSettings, previousDraft?: string): AsyncGenerator<string> {
-  const prompt = buildPrompt(review, locationSettings, previousDraft)
+  const recentDrafts = await getRecentDrafts(locationSettings.location_id, review.id)
+  const prompt = buildPrompt(review, locationSettings, previousDraft, recentDrafts)
 
   const stream = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -111,7 +143,7 @@ export async function* draftReplyStream(review: ReviewData, locationSettings: Lo
   }
 }
 
-export function buildPrompt(review: ReviewData, settings: LocationSettings, previousDraft?: string): string {
+export function buildPrompt(review: ReviewData, settings: LocationSettings, previousDraft?: string, recentDrafts?: string[]): string {
   const sections: string[] = []
 
   // ── 1. BRAND VOICE (highest priority) ──────────────────────────────────
@@ -153,6 +185,14 @@ export function buildPrompt(review: ReviewData, settings: LocationSettings, prev
   if (previousDraft) {
     sections.push(
       `=== REJECTED DRAFT (generate something completely different in structure, phrasing, and opening) ===\n"${previousDraft}"`
+    )
+  }
+
+  // ── 7. VARIETY CONTROLS ────────────────────────────────────────────────
+  if (recentDrafts && recentDrafts.length > 0) {
+    sections.push(
+      `=== RECENTLY GENERATED DRAFTS ===\nTo ensure variety for this business, you MUST ENSURE you use different opening phrases, varied sentence structures, and distinct vocabulary from these recent defaults:\n\n` +
+      recentDrafts.map((d, i) => `[Recent Draft ${i + 1}]: "${d}"`).join('\n\n')
     )
   }
 

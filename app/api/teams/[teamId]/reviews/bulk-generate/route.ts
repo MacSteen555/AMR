@@ -65,11 +65,13 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
             try {
                 const draft = await draftReply({
+                    id: review.id,
                     rating: review.rating,
                     comment: review.comment,
                     reviewer_name: review.reviewer_name,
                     review_date: review.review_date
                 }, {
+                    location_id: review.location_id,
                     brand_voice: settings.brand_voice,
                     positive_sentiment: settings.positive_sentiment,
                     negative_sentiment: settings.negative_sentiment,

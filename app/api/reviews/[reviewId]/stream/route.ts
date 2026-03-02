@@ -56,12 +56,14 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         try {
           const stream = draftReplyStream(
             {
+              id: review.id,
               rating: review.rating,
               comment: review.comment,
               reviewer_name: review.reviewer_name,
               review_date: review.review_date,
             },
             {
+              location_id: location.id,
               brand_voice: location.brand_voice,
               positive_sentiment: location.positive_sentiment,
               negative_sentiment: location.negative_sentiment,
