@@ -62,7 +62,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                             .in('google_review_id', incomingGoogleIds)
                             .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
 
-                        for (const review of reviews) {
+                        const recordsToUpsert = reviews.map(review => {
                             const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
                             const existingStatus = existingMap?.get(googleReviewId)
 
@@ -74,7 +74,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                                 else if (existingStatus === 'posted') newStatus = 'none'
                             }
 
-                            await serviceClient.schema('app').from('google_reviews').upsert({
+                            return {
                                 location_id: loc.id,
                                 google_review_id: googleReviewId,
                                 rating: review.starRating === 'FIVE' ? 5 :
@@ -87,11 +87,18 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                                 review_date: review.createTime || null,
                                 reply_status: newStatus,
                                 reply_text: review.reviewReply?.comment || null
-                            }, { onConflict: 'location_id,google_review_id' })
+                            }
+                        })
 
-                            localSynced++
-                            totalSynced++
-                        }
+                        const { error } = await serviceClient
+                            .schema('app')
+                            .from('google_reviews')
+                            .upsert(recordsToUpsert, { onConflict: 'location_id,google_review_id' })
+
+                        if (error) throw error
+
+                        localSynced += recordsToUpsert.length
+                        totalSynced += recordsToUpsert.length
 
                         // Check early exits:
                         // 1. Did we hit exactly one year ago?

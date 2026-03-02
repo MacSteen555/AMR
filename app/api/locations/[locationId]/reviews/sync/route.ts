@@ -61,7 +61,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
         .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
 
       // Upsert reviews
-      for (const review of reviews) {
+      const recordsToUpsert = reviews.map(review => {
         const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
         const existingStatus = existingMap?.get(googleReviewId)
 
@@ -80,41 +80,35 @@ export async function POST(request: Request, { params }: { params: { locationId:
           }
         }
 
-        await serviceClient
-          .schema('app')
-          .from('google_reviews')
-          .upsert(
-            {
-              location_id: params.locationId,
-              google_review_id: googleReviewId,
-              rating: review.starRating === 'FIVE' ? 5 :
-                review.starRating === 'FOUR' ? 4 :
-                  review.starRating === 'THREE' ? 3 :
-                    review.starRating === 'TWO' ? 2 : 1, // Fix Rating Enum to Number if schema expects int
-              reviewer_name: review.reviewer?.displayName || null,
-              reviewer_profile_url: review.reviewer?.profilePhotoUrl || null,
-              comment: review.comment || null,
-              review_date: review.createTime || null,
-              review_url: null, // API doesn't always give URL, maybe construct it?
-              image_urls: [], // Fix mapping if specific format
-              reply_status: newStatus,
-              reply_text: review.reviewReply?.comment || null,
-            },
-            {
-              onConflict: 'location_id,google_review_id',
-              ignoreDuplicates: false,
-            }
-          )
-        // BUG: Upserting without `draft_text` field in the object -> it might set it to null or default?
-        // Actually, if the key is missing from the JS object passed to `.upsert()`, Supabase/PostgREST typically *only* updates the columns *present* in the object?
-        // NO. `upsert` is usually "Update these columns".
-        // CORRECT: If I omit `draft_text`, it should NOT touch that column in an update scenario.
-        // It ONLY touches the columns I send.
-        // So I just need to be careful NOT to send `draft_text` key.
-        // However, I *am* sending `reply_status`.
+        return {
+          location_id: params.locationId,
+          google_review_id: googleReviewId,
+          rating: review.starRating === 'FIVE' ? 5 :
+            review.starRating === 'FOUR' ? 4 :
+              review.starRating === 'THREE' ? 3 :
+                review.starRating === 'TWO' ? 2 : 1,
+          reviewer_name: review.reviewer?.displayName || null,
+          reviewer_profile_url: review.reviewer?.profilePhotoUrl || null,
+          comment: review.comment || null,
+          review_date: review.createTime || null,
+          review_url: null, // API doesn't always give URL, maybe construct it?
+          image_urls: [], // Fix mapping if specific format
+          reply_status: newStatus,
+          reply_text: review.reviewReply?.comment || null,
+        }
+      })
 
-        totalSynced++
-      }
+      const { error } = await serviceClient
+        .schema('app')
+        .from('google_reviews')
+        .upsert(recordsToUpsert, {
+          onConflict: 'location_id,google_review_id',
+          ignoreDuplicates: false,
+        })
+
+      if (error) throw error
+
+      totalSynced += recordsToUpsert.length
 
       // Check early exits:
       // 1. Did we hit exactly one year ago?
