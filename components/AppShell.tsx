@@ -197,6 +197,67 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
+
+            {/* Location Selector */}
+            <div className="mt-4">
+              <button
+                onClick={() => setLocationsOpen(!locationsOpen)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${pathname?.includes('/locations') && !pathname?.includes('/reviews')
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={pathname?.includes('/locations') && !pathname?.includes('/reviews') ? 'text-white' : 'text-gray-500'}>
+                    <LocationIcon />
+                  </div>
+                  <span className="text-sm font-medium">Locations</span>
+                </div>
+                <svg
+                  className={`w-4 h-4 transition-transform ${locationsOpen ? 'rotate-180' : ''} ${pathname?.includes('/locations') && !pathname?.includes('/reviews') ? 'text-white' : 'text-gray-400'
+                    }`}
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {locationsOpen && (
+                <div className="mt-1 ml-4 pl-3 border-l-2 border-gray-100 space-y-0.5">
+                  {/* All Locations (Team View) */}
+                  <button
+                    onClick={() => router.push(buildTeamUrl(currentTeam.id))}
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${!activeLocationId && pathname?.includes(`/teams/${currentTeam.id}`)
+                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                  >
+                    All Locations
+                  </button>
+
+                  {/* Individual Locations */}
+                  {locations.map(loc => (
+                    <button
+                      key={loc.id}
+                      onClick={() => router.push(buildLocationUrl(loc.id))}
+                      className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors truncate ${activeLocationId === loc.id
+                        ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      title={loc.name}
+                    >
+                      📍{loc.name}
+                    </button>
+                  ))}
+
+                  {locations.length === 0 && (
+                    <div className="px-3 py-1.5 text-xs text-gray-400 italic">
+                      No locations yet
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -204,67 +265,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {currentTeam ? (
             <>
-              {/* Location Selector */}
-              <div>
-                <button
-                  onClick={() => setLocationsOpen(!locationsOpen)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${pathname?.includes('/locations') && !pathname?.includes('/reviews')
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={pathname?.includes('/locations') && !pathname?.includes('/reviews') ? 'text-white' : 'text-gray-500'}>
-                      <LocationIcon />
-                    </div>
-                    <span className="text-sm font-medium">Locations</span>
-                  </div>
-                  <svg
-                    className={`w-4 h-4 transition-transform ${locationsOpen ? 'rotate-180' : ''} ${pathname?.includes('/locations') && !pathname?.includes('/reviews') ? 'text-white' : 'text-gray-400'
-                      }`}
-                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {locationsOpen && (
-                  <div className="mt-1 ml-4 pl-3 border-l-2 border-gray-100 space-y-0.5">
-                    {/* All Locations (Team View) */}
-                    <button
-                      onClick={() => router.push(buildTeamUrl(currentTeam.id))}
-                      className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors ${!activeLocationId && pathname?.includes(`/teams/${currentTeam.id}`)
-                        ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                    >
-                      All Locations
-                    </button>
-
-                    {/* Individual Locations */}
-                    {locations.map(loc => (
-                      <button
-                        key={loc.id}
-                        onClick={() => router.push(buildLocationUrl(loc.id))}
-                        className={`w-full text-left px-3 py-1.5 text-sm rounded-md transition-colors truncate ${activeLocationId === loc.id
-                          ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }`}
-                        title={loc.name}
-                      >
-                        📍{loc.name}
-                      </button>
-                    ))}
-
-                    {locations.length === 0 && (
-                      <div className="px-3 py-1.5 text-xs text-gray-400 italic">
-                        No locations yet
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
               <NavItem
                 href={activeLocationId ? `/locations/${activeLocationId}/reviews` : `/teams/${currentTeam.id}/reviews`}
                 icon={<ReviewIcon />}
