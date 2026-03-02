@@ -98,6 +98,16 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       importedLocations.push(location)
     }
 
+    // Fire background sync asynchronously so user doesn't wait
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    fetch(`${baseUrl}/api/teams/${params.teamId}/reviews/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': request.headers.get('cookie') || '',
+      },
+    }).catch(err => console.error('Background sync failed on import:', err))
+
     return NextResponse.json({ locations: importedLocations }, { status: 201 })
   } catch (error: any) {
     if (error.name === 'ZodError') {

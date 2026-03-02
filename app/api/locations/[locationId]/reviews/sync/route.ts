@@ -32,6 +32,10 @@ export async function POST(request: Request, { params }: { params: { locationId:
     let totalSynced = 0
     let hasMore = true
 
+    // 1-Year Date Boundary
+    const oneYearAgo = new Date()
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+
     while (hasMore) {
       const { reviews, nextPageToken } = await listReviews(
         location.google_account_hint,
@@ -110,6 +114,19 @@ export async function POST(request: Request, { params }: { params: { locationId:
         // However, I *am* sending `reply_status`.
 
         totalSynced++
+      }
+
+      // Check early exits:
+      // 1. Did we hit exactly one year ago?
+      const lastReviewOnPage = reviews[reviews.length - 1]
+      const lastReviewDate = lastReviewOnPage?.createTime ? new Date(lastReviewOnPage.createTime) : new Date()
+      if (lastReviewDate < oneYearAgo) {
+        break // Halt pagination, we've gone back far enough
+      }
+
+      // 2. Are we just hitting records we already know about?
+      if (existingMap?.size === incomingGoogleIds.length && incomingGoogleIds.length > 0) {
+        break // Halt pagination, this entire page has already been synced previously
       }
 
       pageToken = nextPageToken
