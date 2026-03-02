@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { grantMonthlyCredits } from '@/lib/billing/credits'
+import crypto from 'crypto'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia' as any,
@@ -88,6 +89,29 @@ export async function handleStripeWebhook(
   }
 }
 
+/**
+ * Records a custom stripe event for actions performed directly via API
+ * (e.g., subscription upgrades/downgrades that bypass checkout).
+ */
+export async function recordStripeEvent(
+  action: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  const serviceClient = createSupabaseServiceRoleClient()
+  const syntheticEventId = `app_${action}_${crypto.randomUUID()}`
+
+  const { error } = await serviceClient.schema('app').from('stripe_events').insert({
+    event_id: syntheticEventId,
+    payload: { type: action, ...payload, recorded_at: new Date().toISOString() },
+  })
+
+  if (error) {
+    console.error(`[Stripe] Error recording event for ${action}:`, error)
+  } else {
+    console.log(`[Stripe] Recorded event: ${syntheticEventId}`)
+  }
+}
+
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const serviceClient = createSupabaseServiceRoleClient()
   const teamId = session.metadata?.team_id
@@ -122,9 +146,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     await updateTeamSubscription(teamId, subscription)
 
     // Grant initial monthly credits for new subscriptions
-    console.log(`[Stripe Webhook] Granting initial credits for new subscription`)
+    const actorUserId = session.metadata?.user_id || null
+    console.log(`[Stripe Webhook] Granting initial credits for new subscription (actor: ${actorUserId})`)
     try {
-      await grantMonthlyCredits(teamId)
+      await grantMonthlyCredits(teamId, false, actorUserId)
       console.log(`[Stripe Webhook] Initial credits granted successfully`)
     } catch (error) {
       console.error(`[Stripe Webhook] Error granting initial credits:`, error)
@@ -281,9 +306,10 @@ export async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     console.log(`[Stripe Webhook] Syncing subscription ${subscriptionId} before granting credits...`)
 
     // 1. Force update subscription from Stripe to ensure DB has latest plan
+    let stripeSubscription: Stripe.Subscription
     try {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-      await updateTeamSubscription(teamSub.team_id, subscription)
+      stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId)
+      await updateTeamSubscription(teamSub.team_id, stripeSubscription)
       console.log(`[Stripe Webhook] Subscription synced successfully`)
     } catch (err) {
       console.error(`[Stripe Webhook] Error syncing subscription during invoice payment:`, err)
@@ -296,9 +322,13 @@ export async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     // (initial credits are granted via checkout.session.completed)
     if (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_update') {
       const isUpgrade = invoice.billing_reason === 'subscription_update'
-      console.log(`[Stripe Webhook] Billing event detected (${invoice.billing_reason}) - granting monthly credits for team: ${teamSub.team_id}`)
+
+      // Try to resolve actor_user_id from the subscription metadata
+      const actorUserId = stripeSubscription.metadata?.user_id || null
+
+      console.log(`[Stripe Webhook] Billing event detected (${invoice.billing_reason}) - granting monthly credits for team: ${teamSub.team_id} (actor: ${actorUserId})`)
       try {
-        await grantMonthlyCredits(teamSub.team_id, isUpgrade)
+        await grantMonthlyCredits(teamSub.team_id, isUpgrade, actorUserId)
         console.log(`[Stripe Webhook] Credits granted successfully`)
       } catch (error) {
         console.error(`[Stripe Webhook] Error granting credits:`, error)

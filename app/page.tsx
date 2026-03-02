@@ -545,7 +545,7 @@ export default function LandingPage() {
             />
             <PricingCard
               name="Pro"
-              price="$10"
+              price="$15"
               period="mo"
               features={['25 credits/month', 'Everything in Free', 'AI Insights', 'Priority support']}
               popular
@@ -553,14 +553,14 @@ export default function LandingPage() {
             />
             <PricingCard
               name="Business"
-              price="$18"
+              price="$35"
               period="mo"
               features={['50 credits/month', 'Everything in Pro', 'Competitive Intel', 'Team collaboration']}
               cta="Get Business"
             />
             <PricingCard
               name="Enterprise"
-              price="$150"
+              price="$80"
               period="mo"
               features={['1,000 credits/month', 'All features', 'Custom integrations', 'Dedicated support']}
               cta="Contact Us"
