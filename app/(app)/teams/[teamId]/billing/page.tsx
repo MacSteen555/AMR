@@ -35,7 +35,7 @@ const PLANS = [
   {
     tier: 'PRO',
     name: 'Pro',
-    price: '$10',
+    price: '$15',
     credits: 25,
     features: ['25 credits/month', 'AI Insights', 'Priority support'],
     popular: true,
@@ -43,14 +43,14 @@ const PLANS = [
   {
     tier: 'BUSINESS',
     name: 'Business',
-    price: '$25',
+    price: '$35',
     credits: 50,
     features: ['50 credits/month', 'AI Insights', 'Competitive Intel', 'Team collaboration'],
   },
   {
     tier: 'ENTERPRISE',
     name: 'Enterprise',
-    price: '$150',
+    price: '$80',
     credits: 1000,
     features: ['1,000 credits/month', 'All features', 'Custom integrations', 'Dedicated support'],
   },

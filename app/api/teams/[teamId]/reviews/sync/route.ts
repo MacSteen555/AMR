@@ -29,59 +29,88 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const syncLocation = async (loc: any) => {
             if (!loc.google_account_hint) return false
             try {
-                // First page only for "Sync All" to save quota/time? Or full sync?
-                // Let's do first page (50 items) for speed.
-                const { reviews } = await listReviews(
-                    loc.google_account_hint,
-                    loc.google_location_id,
-                    user.id,
-                    100 // page size
-                )
+                let pageToken: string | undefined = undefined
+                let hasMore = true
+                let localSynced = 0
 
-                // Upsert Reviews (similar logic to single sync)
-                if (reviews.length > 0) {
-                    const incomingGoogleIds = reviews.map(r => r.reviewId || r.name?.split('/').pop() || '')
-                    // Basic upsert without preserving drafts logic here for brevity? 
-                    // NO, we MUST preserve drafts or we overwrite them! 
-                    // Re-implement preserving logic.
+                // 1-Year Date Boundary
+                const oneYearAgo = new Date()
+                oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
 
-                    // Fetch existing status map
-                    const { data: existingMap } = await serviceClient
-                        .schema('app')
-                        .from('google_reviews')
-                        .select('google_review_id, reply_status')
-                        .eq('location_id', loc.id)
-                        .in('google_review_id', incomingGoogleIds)
-                        .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
+                while (hasMore) {
+                    const { reviews, nextPageToken } = await listReviews(
+                        loc.google_account_hint,
+                        loc.google_location_id,
+                        user.id,
+                        100, // page size
+                        pageToken
+                    )
 
-                    for (const review of reviews) {
-                        const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
-                        const existingStatus = existingMap?.get(googleReviewId)
+                    // Upsert Reviews (similar logic to single sync)
+                    if (reviews.length > 0) {
+                        const incomingGoogleIds = reviews.map(r => r.reviewId || r.name?.split('/').pop() || '')
+                        // Basic upsert without preserving drafts logic here for brevity? 
+                        // NO, we MUST preserve drafts or we overwrite them! 
+                        // Re-implement preserving logic.
 
-                        let newStatus = 'none'
-                        if (review.reviewReply) {
-                            newStatus = 'posted'
-                        } else {
-                            if (existingStatus === 'draft') newStatus = 'draft'
-                            else if (existingStatus === 'posted') newStatus = 'none'
+                        // Fetch existing status map
+                        const { data: existingMap } = await serviceClient
+                            .schema('app')
+                            .from('google_reviews')
+                            .select('google_review_id, reply_status')
+                            .eq('location_id', loc.id)
+                            .in('google_review_id', incomingGoogleIds)
+                            .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
+
+                        for (const review of reviews) {
+                            const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
+                            const existingStatus = existingMap?.get(googleReviewId)
+
+                            let newStatus = 'none'
+                            if (review.reviewReply) {
+                                newStatus = 'posted'
+                            } else {
+                                if (existingStatus === 'draft') newStatus = 'draft'
+                                else if (existingStatus === 'posted') newStatus = 'none'
+                            }
+
+                            await serviceClient.schema('app').from('google_reviews').upsert({
+                                location_id: loc.id,
+                                google_review_id: googleReviewId,
+                                rating: review.starRating === 'FIVE' ? 5 :
+                                    review.starRating === 'FOUR' ? 4 :
+                                        review.starRating === 'THREE' ? 3 :
+                                            review.starRating === 'TWO' ? 2 : 1,
+                                reviewer_name: review.reviewer?.displayName || null,
+                                reviewer_profile_url: review.reviewer?.profilePhotoUrl || null,
+                                comment: review.comment || null,
+                                review_date: review.createTime || null,
+                                reply_status: newStatus,
+                                reply_text: review.reviewReply?.comment || null
+                            }, { onConflict: 'location_id,google_review_id' })
+
+                            localSynced++
+                            totalSynced++
                         }
 
-                        await serviceClient.schema('app').from('google_reviews').upsert({
-                            location_id: loc.id,
-                            google_review_id: googleReviewId,
-                            rating: review.starRating === 'FIVE' ? 5 :
-                                review.starRating === 'FOUR' ? 4 :
-                                    review.starRating === 'THREE' ? 3 :
-                                        review.starRating === 'TWO' ? 2 : 1,
-                            reviewer_name: review.reviewer?.displayName || null,
-                            reviewer_profile_url: review.reviewer?.profilePhotoUrl || null,
-                            comment: review.comment || null,
-                            review_date: review.createTime || null,
-                            reply_status: newStatus,
-                            reply_text: review.reviewReply?.comment || null
-                        }, { onConflict: 'location_id,google_review_id' })
+                        // Check early exits:
+                        // 1. Did we hit exactly one year ago?
+                        const lastReviewOnPage = reviews[reviews.length - 1]
+                        const lastReviewDate = lastReviewOnPage?.createTime ? new Date(lastReviewOnPage.createTime) : new Date()
+                        if (lastReviewDate < oneYearAgo) {
+                            break // Halt pagination, we've gone back far enough
+                        }
+
+                        // 2. Are we just hitting records we already know about?
+                        if (existingMap?.size === incomingGoogleIds.length && incomingGoogleIds.length > 0) {
+                            break // Halt pagination, this entire page has already been synced previously
+                        }
                     }
+
+                    pageToken = nextPageToken
+                    hasMore = !!nextPageToken && localSynced < 500
                 }
+
                 return true
             } catch (e: any) {
                 errors.push(`${loc.id}: ${e.message}`)

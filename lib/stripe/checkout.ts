@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { recordStripeEvent } from '@/lib/stripe/webhook'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia' as any,
@@ -101,6 +102,17 @@ export async function createCheckoutSession(
           })
 
           console.log(`[Checkout] Successfully scheduled downgrade to ${tier} at ${new Date(sub.current_period_end * 1000).toISOString()}`)
+
+          // Record in stripe_events so this direct update is tracked
+          await recordStripeEvent('subscription_downgrade_scheduled', {
+            team_id: teamId,
+            user_id: userId,
+            to_tier: tier,
+            to_price_id: priceId,
+            subscription_id: sub.id,
+            effective_date: new Date(sub.current_period_end * 1000).toISOString(),
+          })
+
           return successUrl
 
         } else {
@@ -112,8 +124,20 @@ export async function createCheckoutSession(
               price: priceId,
             }],
             proration_behavior: 'always_invoice', // Charge immediately for upgrades
+            metadata: { user_id: userId }, // Track who initiated the upgrade
           })
           console.log(`[Checkout] Successfully updated subscription to ${tier}`)
+
+          // Record in stripe_events so this direct update is tracked
+          await recordStripeEvent('subscription_upgrade', {
+            team_id: teamId,
+            user_id: userId,
+            from_tier: currentPriceId,
+            to_tier: tier,
+            to_price_id: priceId,
+            subscription_id: subscription.stripe_subscription_id,
+          })
+
           return successUrl // Return success URL directly (frontend will redirect)
         }
       }

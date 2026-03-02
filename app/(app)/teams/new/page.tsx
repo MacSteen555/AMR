@@ -206,6 +206,11 @@ export default function NewTeamPage() {
       // Load sample reviews for first location
       if (result.locations.length > 0) {
         loadSampleReviews(result.locations[0].name)
+
+        // Kick off review sync in the background so dashboard is populated when they finish step 3
+        apiPost(`/api/teams/${teamId}/reviews/sync`, {}).catch((err) => {
+          console.error('Background sync failed:', err)
+        })
       }
     } catch (err: any) {
       setError(err.message || 'Failed to import locations')
