@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { GoogleLoginButton } from '@/components/GoogleLoginButton'
 
 interface InviteDetails {
     id: string
@@ -77,13 +78,13 @@ export default function AcceptInvitePage() {
         }
     }
 
-    const handleLogin = () => {
-        // Store invite URL so we can return after login
-        if (typeof window !== 'undefined') {
-            document.cookie = `invite_redirect=/invites/${token}; path=/; max-age=600; SameSite=Lax`
+    useEffect(() => {
+        if (state.type === 'valid' && !state.authenticated) {
+            if (typeof window !== 'undefined') {
+                document.cookie = `invite_redirect=/invites/${token}; path=/; max-age=600; SameSite=Lax`
+            }
         }
-        router.push('/login')
-    }
+    }, [state.type, (state as any).authenticated, token])
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center px-4">
@@ -150,13 +151,8 @@ export default function AcceptInvitePage() {
                                     )}
                                 </>
                             ) : (
-                                <div className="space-y-3">
-                                    <button
-                                        onClick={handleLogin}
-                                        className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
-                                    >
-                                        Sign in to Join
-                                    </button>
+                                <div className="space-y-4 mt-2">
+                                    <GoogleLoginButton />
                                     <p className="text-xs text-gray-400 text-center">
                                         Sign in with <strong>{state.invite.invited_email}</strong> to accept
                                     </p>

@@ -58,11 +58,11 @@ export async function POST(request: Request) {
             .single()
 
         if (existingMembership) {
-            // Mark invite as accepted anyway
+            // Delete invite since it is accepted
             await supabase
                 .schema('app')
                 .from('team_invites')
-                .update({ accepted_at: new Date().toISOString() })
+                .delete()
                 .eq('id', invite.id)
 
             return NextResponse.json({
@@ -86,11 +86,11 @@ export async function POST(request: Request) {
             throw new Error(`Failed to join team: ${membershipError.message}`)
         }
 
-        // Mark invite as accepted
+        // Delete invite
         await supabase
             .schema('app')
             .from('team_invites')
-            .update({ accepted_at: new Date().toISOString() })
+            .delete()
             .eq('id', invite.id)
 
         return NextResponse.json({
