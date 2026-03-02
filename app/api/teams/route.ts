@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import { createTeamSchema } from '@/lib/validation/schemas'
+import crypto from 'crypto'
 
 type Team = {
   id: string
@@ -55,11 +56,29 @@ export async function POST(request: Request) {
     const uid = userData.user.id
 
     // Slug (basic)
-    const slug = parsed.name
+    const baseSlug = parsed.name
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
+      .replace(/^-+|-+$/g, '') || 'team'
+
+    const adminClient = createSupabaseServiceRoleClient()
+
+    let slug = baseSlug
+
+    // Perform a single check to verify if the base slug exists
+    const { data: existingTeam } = await adminClient
+      .schema('app')
+      .from('teams')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+
+    if (existingTeam) {
+      // Upon collision, append a highly entropic 6-character random hex suffix 
+      const randomSuffix = crypto.randomBytes(3).toString('hex')
+      slug = `${baseSlug}-${randomSuffix}`
+    }
 
     // ✅ Create team via standard insert
     // RLS policy 'teams_insert_authenticated' allows this
@@ -83,7 +102,6 @@ export async function POST(request: Request) {
     // Create admin membership
     // We use the Service Role client to bypass RLS, because the 'tm_insert_admin' policy
     // requires the user to ALREADY be an admin of the team, which is impossible for the first member.
-    const adminClient = createSupabaseServiceRoleClient()
 
     const { error: membershipError } = await adminClient
       .schema('app')
