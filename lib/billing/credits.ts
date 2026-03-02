@@ -230,7 +230,7 @@ export async function spendCredits(
 // In-memory mutex to serialize requests for the same team
 const activeProcessing = new Map<string, Promise<void>>()
 
-export async function grantMonthlyCredits(teamId: string, isUpgrade: boolean = false): Promise<void> {
+export async function grantMonthlyCredits(teamId: string, isUpgrade: boolean = false, actorUserId: string | null = null): Promise<void> {
   // Wait for any active processing for this team to finish
   // This prevents race conditions where two events (e.g. proration + renewal)
   // trigger grants simultaneously, both reading the same initial balance.
@@ -317,7 +317,7 @@ export async function grantMonthlyCredits(teamId: string, isUpgrade: boolean = f
       event_type: 'monthly_grant',
       amount: creditsToGrant,
       reason: 'Monthly subscription credit grant',
-      actor_user_id: null,
+      actor_user_id: actorUserId,
     })
 
     if (txError) {
