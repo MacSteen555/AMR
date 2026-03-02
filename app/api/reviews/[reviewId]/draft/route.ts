@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
+import { resolveSignature } from '@/lib/draft-signature'
 import { spendCredits } from '@/lib/billing/credits'
 import { updateDraftSchema } from '@/lib/validation/schemas'
 import crypto from 'crypto'
@@ -20,7 +21,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     const { data: review } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('*, location:locations!inner(team_id, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language)')
+      .select('*, location:locations!inner(team_id, name, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language, teams(name))')
       .eq('id', params.reviewId)
       .single()
 
@@ -39,6 +40,16 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       idempotencyKey
     )
 
+    // Optional relation typing 
+    const teamData = review.location.teams as { name: string } | null
+    const teamName = teamData?.name
+
+    const resolvedSignature = resolveSignature(review.location.signature, {
+      locationName: review.location.name,
+      teamName,
+      userName: user.display_name || user.email,
+    })
+
     // Generate draft
     const draftText = await draftReply(
       {
@@ -53,7 +64,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         brand_voice: review.location.brand_voice,
         positive_sentiment: review.location.positive_sentiment,
         negative_sentiment: review.location.negative_sentiment,
-        signature: review.location.signature,
+        signature: resolvedSignature,
         reply_language: review.location.reply_language,
       }
     )
@@ -64,9 +75,10 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       .from('google_reviews')
       .update({
         draft_text: draftText,
+        reply_status: 'draft',
         draft_updated_at: new Date().toISOString(),
         llm_last_generated_at: new Date().toISOString(),
-        llm_model: 'gpt-5-mini',
+        llm_model: 'gpt-4o-mini',
       })
       .eq('id', params.reviewId)
 
