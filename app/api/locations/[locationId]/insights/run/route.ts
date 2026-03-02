@@ -67,7 +67,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
       .schema('app')
       .from('insights')
       .insert({
-        team_id: location.team_id,
+        team_id: null,
         location_id: params.locationId,
         period_start: data.period_start,
         period_end: data.period_end,
