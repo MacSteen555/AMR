@@ -2,6 +2,8 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReplyStream } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
+import { spendCredits } from '@/lib/billing/credits'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +26,24 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       })
     }
 
+    const idempotencyKey = request.headers.get('Idempotency-Key') || crypto.randomUUID()
+    const body = await request.json().catch(() => ({}))
+    const previousDraft = body.previous_draft
+    const mode = body.mode || 'generate'
+
+    if (mode === 'generate') {
+      // Spend 1 credit for generation before we stream
+      await spendCredits(
+        review.locations?.team_id,
+        user.id,
+        'reply_generate',
+        1,
+        'review',
+        params.reviewId,
+        idempotencyKey
+      )
+    }
+
     const locData = review.locations
     const location = Array.isArray(locData) ? locData[0] : locData
 
@@ -43,10 +63,6 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       teamName,
       userName: user.display_name || user.email,
     })
-
-    const body = await request.json().catch(() => ({}))
-    const previousDraft = body.previous_draft
-    const mode = body.mode || 'generate'
 
     const encoder = new TextEncoder()
     let fullText = ''
@@ -83,7 +99,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             draft_text: fullText,
             draft_updated_at: new Date().toISOString(),
             llm_last_generated_at: new Date().toISOString(),
-            llm_model: 'gpt-5-nano',
+            llm_model: 'gpt-4o-mini',
           }
           if (mode === 'generate') {
             updateFields.reply_status = 'draft'
@@ -96,6 +112,13 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             .eq('id', params.reviewId)
             .select()
             .single()
+
+          // Log the stream output to text draft history
+          await serviceClient.schema('app').from('review_drafts').insert({
+            review_id: params.reviewId,
+            author_user_id: user.id,
+            content: fullText,
+          })
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, review: updated })}\n\n`))
           controller.close()
@@ -114,6 +137,12 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       },
     })
   } catch (error: any) {
+    if (error.message.includes('Insufficient credits') || error.message.includes('Requires')) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 402,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
     return new Response(JSON.stringify({ error: error.message }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
