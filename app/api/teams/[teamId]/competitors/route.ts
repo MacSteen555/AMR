@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createCompetitorSchema } from '@/lib/validation/schemas'
+import { getTeamTier } from '@/lib/billing/credits'
 
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -30,6 +31,40 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     const supabase = createSupabaseServerClient()
 
+    // 1. Check tier limits
+    const tierInfo = await getTeamTier(params.teamId)
+    const limits: Record<string, number> = {
+      FREE: 0,
+      PRO: 1,
+      BUSINESS: 5,
+      ENTERPRISE: 10
+    }
+    const maxCompetitors = limits[tierInfo.tier] || 0
+
+    if (maxCompetitors === 0) {
+      return NextResponse.json({ error: 'Please upgrade to PRO or higher to add competitors' }, { status: 403 })
+    }
+
+    // 2. Count active competitors
+    const { count, error: countError } = await supabase
+      .schema('app')
+      .from('competitors')
+      .select('*', { count: 'exact', head: true })
+      .eq('team_id', params.teamId)
+      .is('deleted_at', null)
+
+    if (countError) {
+      throw new Error(`Failed to check limits: ${countError.message}`)
+    }
+
+    if (count !== null && count >= maxCompetitors) {
+      return NextResponse.json(
+        { error: `Limit reached. Your ${tierInfo.tier} plan allows up to ${maxCompetitors} competitor(s).` },
+        { status: 403 }
+      )
+    }
+
+    // 3. Insert competitor
     const { data: competitor, error } = await supabase
       .schema('app')
       .from('competitors')
@@ -42,6 +77,9 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         address: data.address || null,
         latitude: data.latitude || null,
         longitude: data.longitude || null,
+        rating: data.rating || null,
+        review_count: data.review_count || null,
+        opening_hours: data.opening_hours || null,
       })
       .select()
       .single()

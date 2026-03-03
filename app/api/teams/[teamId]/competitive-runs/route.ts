@@ -33,6 +33,18 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
 
+    const timeframes = [
+      { id: '30d', days: 30 },
+      { id: '90d', days: 90 },
+      { id: '6m', months: 6 },
+      { id: '1y', years: 1 }
+    ]
+
+    const endStr = new Date().toISOString().split('T')[0]
+    const oneYearAgo = new Date()
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+    const maxStartStr = oneYearAgo.toISOString().split('T')[0]
+
     // Get owned location reviews
     const { data: ownedLocations } = await supabase
       .schema('app')
@@ -46,14 +58,16 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const { data: reviews } = await supabase
           .schema('app')
           .from('google_reviews')
-          .select('rating, comment')
+          .select('rating, comment, review_date')
           .eq('location_id', loc.id)
-          .gte('review_date', data.period_start)
-          .lte('review_date', data.period_end)
+          .gte('review_date', maxStartStr)
+          .lte('review_date', endStr)
+          .order('review_date', { ascending: false })
+          .limit(400)
 
         return {
           name: loc.name,
-          reviews: (reviews || []).map((r) => ({ rating: r.rating, comment: r.comment })),
+          reviews: (reviews || []).map((r) => ({ rating: r.rating, comment: r.comment, date: r.review_date })),
         }
       })
     )
@@ -71,25 +85,58 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const { data: reviews } = await supabase
           .schema('app')
           .from('competitor_reviews')
-          .select('rating, comment')
+          .select('rating, comment, review_date')
           .eq('competitor_id', comp.id)
-          .gte('review_date', data.period_start)
-          .lte('review_date', data.period_end)
+          .gte('review_date', maxStartStr)
+          .lte('review_date', endStr)
+          .order('review_date', { ascending: false })
+          .limit(400)
 
         return {
           name: comp.name,
-          reviews: (reviews || []).map((r) => ({ rating: r.rating, comment: r.comment })),
+          reviews: (reviews || []).map((r) => ({ rating: r.rating, comment: r.comment, date: r.review_date })),
         }
       })
     )
 
-    // Generate competitive analysis
-    const analysisData = await competitiveRun({
-      ownedLocations: ownedLocationReviews,
-      competitors: competitorReviews,
-      periodStart: data.period_start,
-      periodEnd: data.period_end,
-    })
+    // Generate competitive analysis for 4 timeframes concurrently
+    const analysisData: Record<string, any> = {}
+
+    await Promise.all(
+      timeframes.map(async (tf) => {
+        const start = new Date()
+        if (tf.days) start.setDate(start.getDate() - tf.days)
+        if (tf.months) start.setMonth(start.getMonth() - tf.months)
+        if (tf.years) start.setFullYear(start.getFullYear() - tf.years)
+        const startStr = start.toISOString().split('T')[0]
+
+        // Filter out reviews before the specific timeframe
+        const filterReviews = (rawReviews: any[]) => {
+          return rawReviews
+            .filter(r => r.date >= startStr)
+            .slice(0, 100)
+            .map(r => ({ rating: r.rating, comment: r.comment }))
+        }
+
+        const filteredOwned = ownedLocationReviews.map(loc => ({
+          name: loc.name,
+          reviews: filterReviews(loc.reviews)
+        }))
+
+        const filteredComp = competitorReviews.map(comp => ({
+          name: comp.name,
+          reviews: filterReviews(comp.reviews)
+        }))
+
+        // Run analysis for this duration
+        analysisData[tf.id] = await competitiveRun({
+          ownedLocations: filteredOwned,
+          competitors: filteredComp,
+          periodStart: startStr,
+          periodEnd: endStr,
+        })
+      })
+    )
 
     // Save competitive run
     const { data: run, error } = await serviceClient
@@ -99,12 +146,12 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         team_id: params.teamId,
         created_by_user_id: user.id,
         name: data.name || null,
-        period_start: data.period_start,
-        period_end: data.period_end,
+        period_start: null,
+        period_end: null,
         owned_location_ids: data.owned_location_ids,
         competitor_ids: data.competitor_ids,
         data: analysisData,
-        model: 'gpt-5.2',
+        model: 'gpt-5.2', // Parallelized
       })
       .select()
       .single()

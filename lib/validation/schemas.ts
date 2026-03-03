@@ -56,6 +56,9 @@ export const createCompetitorSchema = z.object({
   address: z.string().optional().nullable(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
+  rating: z.number().optional().nullable(),
+  review_count: z.number().optional().nullable(),
+  opening_hours: z.any().optional().nullable(),
 })
 
 export const runInsightsSchema = z.object({
@@ -66,8 +69,6 @@ export const runInsightsSchema = z.object({
 
 export const createCompetitiveRunSchema = z.object({
   name: z.string().optional(),
-  period_start: z.string().date(),
-  period_end: z.string().date(),
   owned_location_ids: z.array(z.string().uuid()).min(1).max(3),
   competitor_ids: z.array(z.string().uuid()).min(1).max(3),
 })
