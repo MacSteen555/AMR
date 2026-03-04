@@ -603,6 +603,10 @@ export default function LandingPage() {
             <img src="/images/logo.png" alt="AutoMyReply" className="w-7 h-7 rounded-lg object-cover" />
             <span className="font-bold text-gray-900">AutoMyReply</span>
           </div>
+          <div className="flex items-center gap-6">
+            <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Privacy Policy</Link>
+          </div>
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} AutoMyReply. All rights reserved.</p>
         </div>
       </footer>

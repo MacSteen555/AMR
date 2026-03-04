@@ -20,8 +20,11 @@ export default function LoginPage({
 
           {/* Info */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              By signing in, you agree to connect your Google Business Profile account
+            <p className="text-sm text-gray-500 mb-2">
+              By signing in, you agree to connect your Google Business Profile account.
+            </p>
+            <p className="text-xs text-gray-400">
+              Logging in indicates agreement to our <a href="/terms" className="text-indigo-600 hover:text-indigo-700 hover:underline">Terms of Service</a> and <a href="/privacy" className="text-indigo-600 hover:text-indigo-700 hover:underline">Privacy Policy</a>.
             </p>
           </div>
 
