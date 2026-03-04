@@ -81,7 +81,6 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: '90d', label: 'Last 90 days' },
   { key: '6m', label: 'Last 6 months' },
   { key: '1y', label: 'Last year' },
-  { key: 'all', label: 'All time' },
 ]
 
 // ─── Chart Formatters ────────────────────────────────────────────────────────
@@ -141,11 +140,7 @@ export default function LocationInsightsPage() {
   const handleGenerateInsights = async () => {
     setGenerating(true)
     try {
-      await apiPost(`/api/locations/${locationId}/insights/run`, {
-        period_start: start,
-        period_end: end,
-        period_window: period,
-      })
+      await apiPost(`/api/locations/${locationId}/insights/run`, {})
       setToast({ message: 'AI insights generated!', type: 'success' })
       const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/locations/${locationId}/insights/run?period_window=${period}`)
       setAiInsights(insightsRes.insights || [])
