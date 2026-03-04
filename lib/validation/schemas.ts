@@ -61,11 +61,7 @@ export const createCompetitorSchema = z.object({
   opening_hours: z.any().optional().nullable(),
 })
 
-export const runInsightsSchema = z.object({
-  period_start: z.string().date(),
-  period_end: z.string().date(),
-  period_window: z.enum(['30d', '90d', '6m', '1y', 'all', 'custom']).optional(),
-})
+export const runInsightsSchema = z.object({})
 
 export const createCompetitiveRunSchema = z.object({
   name: z.string().optional(),
