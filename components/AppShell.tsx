@@ -282,8 +282,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 icon={<CompeteIcon />}
                 label="Compete"
                 active={pathname?.includes('/competitive')}
-                badge={tier === 'FREE' || tier === 'PRO' ? 'BUSINESS+' : undefined}
-                disabled={tier === 'FREE' || tier === 'PRO'}
+                badge={tier === 'FREE' ? 'PRO+' : undefined}
+                disabled={tier === 'FREE'}
               />
             </>
           ) : (
