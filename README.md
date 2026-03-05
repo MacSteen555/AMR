@@ -119,6 +119,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## Getting Started
 
+### 1. Repository Setup
+
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -126,14 +128,43 @@ cd AMR-Backend_Experiments
 
 # Install dependencies
 npm install
+```
 
-# Set up environment variables (see above)
+### 2. Local Supabase Setup
+This project uses the Supabase CLI for local development and database migrations.
 
-# Run database migrations in Supabase
+```bash
+# Start the local Supabase stack (Database, Auth, Storage, Studio)
+npx supabase start
+```
+*Note: This will automatically apply all migrations in `supabase/migrations` to your local database.*
 
-# Start development server
+After starting, you will see local URLs in your terminal, such as:
+- **Studio (Local DB Dashboard):** `http://127.0.0.1:54323`
+- **Edges & API:** `http://127.0.0.1:54321`
+
+### 3. Environment Variables
+Create a `.env.local` file for your local environment overrides. The local Supabase stack uses standard local keys:
+
+```bash
+# .env.local
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... # (Get from `npx supabase status` output)
+```
+*(Leave your production API keys in `.env`)*
+
+### 4. Run the Application
+
+```bash
+# Start the Next.js development server
 npm run dev
 ```
+
+### Supabase Workflow Commands
+- `npx supabase migration new <name>`: Create a new database migration.
+- `npx supabase db reset`: Reset your local database and re-apply all migrations.
+- `npx supabase db push`: Push local migrations to the production remote database.
 
 ## API Routes
 
