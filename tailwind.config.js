@@ -19,12 +19,14 @@ module.exports = {
           700: '#4338ca',
           800: '#3730a3',
           900: '#312e81',
+          950: '#1e1b4b',
         },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.6s ease-out forwards',
+        'slide-up': 'fadeSlideUp 0.6s ease-out forwards',
       },
     },
   },
   plugins: [],
 }
-
-
-
