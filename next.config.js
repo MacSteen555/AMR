@@ -33,11 +33,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self'${isDev ? " 'unsafe-eval'" : ''} 'unsafe-inline' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com`,
+              `script-src 'self'${isDev ? " 'unsafe-eval'" : ''} 'unsafe-inline' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com https://us-assets.i.posthog.com`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api.stripe.com https://accounts.google.com https://us.i.posthog.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io https://api.stripe.com https://accounts.google.com https://us.i.posthog.com https://us-assets.i.posthog.com",
               "frame-src https://js.stripe.com https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",
