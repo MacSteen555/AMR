@@ -112,7 +112,7 @@ export function CompetitorStatsModal({ competitor, onClose }: CompetitorStatsMod
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Rating Chart */}
                                     <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                                        <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-4">Average Rating by Month</h4>
+                                        <h4 className="text-sm font-bold text-teal-600 uppercase tracking-wider mb-4">Average Rating by Month</h4>
                                         <div className="h-64">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <LineChart data={historicalStats}>
@@ -124,7 +124,7 @@ export function CompetitorStatsModal({ competitor, onClose }: CompetitorStatsMod
                                                         // @ts-ignore
                                                         formatter={(value: number) => [value.toFixed(1) + ' ★', 'Avg Rating']}
                                                     />
-                                                    <Line type="monotone" dataKey="avgRating" stroke="#4F46E5" strokeWidth={3} dot={{ r: 4, fill: '#4F46E5' }} activeDot={{ r: 6 }} />
+                                                    <Line type="monotone" dataKey="avgRating" stroke="#0D9488" strokeWidth={3} dot={{ r: 4, fill: '#0D9488' }} activeDot={{ r: 6 }} />
                                                 </LineChart>
                                             </ResponsiveContainer>
                                         </div>
@@ -187,10 +187,10 @@ export function CompetitorStatsModal({ competitor, onClose }: CompetitorStatsMod
                                 {recentReviews.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {recentReviews.map((review) => (
-                                            <div key={review.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col hover:border-indigo-100 transition-colors">
+                                            <div key={review.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col hover:border-teal-100 transition-colors">
                                                 <div className="flex justify-between items-start mb-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                                                        <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-xs">
                                                             {review.reviewer_name?.charAt(0) || 'U'}
                                                         </div>
                                                         <div>
@@ -206,7 +206,7 @@ export function CompetitorStatsModal({ competitor, onClose }: CompetitorStatsMod
                                                 </div>
                                                 <p className="text-gray-700 text-sm line-clamp-4 leading-relaxed mt-2 flex-1 relative z-10">{review.comment || <span className="text-gray-400 italic">No text provided with this rating.</span>}</p>
                                                 {review.comment && review.comment.length > 150 && (
-                                                    <div className="mt-2 text-xs font-medium text-indigo-600 block pt-2 border-t border-gray-50 cursor-default">
+                                                    <div className="mt-2 text-xs font-medium text-teal-600 block pt-2 border-t border-gray-50 cursor-default">
                                                         Scroll to read more...
                                                         <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none -z-10" />
                                                     </div>

@@ -62,7 +62,7 @@ export default function BillingSuccessPage() {
           </p>
           <button
             onClick={() => router.push(`/teams/${teamId}/billing`)}
-            className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium"
+            className="mt-4 text-teal-600 hover:text-teal-700 font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer"
           >
             Go to Billing Now →
           </button>

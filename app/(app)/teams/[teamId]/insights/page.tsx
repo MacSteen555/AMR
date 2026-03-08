@@ -191,7 +191,7 @@ export default function TeamInsightsPage() {
 
         {loading ? (
           <div className="flex justify-center py-32">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
           </div>
         ) : !analytics || kpis?.totalReviews === 0 ? (
           <div className="text-center py-32 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
@@ -203,11 +203,11 @@ export default function TeamInsightsPage() {
           <>
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-              <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="indigo" />
+              <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
               <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
               <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" />
               <KPICard label="Positive" value={`${kpis!.positivePercent.toFixed(0)}%`} icon={<ThumbsUpIcon />} color="emerald" />
-              <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="purple" />
+              <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="amber" />
             </div>
 
             {/* Charts Grid */}
@@ -224,7 +224,7 @@ export default function TeamInsightsPage() {
                       labelFormatter={(label: any) => formatMonth(label)}
                       contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
-                    <Line type="monotone" dataKey="averageRating" name="Team Avg" stroke="#6366f1" strokeWidth={3} dot={{ fill: '#6366f1', r: 4 }} activeDot={{ r: 6 }} />
+                    <Line type="monotone" dataKey="averageRating" name="Team Avg" stroke="#0d9488" strokeWidth={3} dot={{ fill: '#0d9488', r: 4 }} activeDot={{ r: 6 }} />
                     {analytics.perLocation.map((loc, i) => (
                       <Line
                         key={loc.locationId}
@@ -269,11 +269,11 @@ export default function TeamInsightsPage() {
                     />
                     <defs>
                       <linearGradient id="teamResponseGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#6366f1" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#6366f1', r: 3 }} />
+                    <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#0d9488" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
                     {analytics.perLocation.map((loc, i) => (
                       <Line
                         key={loc.locationId}
@@ -350,7 +350,7 @@ export default function TeamInsightsPage() {
                           onClick={() => router.push(`/locations/${loc.locationId}/insights`)}
                         >
                           <td className="px-5 py-3.5">
-                            <span className="text-sm font-medium text-gray-900 hover:text-indigo-600">{loc.locationName}</span>
+                            <span className="text-sm font-medium text-gray-900 hover:text-teal-600">{loc.locationName}</span>
                           </td>
                           <td className="px-5 py-3.5 text-right text-sm text-gray-600">{loc.totalReviews}</td>
                           <td className="px-5 py-3.5 text-right">
@@ -405,7 +405,7 @@ export default function TeamInsightsPage() {
                   <button
                     onClick={handleGenerateInsights}
                     disabled={generating}
-                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-colors"
+                    className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-colors"
                   >
                     {generating ? (
                       <>
@@ -446,14 +446,14 @@ export default function TeamInsightsPage() {
               ) : latestAI ? (
                 <AIInsightsPanel insight={latestAI} />
               ) : (
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-12 text-center">
+                <div className="bg-teal-50 rounded-xl border border-teal-100 p-12 text-center">
                   <div className="text-4xl mb-3">✨</div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">No AI insights yet</h3>
                   <p className="text-gray-500 text-sm mb-4">Generate AI-powered analysis to uncover hidden patterns across all your locations.</p>
                   <button
                     onClick={handleGenerateInsights}
                     disabled={generating}
-                    className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium"
+                    className="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium"
                   >
                     Generate First Report
                   </button>
@@ -492,12 +492,12 @@ function KPICard({ label, value, suffix, icon, color }: {
   label: string; value: string; suffix?: string; icon: React.ReactNode; color: string
 }) {
   const bgMap: Record<string, string> = {
-    indigo: 'bg-indigo-50', yellow: 'bg-yellow-50', green: 'bg-green-50',
-    emerald: 'bg-emerald-50', purple: 'bg-purple-50',
+    teal: 'bg-teal-50', yellow: 'bg-yellow-50', green: 'bg-green-50',
+    emerald: 'bg-emerald-50', amber: 'bg-amber-50',
   }
   const iconColorMap: Record<string, string> = {
-    indigo: 'text-indigo-600', yellow: 'text-yellow-600', green: 'text-green-600',
-    emerald: 'text-emerald-600', purple: 'text-purple-600',
+    teal: 'text-teal-600', yellow: 'text-yellow-600', green: 'text-green-600',
+    emerald: 'text-emerald-600', amber: 'text-amber-600',
   }
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
@@ -551,8 +551,8 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
   return (
     <div className="space-y-6">
       {summary && (
-        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-100">
-          <h4 className="text-sm font-semibold text-indigo-800 mb-2 flex items-center gap-2">
+        <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl p-5 border border-teal-100">
+          <h4 className="text-sm font-semibold text-teal-800 mb-2 flex items-center gap-2">
             <SparklesIcon /> Executive Summary
           </h4>
           <p className="text-gray-700 leading-relaxed">{summary}</p>
@@ -688,9 +688,9 @@ function AIInsightsPanel({ insight }: { insight: AIInsight }) {
       )}
 
       {d.customerPersona && (
-        <div className="bg-purple-50 border border-purple-100 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-purple-800 mb-1">Typical Reviewer</h4>
-          <p className="text-sm text-purple-700">{d.customerPersona}</p>
+        <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-amber-800 mb-1">Typical Reviewer</h4>
+          <p className="text-sm text-amber-700">{d.customerPersona}</p>
         </div>
       )}
 

@@ -4,11 +4,11 @@ export default function PrivacyPage() {
     return (
         <div className="min-h-screen bg-gray-50 py-20 px-6">
             <div className="max-w-3xl mx-auto bg-white p-10 md:p-14 rounded-3xl shadow-sm border border-gray-100">
-                <Link href="/" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 mb-8 inline-flex items-center gap-1">
+                <Link href="/" className="text-sm font-semibold text-teal-600 hover:text-teal-700 mb-8 inline-flex items-center gap-1">
                     ← Back to home
                 </Link>
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">AutoMyReply Privacy Policy</h1>
-                <div className="prose prose-indigo max-w-none text-gray-600 space-y-6">
+                <div className="prose prose-teal max-w-none text-gray-600 space-y-6">
                     <p className="text-sm text-gray-400">Effective date: March 3, 2026</p>
 
                     <p>This Privacy Policy explains how AutoMyReply ("we," "us," "our") collects, uses, shares, and protects information when you use AutoMyReply (the "Service").</p>
@@ -148,7 +148,7 @@ export default function PrivacyPage() {
                         <p className="mt-4">At minimum, you can:</p>
                         <ul className="list-disc pl-6 space-y-2 mt-2 mb-4">
                             <li>access and update your account information within the Service (where available),</li>
-                            <li>request account/data deletion by emailing <a href="mailto:automyreply@gmail.com" className="text-indigo-600 hover:text-indigo-700">automyreply@gmail.com</a>,</li>
+                            <li>request account/data deletion by emailing <a href="mailto:automyreply@gmail.com" className="text-teal-600 hover:text-teal-700">automyreply@gmail.com</a>,</li>
                             <li>revoke Google access in your Google Account settings.</li>
                         </ul>
                         <p>When you request deletion, we will delete or de-identify personal data where reasonably possible, except where we must retain it for legal, security, or fraud-prevention purposes.</p>
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
 
                     <div>
                         <h2 className="text-xl font-bold text-gray-900 mb-2 mt-8">12. Contact</h2>
-                        <p>Privacy questions or requests: <a href="mailto:automyreply@gmail.com" className="text-indigo-600 hover:text-indigo-700">automyreply@gmail.com</a></p>
+                        <p>Privacy questions or requests: <a href="mailto:automyreply@gmail.com" className="text-teal-600 hover:text-teal-700">automyreply@gmail.com</a></p>
                     </div>
 
                 </div>

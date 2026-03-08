@@ -231,7 +231,7 @@ export default function BillingPage() {
                   <button
                     onClick={handleReactivate}
                     disabled={actionLoading === 'reactivate'}
-                    className="mt-4 px-5 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium transition-colors disabled:opacity-50"
+                    className="mt-4 px-5 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:opacity-50"
                   >
                     {actionLoading === 'reactivate' ? 'Restoring...' : 'Reverse Cancellation — I want to keep my account'}
                   </button>
@@ -243,7 +243,7 @@ export default function BillingPage() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
               {error}
-              <button onClick={() => setError(null)} className="ml-2 underline">
+              <button onClick={() => setError(null)} className="ml-2 underline cursor-pointer transition-all duration-200">
                 Dismiss
               </button>
             </div>
@@ -252,7 +252,7 @@ export default function BillingPage() {
           {/* Current Plan & Credits Overview */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             {/* Current Plan */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${billing?.subscription?.status === 'active'
@@ -264,7 +264,7 @@ export default function BillingPage() {
               </div>
 
               <div className="mb-4">
-                <div className="text-3xl font-bold text-indigo-600">{currentTier}</div>
+                <div className="text-3xl font-bold text-teal-600">{currentTier}</div>
                 <div className="text-gray-600">
                   {billing?.subscription?.monthly_credits || 4} credits/month
                 </div>
@@ -281,7 +281,7 @@ export default function BillingPage() {
                   <button
                     onClick={handleManageBilling}
                     disabled={actionLoading === 'portal'}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-200 cursor-pointer disabled:opacity-50"
                   >
                     {actionLoading === 'portal' ? 'Loading...' : 'Manage Billing'}
                   </button>
@@ -289,7 +289,7 @@ export default function BillingPage() {
                   {billing.subscription.status === 'active' && currentTier !== 'FREE' && (
                     <button
                       onClick={handleCancelPlan}
-                      className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                      className="w-full px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer font-medium"
                     >
                       Cancel Plan
                     </button>
@@ -299,7 +299,7 @@ export default function BillingPage() {
             </div>
 
             {/* Credit Balance */}
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
+            <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-sm p-6 text-white">
               <h2 className="text-lg font-semibold mb-4 opacity-90">Credit Balance</h2>
               <div className="text-5xl font-bold mb-2">{billing?.creditBalance || 0}</div>
               <div className="opacity-80">credits available</div>
@@ -313,7 +313,7 @@ export default function BillingPage() {
                         key={product.id}
                         onClick={() => handleTopup(product.stripe_price_id)}
                         disabled={actionLoading === product.stripe_price_id}
-                        className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-colors disabled:opacity-50"
+                        className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-all duration-200 cursor-pointer disabled:opacity-50"
                       >
                         {actionLoading === product.stripe_price_id ? '...' : `+${product.credits}`}
                       </button>
@@ -336,16 +336,16 @@ export default function BillingPage() {
                 return (
                   <div
                     key={plan.tier}
-                    className={`relative bg-white rounded-xl border-2 p-6 transition-all ${isCurrent
-                        ? 'border-indigo-500 shadow-lg'
+                    className={`relative bg-white rounded-2xl border-2 p-6 transition-all duration-200 ${isCurrent
+                        ? 'border-teal-500 shadow-lg'
                         : plan.popular
-                          ? 'border-indigo-200 shadow-md'
-                          : 'border-gray-200'
+                          ? 'border-teal-200 shadow-md'
+                          : 'border-gray-100'
                       }`}
                   >
                     {plan.popular && !isCurrent && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                        <span className="px-3 py-1 bg-indigo-500 text-white text-xs font-medium rounded-full">
+                        <span className="px-3 py-1 bg-teal-500 text-white text-xs font-medium rounded-full">
                           Popular
                         </span>
                       </div>
@@ -380,11 +380,11 @@ export default function BillingPage() {
                       <button
                         onClick={() => handleChangePlan(plan.tier)}
                         disabled={isCurrent || actionLoading === plan.tier || (isDowngrade && isCanceling)}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 ${isCurrent
+                        className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 ${isCurrent
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             : isUpgrade
-                              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                              : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                              ? 'bg-teal-600 text-white hover:bg-teal-700 active:scale-[0.98] cursor-pointer'
+                              : 'border border-gray-300 text-gray-700 hover:bg-gray-50 active:scale-[0.98] cursor-pointer'
                           }`}
                       >
                         {actionLoading === plan.tier
@@ -403,7 +403,7 @@ export default function BillingPage() {
           </div>
 
           {/* Feature Comparison */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Features by Plan</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -462,7 +462,7 @@ export default function BillingPage() {
       {/* Plan Change Preview Modal */}
       {showPreview && previewData && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               Confirm {previewData.type === 'upgrade' ? 'Upgrade' : 'Plan Change'}
             </h3>
@@ -485,7 +485,7 @@ export default function BillingPage() {
               {previewData.amount_due_today > 0 && (
                 <div className="flex justify-between items-center py-2 border-t border-gray-200">
                   <span className="font-semibold text-gray-900">Total Due Today</span>
-                  <span className="text-xl font-bold text-indigo-600">
+                  <span className="text-xl font-bold text-teal-600">
                     ${previewData.amount_due_today.toFixed(2)}
                   </span>
                 </div>
@@ -495,7 +495,7 @@ export default function BillingPage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={closePreview}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200 cursor-pointer"
                 disabled={actionLoading === 'confirm'}
               >
                 Cancel
@@ -503,7 +503,7 @@ export default function BillingPage() {
               <button
                 onClick={confirmChangePlan}
                 disabled={actionLoading === 'confirm'}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:opacity-50"
               >
                 {actionLoading === 'confirm' ? 'Processing...' : 'Confirm Change'}
               </button>
@@ -515,7 +515,7 @@ export default function BillingPage() {
       {/* Cancel Confirmation Modal */}
       {isCancelModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Cancel Subscription?</h3>
 
             <div className="space-y-4 mb-6">
@@ -539,7 +539,7 @@ export default function BillingPage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setIsCancelModalOpen(false)}
-                className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg font-medium transition-colors"
+                className="px-4 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-lg font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer"
                 disabled={actionLoading === 'cancel'}
               >
                 Keep Plan
@@ -547,7 +547,7 @@ export default function BillingPage() {
               <button
                 onClick={confirmCancel}
                 disabled={actionLoading === 'cancel'}
-                className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 cursor-pointer font-medium disabled:opacity-50"
               >
                 {actionLoading === 'cancel' ? 'Processing...' : 'Cancel Plan'}
               </button>

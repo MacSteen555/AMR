@@ -4,7 +4,8 @@
       "Bash(find:*)",
       "Bash(xargs cat:*)",
       "Bash(npm run:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(python3:*)"
     ]
   }
 }

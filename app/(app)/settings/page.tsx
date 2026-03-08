@@ -6,7 +6,31 @@ export default function SettingsPage() {
   const { user, logout } = useAuth()
 
   if (!user) {
-    return null
+    return (
+      <div className="p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse mb-8">
+            <div className="h-8 w-40 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 w-72 bg-gray-200 rounded"></div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6 p-6">
+            <div className="animate-pulse flex items-center gap-4">
+              <div className="w-20 h-20 bg-gray-200 rounded-full"></div>
+              <div>
+                <div className="h-5 w-32 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 w-48 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="animate-pulse">
+              <div className="h-5 w-24 bg-gray-200 rounded mb-4"></div>
+              <div className="h-10 w-28 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -20,7 +44,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Profile Section */}
-          <div className="bg-white rounded-lg shadow mb-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-6">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
             </div>
@@ -29,7 +53,7 @@ export default function SettingsPage() {
                 {user.avatar_url ? (
                   <img src={user.avatar_url} alt="Avatar" className="w-20 h-20 rounded-full" />
                 ) : (
-                  <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
+                  <div className="w-20 h-20 bg-teal-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
                     {(user.display_name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -42,14 +66,14 @@ export default function SettingsPage() {
           </div>
 
           {/* Account Actions */}
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-900">Account</h2>
             </div>
             <div className="p-6">
               <button
                 onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 active:scale-[0.98] cursor-pointer"
               >
                 Sign Out
               </button>

@@ -330,7 +330,7 @@ export default function TeamsPage() {
     return (
       <>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
         </div>
       </>
     )
@@ -342,7 +342,7 @@ export default function TeamsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
         <div className="p-8">
 
 
@@ -350,8 +350,8 @@ export default function TeamsPage() {
           {/* ── Empty State: No Teams ── */}
           {!hasTeams && (
             <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-3xl mb-6">
-                <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-teal-100 rounded-3xl mb-6">
+                <svg className="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
@@ -362,7 +362,7 @@ export default function TeamsPage() {
               </p>
               <button
                 onClick={() => router.push('/teams/new')}
-                className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-200 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-teal-600 text-white rounded-2xl font-semibold hover:bg-teal-700 transition-all shadow-lg shadow-teal-200 hover:shadow-xl hover:shadow-teal-200 hover:-translate-y-0.5"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -371,8 +371,8 @@ export default function TeamsPage() {
               </button>
               <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
                 <div className="bg-white rounded-xl p-5 border border-gray-200 text-left">
-                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     </svg>
                   </div>
@@ -380,8 +380,8 @@ export default function TeamsPage() {
                   <p className="text-xs text-gray-500 leading-relaxed">Import your Google Business locations in one click.</p>
                 </div>
                 <div className="bg-white rounded-xl p-5 border border-gray-200 text-left">
-                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                     </svg>
                   </div>
@@ -389,8 +389,8 @@ export default function TeamsPage() {
                   <p className="text-xs text-gray-500 leading-relaxed">Customize how AI replies sound for each location.</p>
                 </div>
                 <div className="bg-white rounded-xl p-5 border border-gray-200 text-left">
-                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-9 h-9 bg-teal-100 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
@@ -411,7 +411,7 @@ export default function TeamsPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Teams</h1>
                     <button
                       onClick={() => setShowBanner(!showBanner)}
-                      className="w-6 h-6 rounded-full bg-gray-200 hover:bg-indigo-100 text-gray-500 hover:text-indigo-600 flex items-center justify-center transition-colors"
+                      className="w-6 h-6 rounded-full bg-gray-200 hover:bg-teal-100 text-gray-500 hover:text-teal-600 flex items-center justify-center transition-colors"
                       title="What are Teams?"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,10 +421,10 @@ export default function TeamsPage() {
                   </div>
                   <p className="text-gray-500 mt-1">Manage your teams, locations, and members</p>
                   {showBanner && (
-                    <div className="absolute left-0 top-full mt-2 z-50 w-96 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl p-5 text-white shadow-xl shadow-indigo-200/50">
-                      <div className="absolute -top-1.5 left-10 w-3 h-3 bg-indigo-600 rotate-45 rounded-sm" />
+                    <div className="absolute left-0 top-full mt-2 z-50 w-96 bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-5 text-white shadow-xl shadow-teal-200/50">
+                      <div className="absolute -top-1.5 left-10 w-3 h-3 bg-teal-600 rotate-45 rounded-sm" />
                       <h3 className="font-bold text-sm mb-1.5">What are Teams?</h3>
-                      <p className="text-indigo-100 text-xs leading-relaxed">
+                      <p className="text-teal-100 text-xs leading-relaxed">
                         Teams are how you organize your business locations. Each team can have multiple locations,
                         members with different roles, and its own subscription plan. Set up brand voice settings
                         per location so every review reply matches your brand perfectly.
@@ -435,7 +435,7 @@ export default function TeamsPage() {
                 </div>
                 <button
                   onClick={() => router.push('/teams/new')}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-semibold text-sm shadow-sm hover:shadow-md"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-all font-semibold text-sm shadow-sm hover:shadow-md"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -449,14 +449,14 @@ export default function TeamsPage() {
                 {teams.map((team) => (
                   <div
                     key={team.id}
-                    className={`bg-white rounded-2xl border-2 transition-all shadow-sm ${team.id === selectedTeamId ? 'border-indigo-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
+                    className={`bg-white rounded-2xl border-2 transition-all shadow-sm ${team.id === selectedTeamId ? 'border-teal-500 shadow-md' : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     {/* Team Header */}
                     <div className="p-6 border-b border-gray-100">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-xl flex items-center justify-center shadow-sm">
+                          <div className="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm">
                             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
@@ -464,7 +464,7 @@ export default function TeamsPage() {
                           <div>
                             <div className="flex items-center gap-3 mb-2">
                               <h2 className="text-xl font-semibold text-gray-900">{team.name}</h2>
-                              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-lg">
+                              <span className="px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-bold rounded-lg">
                                 {team.subscription?.tier || 'FREE'}
                               </span>
                               <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg">
@@ -490,7 +490,7 @@ export default function TeamsPage() {
                               ) : (
                                 <button
                                   onClick={() => setSelectedTeamId(team.id)}
-                                  className="text-indigo-600 hover:text-indigo-700 font-medium"
+                                  className="text-teal-600 hover:text-teal-700 font-medium"
                                 >
                                   View details →
                                 </button>
@@ -541,7 +541,7 @@ export default function TeamsPage() {
                       <div className="p-6">
                         {loadingData ? (
                           <div className="text-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"></div>
                           </div>
                         ) : (
                           <div className="space-y-6">
@@ -551,7 +551,7 @@ export default function TeamsPage() {
                                 <h3 className="text-lg font-semibold text-gray-900">Locations</h3>
                                 <button
                                   onClick={openAddLocationModal}
-                                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors font-medium"
+                                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors font-medium"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -567,8 +567,8 @@ export default function TeamsPage() {
                                     onClick={() => router.push(`/locations/${location.id}`)}
                                   >
                                     <div className="flex items-center gap-3">
-                                      <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center">
-                                        <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <div className="w-9 h-9 bg-teal-50 rounded-lg flex items-center justify-center">
+                                        <svg className="w-5 h-5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                         </svg>
                                       </div>
@@ -585,7 +585,7 @@ export default function TeamsPage() {
                                         {location.status}
                                       </span>
                                       {location.brand_voice && (
-                                        <span className="px-2 py-1 text-xs font-medium rounded-lg bg-violet-50 text-violet-600" title="Brand voice configured">
+                                        <span className="px-2 py-1 text-xs font-medium rounded-lg bg-amber-50 text-amber-600" title="Brand voice configured">
                                           <svg className="w-3.5 h-3.5 inline-block mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                                           </svg>
@@ -593,7 +593,7 @@ export default function TeamsPage() {
                                         </span>
                                       )}
                                       <button
-                                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-indigo-600 transition-colors"
+                                        className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-teal-600 transition-colors"
                                         onClick={(e) => openLocationSettings(location, e)}
                                         title="Settings"
                                       >
@@ -622,7 +622,7 @@ export default function TeamsPage() {
                                     <p className="text-gray-500 text-sm mb-3">No locations yet</p>
                                     <button
                                       onClick={openAddLocationModal}
-                                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                      className="text-sm text-teal-600 hover:text-teal-800 font-medium"
                                     >
                                       + Add your first location
                                     </button>
@@ -638,7 +638,7 @@ export default function TeamsPage() {
                                 {isTeamAdmin && (
                                   <button
                                     onClick={() => setIsInviteModalOpen(true)}
-                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors font-medium"
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-teal-600 hover:bg-teal-50 rounded-lg transition-colors font-medium"
                                   >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -657,7 +657,7 @@ export default function TeamsPage() {
                                       {member.avatar_url ? (
                                         <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full" />
                                       ) : (
-                                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-400 to-violet-400 rounded-full flex items-center justify-center text-white font-semibold">
+                                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
                                           {(member.display_name || member.email).charAt(0).toUpperCase()}
                                         </div>
                                       )}
@@ -673,7 +673,7 @@ export default function TeamsPage() {
                                       {isTeamAdmin && member.role !== 'admin' && (
                                         <button
                                           onClick={() => handlePromoteAdmin(member.id)}
-                                          className="text-xs text-indigo-600 hover:text-indigo-800 underline px-2"
+                                          className="text-xs text-teal-600 hover:text-teal-800 underline px-2"
                                         >
                                           Make Admin
                                         </button>
@@ -749,7 +749,7 @@ export default function TeamsPage() {
                       required
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
                       placeholder="colleague@example.com"
                     />
                   </div>
@@ -764,7 +764,7 @@ export default function TeamsPage() {
                     <button
                       type="submit"
                       disabled={sendingInvite}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-medium"
+                      className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 font-medium"
                     >
                       {sendingInvite ? 'Sending...' : 'Send Invite'}
                     </button>
@@ -781,8 +781,8 @@ export default function TeamsPage() {
                 <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white relative">
                   <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100/50">
-                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center border border-teal-100/50">
+                      <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -805,7 +805,7 @@ export default function TeamsPage() {
                       <textarea
                         value={settingsForm.brand_voice || ''}
                         onChange={e => setSettingsForm({ ...settingsForm, brand_voice: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[80px] shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[80px] shadow-sm"
                         placeholder="e.g. Professional and friendly..."
                       />
                     </div>
@@ -814,7 +814,7 @@ export default function TeamsPage() {
                       <textarea
                         value={settingsForm.negative_sentiment || ''}
                         onChange={e => setSettingsForm({ ...settingsForm, negative_sentiment: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[120px] shadow-sm"
+                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[120px] shadow-sm"
                         placeholder="Specific instructions for how to respond to negative reviews..."
                       />
                     </div>
@@ -824,7 +824,7 @@ export default function TeamsPage() {
                         <select
                           value={settingsForm.reply_language || 'en'}
                           onChange={e => setSettingsForm({ ...settingsForm, reply_language: e.target.value })}
-                          className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                          className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
                         >
                           <option value="en">English (US)</option>
                           <option value="es">Español</option>
@@ -843,7 +843,7 @@ export default function TeamsPage() {
                               signature_type: e.target.value as SignaturePreset | 'custom',
                             })
                           }
-                          className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                          className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
                         >
                           <option value="store_name">Location Name</option>
                           <option value="team_name">Team Name</option>
@@ -856,7 +856,7 @@ export default function TeamsPage() {
                             value={settingsForm.signature_custom || ''}
                             onChange={e => setSettingsForm({ ...settingsForm, signature_custom: e.target.value })}
                             placeholder="e.g. - The Team"
-                            className="mt-2 w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                            className="mt-2 w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
                           />
                         )}
                         <p className="text-sm text-gray-500 mt-2 pl-1">Sign-off for replies.</p>
@@ -876,7 +876,7 @@ export default function TeamsPage() {
                     <button
                       type="submit"
                       disabled={savingSettings}
-                      className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2 shadow-sm"
+                      className="px-6 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 disabled:opacity-50 font-semibold transition-colors flex items-center gap-2 shadow-sm"
                     >
                       {savingSettings ? (
                         <>
@@ -916,7 +916,7 @@ export default function TeamsPage() {
 
                   {loadingGoogle ? (
                     <div className="flex justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
                     </div>
                   ) : googleLocations.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
@@ -927,13 +927,13 @@ export default function TeamsPage() {
                       {googleLocations.map((loc) => (
                         <div
                           key={loc.location_id}
-                          className={`flex items-start p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${selectedGoogleIds.includes(loc.location_id) ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500' : 'border-gray-200'
+                          className={`flex items-start p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition-colors ${selectedGoogleIds.includes(loc.location_id) ? 'border-teal-500 bg-teal-50 ring-1 ring-teal-500' : 'border-gray-200'
                             }`}
                           onClick={() => handleToggleGoogleLoc(loc.location_id)}
                         >
                           <input
                             type="checkbox"
-                            className="mt-1 h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                            className="mt-1 h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                             checked={selectedGoogleIds.includes(loc.location_id)}
                             onChange={() => { }}
                           />
@@ -958,7 +958,7 @@ export default function TeamsPage() {
                   </button>
                   <button
                     onClick={handleImport}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                     disabled={importing || selectedGoogleIds.length === 0}
                   >
                     {importing ? 'Importing...' : 'Import Selected'}
@@ -1011,7 +1011,7 @@ export default function TeamsPage() {
                       {hasActivePaidSub && (
                         <button
                           onClick={() => window.location.href = `/teams/${selectedTeamId}/billing`}
-                          className="w-full py-2 px-4 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-medium transition-colors mb-2"
+                          className="w-full py-2 px-4 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-xl font-medium transition-colors mb-2"
                         >
                           Go to Billing to Cancel
                         </button>
