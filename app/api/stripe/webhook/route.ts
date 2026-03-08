@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     captureRouteError(error, { route: '/api/stripe/webhook', extra: { signature: hasSignature } })
     console.error('Webhook error:', error)
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 400 })
   }
 }
 

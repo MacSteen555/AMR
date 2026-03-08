@@ -31,18 +31,27 @@ const TIER_CONFIGS = {
   read: { limit: 60, window: '60 s' as const, prefix: 'rl:read' },
 }
 
-function createLimiter(tier: keyof typeof TIER_CONFIGS) {
-  const config = TIER_CONFIGS[tier]
+// Module-scope Redis client + rate limiters — reused across warm invocations on Vercel edge
+let _limiters: Record<string, Ratelimit> | null = null
+
+function getLimiters(): Record<string, Ratelimit> {
+  if (_limiters) return _limiters
   const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL!,
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
   })
-  return new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(config.limit, config.window),
-    prefix: config.prefix,
-    analytics: true,
-  })
+  _limiters = Object.fromEntries(
+    Object.entries(TIER_CONFIGS).map(([tier, config]) => [
+      tier,
+      new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(config.limit, config.window),
+        prefix: config.prefix,
+        analytics: true,
+      }),
+    ])
+  )
+  return _limiters
 }
 
 async function getUserId(request: NextRequest): Promise<string | null> {
@@ -87,11 +96,11 @@ export async function middleware(request: NextRequest) {
   }
 
   const tier = getTier(pathname, request.method) as keyof typeof TIER_CONFIGS
-  const limiter = createLimiter(tier)
+  const limiter = getLimiters()[tier]
 
   // Key by user ID if authenticated, otherwise by IP
   const userId = await getUserId(request)
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
+  const ip = request.headers.get('x-real-ip') ?? request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1'
   const key = userId ? `user:${userId}` : `ip:${ip}`
 
   const { success, limit, remaining, reset } = await limiter.limit(key)
