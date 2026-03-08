@@ -234,7 +234,7 @@ export default function CompetitiveDashboard() {
                     {activeTab === 'competitors' && (
                         <button
                             onClick={() => setShowAddForm(true)}
-                            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
+                            className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium transition-colors"
                         >
                             Add Competitor
                         </button>
@@ -242,7 +242,7 @@ export default function CompetitiveDashboard() {
                     {activeTab === 'reports' && (
                         <button
                             onClick={() => setShowRunForm(true)}
-                            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
+                            className="px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium transition-colors"
                         >
                             New Report
                         </button>
@@ -253,13 +253,13 @@ export default function CompetitiveDashboard() {
                 <div className="flex gap-6 border-b border-gray-200 mb-6 pb-0.5">
                     <button
                         onClick={() => setActiveTab('competitors')}
-                        className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'competitors' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+                        className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'competitors' ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
                     >
                         Managed Competitors
                     </button>
                     <button
                         onClick={() => setActiveTab('reports')}
-                        className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'reports' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+                        className={`pb-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'reports' ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
                     >
                         Insights & Reports
                     </button>
@@ -277,7 +277,7 @@ export default function CompetitiveDashboard() {
                                         {!newPlaceId ? (
                                             <div className="relative">
                                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                    <svg className={`w-5 h-5 ${isSearching ? 'text-indigo-500 animate-spin' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className={`w-5 h-5 ${isSearching ? 'text-teal-500 animate-spin' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         {isSearching ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /> : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />}
                                                     </svg>
                                                 </div>
@@ -285,7 +285,7 @@ export default function CompetitiveDashboard() {
                                                     type="text"
                                                     value={searchQuery}
                                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 shadow-sm"
+                                                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 shadow-sm"
                                                     placeholder="Search for a business name or address..."
                                                     autoFocus
                                                 />
@@ -312,20 +312,20 @@ export default function CompetitiveDashboard() {
                                                 )}
                                             </div>
                                         ) : (
-                                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+                                            <div className="bg-teal-50 border border-teal-100 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
                                                 <div className="flex-1 min-w-0">
-                                                    <label className="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-1 block">Selected Competitor</label>
+                                                    <label className="text-xs font-semibold text-teal-400 uppercase tracking-wider mb-1 block">Selected Competitor</label>
                                                     <input
                                                         type="text"
-                                                        className="w-full bg-transparent border-0 p-0 text-lg font-bold text-indigo-900 focus:ring-0"
+                                                        className="w-full bg-transparent border-0 p-0 text-lg font-bold text-teal-900 focus:ring-0"
                                                         value={newName}
                                                         onChange={e => setNewName(e.target.value)}
                                                         required
                                                     />
                                                 </div>
-                                                <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0 pt-2 border-t border-indigo-100 md:border-0 md:pt-0">
-                                                    <button type="button" onClick={() => { setNewPlaceId(''); setNewName(''); setSearchQuery(''); setSelectedPlaceData(null); }} className="flex-1 md:flex-none px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-colors">Clear</button>
-                                                    <button type="submit" disabled={isSubmitting} className="flex-1 md:flex-none px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm whitespace-nowrap">Save Competitor</button>
+                                                <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0 pt-2 border-t border-teal-100 md:border-0 md:pt-0">
+                                                    <button type="button" onClick={() => { setNewPlaceId(''); setNewName(''); setSearchQuery(''); setSelectedPlaceData(null); }} className="flex-1 md:flex-none px-4 py-2 bg-teal-100 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-200 transition-colors">Clear</button>
+                                                    <button type="submit" disabled={isSubmitting} className="flex-1 md:flex-none px-6 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm whitespace-nowrap">Save Competitor</button>
                                                 </div>
                                             </div>
                                         )}
@@ -342,7 +342,7 @@ export default function CompetitiveDashboard() {
                             {competitors.length === 0 ? (
                                 <div className="text-center py-20 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
                                     <p className="text-gray-500 mb-4">No competitors tracked yet. Add one to begin syncing reviews.</p>
-                                    <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg font-medium hover:bg-indigo-200">Add First Competitor</button>
+                                    <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-teal-100 text-teal-700 rounded-lg font-medium hover:bg-teal-200">Add First Competitor</button>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -357,7 +357,7 @@ export default function CompetitiveDashboard() {
                                             <div className="text-xs text-gray-500 mb-4 bg-gray-50 p-2.5 rounded border border-gray-100 truncate" title={comp.address || 'Address hidden'}>
                                                 {comp.address ? (
                                                     <span className="flex items-center gap-1.5 text-gray-700">
-                                                        <svg className="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                        <svg className="w-3.5 h-3.5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                         {comp.address}
                                                     </span>
                                                 ) : (
@@ -373,7 +373,7 @@ export default function CompetitiveDashboard() {
                                                     </div>
                                                 )}
                                                 {comp.website && (
-                                                    <a href={comp.website.startsWith('http') ? comp.website : `https://${comp.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium ml-auto">
+                                                    <a href={comp.website.startsWith('http') ? comp.website : `https://${comp.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-teal-600 hover:text-teal-800 font-medium ml-auto">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                                                         Website
                                                     </a>
@@ -390,7 +390,7 @@ export default function CompetitiveDashboard() {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => setSelectedCompetitorStats(comp)}
-                                                        className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                                        className="px-4 py-2 bg-teal-50 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-100 transition-colors flex items-center gap-1.5"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                                         Details
@@ -398,7 +398,7 @@ export default function CompetitiveDashboard() {
                                                     <button
                                                         onClick={() => handleSyncReviews(comp.id)}
                                                         disabled={comp.last_serp_sync_status === 'syncing'}
-                                                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                                                        className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors"
                                                     >
                                                         Fetch Reviews
                                                     </button>
@@ -435,14 +435,14 @@ export default function CompetitiveDashboard() {
                                             <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                                                 <h4 className="font-semibold text-gray-900 mb-3 flex items-center justify-between">
                                                     <span>Select Your Locations (Max 3)</span>
-                                                    <span className="text-xs bg-white text-indigo-600 px-2 py-1 rounded border border-indigo-100">{selectedLocations.length}/3</span>
+                                                    <span className="text-xs bg-white text-teal-600 px-2 py-1 rounded border border-teal-100">{selectedLocations.length}/3</span>
                                                 </h4>
                                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
                                                     {locations.map(loc => (
-                                                        <label key={loc.id} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-100 cursor-pointer hover:border-indigo-200 transition-colors">
+                                                        <label key={loc.id} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-100 cursor-pointer hover:border-teal-200 transition-colors">
                                                             <input
                                                                 type="checkbox"
-                                                                className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                                                className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
                                                                 checked={selectedLocations.includes(loc.id)}
                                                                 onChange={(e) => {
                                                                     if (e.target.checked && selectedLocations.length < 3) setSelectedLocations([...selectedLocations, loc.id])
@@ -488,7 +488,7 @@ export default function CompetitiveDashboard() {
                                             <button
                                                 type="submit"
                                                 disabled={isRunning || selectedLocations.length === 0 || selectedCompetitors.length === 0}
-                                                className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md shadow-indigo-200"
+                                                className="flex items-center gap-2 px-8 py-3 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 disabled:opacity-50 transition-all shadow-md shadow-teal-200"
                                             >
                                                 {isRunning ? (
                                                     <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div> Generating Report...</>
@@ -507,7 +507,7 @@ export default function CompetitiveDashboard() {
                                         </div>
                                         <h3 className="text-xl font-bold text-gray-900 mb-2">No reports yet</h3>
                                         <p className="text-gray-500 mb-6 max-w-md mx-auto">Generate AI-powered SWOT analyses comparing your locations against competitors based on verified reviews.</p>
-                                        <button onClick={() => setShowRunForm(true)} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100">
+                                        <button onClick={() => setShowRunForm(true)} className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-md shadow-teal-100">
                                             Create First Report
                                         </button>
                                     </div>
@@ -521,7 +521,7 @@ export default function CompetitiveDashboard() {
                                                 onClick={() => setExpandedRun(expandedRun === run.id ? null : run.id)}
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${expandedRun === run.id ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${expandedRun === run.id ? 'bg-teal-600 text-white' : 'bg-teal-50 text-teal-600'}`}>
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                                                     </div>
                                                     <div>
@@ -556,7 +556,7 @@ export default function CompetitiveDashboard() {
                                                                 key={period.id}
                                                                 type="button"
                                                                 onClick={() => setReportPeriod(period.id)}
-                                                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${reportPeriod === period.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
+                                                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${reportPeriod === period.id ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
                                                             >
                                                                 {period.label}
                                                             </button>
@@ -565,7 +565,7 @@ export default function CompetitiveDashboard() {
 
                                                     {/* Copy Button */}
                                                     <div className="flex justify-between items-center mb-8">
-                                                        <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wider">Executive Summary</h4>
+                                                        <h4 className="text-sm font-bold text-teal-600 uppercase tracking-wider">Executive Summary</h4>
                                                         <button
                                                             onClick={async () => {
                                                                 try {
@@ -587,8 +587,8 @@ export default function CompetitiveDashboard() {
 
                                                     {/* Stats Comparison */}
                                                     <div className="flex flex-col md:flex-row gap-6 mb-8">
-                                                        <div className="flex-1 bg-white p-5 rounded-xl border border-indigo-100 shadow-sm flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center font-bold text-xl">★</div>
+                                                        <div className="flex-1 bg-white p-5 rounded-xl border border-teal-100 shadow-sm flex items-center gap-4">
+                                                            <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center font-bold text-xl">★</div>
                                                             <div>
                                                                 <div className="text-3xl font-black text-gray-900">{run.data[reportPeriod].ownedAverageRating?.toFixed(1) || 'N/A'}</div>
                                                                 <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Your Average</div>
@@ -680,7 +680,7 @@ export default function CompetitiveDashboard() {
                                                                 key={period.id}
                                                                 type="button"
                                                                 onClick={() => setReportPeriod(period.id)}
-                                                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${reportPeriod === period.id ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
+                                                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${reportPeriod === period.id ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
                                                             >
                                                                 {period.label}
                                                             </button>

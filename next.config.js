@@ -1,6 +1,8 @@
 const { withSentryConfig } = require('@sentry/nextjs')
 
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV === 'development'
+
 const nextConfig = {
   async headers() {
     return [
@@ -31,7 +33,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com",
+              `script-src 'self'${isDev ? " 'unsafe-eval'" : ''} 'unsafe-inline' https://js.stripe.com https://accounts.google.com https://us.i.posthog.com`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
@@ -53,8 +55,5 @@ module.exports = withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  webpack: {
-    treeshake: { removeDebugLogging: true },
-    automaticVercelMonitors: true,
-  },
+  automaticVercelMonitors: true,
 })

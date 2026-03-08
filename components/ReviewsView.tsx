@@ -54,7 +54,7 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'md
 
 function StatusBadge({ status }: { status: string }) {
     const config: Record<string, { bg: string; dot: string; text: string; label: string }> = {
-        draft: { bg: 'bg-indigo-50 border-indigo-100', dot: 'bg-indigo-500', text: 'text-indigo-700', label: 'Draft' },
+        draft: { bg: 'bg-teal-50 border-teal-100', dot: 'bg-teal-500', text: 'text-teal-700', label: 'Draft' },
         posted: { bg: 'bg-emerald-50 border-emerald-100', dot: 'bg-emerald-500', text: 'text-emerald-700', label: 'Replied' },
         dismissed: { bg: 'bg-gray-100 border-gray-200', dot: 'bg-gray-400', text: 'text-gray-600', label: 'Dismissed' },
         none: { bg: 'bg-amber-50 border-amber-100', dot: 'bg-amber-500', text: 'text-amber-700', label: 'Needs Reply' },
@@ -96,7 +96,7 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
     const stats = [
         { label: 'Total Reviews', value: total, icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />, color: 'text-gray-600' },
         { label: 'Needs Reply', value: needsReply, icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />, color: 'text-amber-600' },
-        { label: 'Drafts Ready', value: drafts, icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />, color: 'text-indigo-600' },
+        { label: 'Drafts Ready', value: drafts, icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />, color: 'text-teal-600' },
         { label: 'Replied', value: posted, icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />, color: 'text-emerald-600' },
         { label: 'Avg Rating', value: avgRating.toFixed(1), icon: <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />, color: 'text-amber-500', isFilled: true },
     ]
@@ -104,7 +104,7 @@ function StatsBar({ reviews }: { reviews: Review[] }) {
     return (
         <div className="grid grid-cols-5 gap-3 mb-6">
             {stats.map((s, i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 px-4 py-3.5 flex items-center gap-3">
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center ${s.color}`}>
                         <svg className="w-[18px] h-[18px]" fill={s.isFilled ? 'currentColor' : 'none'} stroke={s.isFilled ? 'none' : 'currentColor'} viewBox="0 0 24 24">{s.icon}</svg>
                     </div>
@@ -126,7 +126,7 @@ function SkeletonCards() {
     return (
         <div className="space-y-3">
             {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="w-9 h-9 bg-gray-200 rounded-full" />
                         <div className="flex-1">
@@ -250,7 +250,7 @@ function FocusView({
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 mb-1">All caught up!</h2>
                     <p className="text-gray-500 text-sm mb-4">You&apos;ve reviewed everything in the queue.</p>
-                    <button onClick={onBack} className="text-indigo-600 hover:text-indigo-800 font-medium text-sm cursor-pointer">
+                    <button onClick={onBack} className="text-teal-600 hover:text-teal-800 font-medium text-sm transition-all duration-200 cursor-pointer">
                         Back to list
                     </button>
                 </div>
@@ -265,7 +265,7 @@ function FocusView({
             {/* Minimal progress */}
             <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                    <div className="h-full bg-teal-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                 </div>
                 <span className="text-xs text-gray-400 tabular-nums shrink-0">{stackIndex + 1}/{reviews.length}</span>
             </div>
@@ -288,7 +288,7 @@ function FocusView({
                                         <>
                                             <span className="text-xs text-gray-300">·</span>
                                             <button onClick={() => onLocationClick?.(review.location_id || '')}
-                                                className="text-xs text-indigo-500 font-medium hover:underline cursor-pointer truncate">
+                                                className="text-xs text-teal-500 font-medium hover:underline cursor-pointer truncate">
                                                 {review.location_name}
                                             </button>
                                         </>
@@ -306,13 +306,13 @@ function FocusView({
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                                 {isStreaming ? (
-                                    <><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500" /></span>Generating</>
+                                    <><span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-teal-500" /></span>Generating</>
                                 ) : review.reply_status === 'draft' ? 'Reply' : 'Waiting...'}
                             </span>
                             {review.reply_status === 'draft' && !isStreaming && (
                                 <button onClick={() => onGenerate(review.id, displayText, 'regenerate')}
                                     disabled={!!streamingId}
-                                    className="text-[11px] text-gray-400 hover:text-indigo-600 font-medium px-2 py-0.5 rounded hover:bg-indigo-50 transition-all cursor-pointer disabled:opacity-40">
+                                    className="text-[11px] text-gray-400 hover:text-teal-600 font-medium px-2 py-0.5 rounded hover:bg-teal-50 transition-all duration-200 cursor-pointer disabled:opacity-40">
                                     Regenerate
                                 </button>
                             )}
@@ -320,7 +320,7 @@ function FocusView({
 
                         {(review.reply_status === 'draft' || isStreaming) ? (
                             <textarea
-                                className={`flex-1 w-full bg-gray-50 p-3.5 border border-gray-200 rounded-xl text-gray-800 text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white outline-none resize-none transition-all min-h-[100px] ${isStreaming ? 'border-indigo-200 bg-indigo-50/30' : ''}`}
+                                className={`flex-1 w-full bg-gray-50 p-3.5 border border-gray-200 rounded-xl text-gray-800 text-sm leading-relaxed focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white outline-none resize-none transition-all min-h-[100px] ${isStreaming ? 'border-teal-200 bg-teal-50/30' : ''}`}
                                 value={displayText}
                                 onChange={e => onEditChange(review.id, e.target.value)}
                                 readOnly={isStreaming}
@@ -328,7 +328,7 @@ function FocusView({
                         ) : (
                             <div className="flex-1 flex items-center justify-center bg-gray-50 rounded-xl border border-gray-200 min-h-[100px]">
                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                    <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                    <div className="w-4 h-4 border-2 border-teal-200 border-t-teal-600 rounded-full animate-spin" />
                                     Generating...
                                 </div>
                             </div>
@@ -339,25 +339,25 @@ function FocusView({
                 {/* Compact actions */}
                 <div className="flex items-center justify-between mt-3 mb-2">
                     <button onClick={() => onDismiss(review.id)}
-                        className="px-4 py-2 text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer flex items-center gap-1.5">
+                        className="px-4 py-2 text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         Dismiss
                         <kbd className="text-[9px] font-mono text-gray-300 ml-0.5">←</kbd>
                     </button>
 
                     <button onClick={onSkip}
-                        className="px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all cursor-pointer flex items-center gap-1.5">
+                        className="px-4 py-2 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5">
                         Skip
                         <kbd className="text-[9px] font-mono text-gray-300 ml-0.5">↑</kbd>
                     </button>
 
                     <button onClick={() => onPublish(review.id)}
                         disabled={review.reply_status !== 'draft' || !!publishingId || !canPost(review)}
-                        className="px-5 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5">
+                        className="px-5 py-2 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-1.5">
                         {publishingId === review.id ? (
                             <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Posting</>
                         ) : (
-                            <>Post<kbd className="text-[9px] font-mono text-indigo-300 ml-0.5">→</kbd></>
+                            <>Post<kbd className="text-[9px] font-mono text-teal-300 ml-0.5">→</kbd></>
                         )}
                     </button>
                 </div>
@@ -390,11 +390,11 @@ function ReviewCard({
     onLocationClick?: (locationId: string) => void
 }) {
     const hasDraft = review.reply_status === 'draft' || review.reply_status === 'posted' || review.reply_status === 'dismissed' || isStreaming
-    const borderAccent = review.reply_status === 'posted' ? 'border-l-emerald-400' : review.reply_status === 'dismissed' ? 'border-l-gray-300' : 'border-l-indigo-400'
+    const borderAccent = review.reply_status === 'posted' ? 'border-l-emerald-400' : review.reply_status === 'dismissed' ? 'border-l-gray-300' : 'border-l-teal-400'
     const timeAgo = getTimeAgo(review.review_date)
 
     return (
-        <div className={`bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-md ${fadingOut ? 'opacity-30 scale-[0.98]' : 'opacity-100'}`}>
+        <div className={`bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md ${fadingOut ? 'opacity-30 scale-[0.98]' : 'opacity-100'}`}>
             {/* Review header */}
             <div className="px-5 pt-5 pb-3">
                 <div className="flex justify-between items-start">
@@ -412,7 +412,7 @@ function ReviewCard({
                                         <span className="text-xs text-gray-300">·</span>
                                         <button
                                             onClick={() => onLocationClick?.(review.location_id || '')}
-                                            className="text-xs text-indigo-500 font-medium hover:text-indigo-700 hover:underline cursor-pointer transition-colors"
+                                            className="text-xs text-teal-500 font-medium hover:text-teal-700 hover:underline cursor-pointer transition-colors"
                                         >
                                             {review.location_name}
                                         </button>
@@ -427,7 +427,7 @@ function ReviewCard({
                     <div className="flex items-center gap-2">
                         {tab === 'inbox' && review.reply_status !== 'dismissed' && (
                             <button onClick={() => onDismiss(review.id)}
-                                className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all cursor-pointer" title="Dismiss">
+                                className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-all duration-200 cursor-pointer" title="Dismiss">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -445,9 +445,9 @@ function ReviewCard({
                     <button
                         onClick={() => onGenerate(review.id)}
                         disabled={!!streamingId}
-                        className="group w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all disabled:opacity-40 cursor-pointer flex items-center justify-center gap-2"
+                        className="group w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400 hover:border-teal-300 hover:text-teal-600 hover:bg-teal-50/50 transition-all duration-200 disabled:opacity-40 cursor-pointer active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                        <svg className="w-4 h-4 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 group-hover:text-teal-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         Generate AI Draft
@@ -461,7 +461,7 @@ function ReviewCard({
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
                                     {isStreaming ? (
                                         <>
-                                            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" /></span>
+                                            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" /></span>
                                             Generating...
                                         </>
                                     ) : review.reply_status === 'posted' ? (
@@ -469,12 +469,12 @@ function ReviewCard({
                                     ) : review.reply_status === 'dismissed' ? (
                                         'Dismissed'
                                     ) : (
-                                        <><svg className="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>AI Draft</>
+                                        <><svg className="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>AI Draft</>
                                     )}
                                 </span>
                             </div>
                             <textarea
-                                className={`w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl p-3.5 resize-y min-h-[80px] focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white outline-none transition-all ${isStreaming ? 'border-indigo-200 bg-indigo-50/30' : ''}`}
+                                className={`w-full text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl p-3.5 resize-y min-h-[80px] focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white outline-none transition-all ${isStreaming ? 'border-teal-200 bg-teal-50/30' : ''}`}
                                 value={displayText}
                                 onChange={e => onEditChange(review.id, e.target.value)}
                                 readOnly={isStreaming}
@@ -484,7 +484,7 @@ function ReviewCard({
                                 <div className="flex justify-between items-center mt-3">
                                     {tab === 'inbox' && (
                                         <button onClick={() => onDismiss(review.id)}
-                                            className="text-xs text-gray-400 hover:text-red-500 font-medium transition-colors cursor-pointer flex items-center gap-1">
+                                            className="text-xs text-gray-400 hover:text-red-500 font-medium transition-all duration-200 cursor-pointer flex items-center gap-1">
                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                             Dismiss
                                         </button>
@@ -494,7 +494,7 @@ function ReviewCard({
                                         <button
                                             onClick={() => onGenerate(review.id, displayText, 'regenerate')}
                                             disabled={!!streamingId}
-                                            className="text-xs text-gray-500 hover:text-indigo-600 font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1"
+                                            className="text-xs text-gray-500 hover:text-teal-600 font-medium px-3 py-1.5 rounded-lg hover:bg-teal-50 transition-all duration-200 disabled:opacity-40 cursor-pointer flex items-center gap-1"
                                         >
                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                             Regenerate
@@ -503,7 +503,7 @@ function ReviewCard({
                                             <button
                                                 onClick={() => onPublish(review.id)}
                                                 disabled={!!publishingId || !canPost}
-                                                className="text-xs px-4 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:shadow-md hover:shadow-indigo-200/60 disabled:opacity-40 font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                                                className="text-xs px-4 py-1.5 rounded-lg bg-gradient-to-r from-teal-600 to-teal-700 text-white hover:shadow-md hover:shadow-teal-200/60 disabled:opacity-40 font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
                                             >
                                                 {publishingId === review.id ? (
                                                     <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Posting...</>
@@ -515,7 +515,7 @@ function ReviewCard({
                                             <button
                                                 onClick={() => onPublish(review.id)}
                                                 disabled={!!publishingId || !canPost}
-                                                className="text-xs px-4 py-1.5 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-40 font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                                                className="text-xs px-4 py-1.5 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-40 font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-1.5"
                                             >
                                                 {publishingId === review.id ? (
                                                     <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Updating...</>
@@ -745,17 +745,17 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                     </div>
                     <div className="flex gap-2">
                         <button onClick={handleSync} disabled={isSyncing || bulkDisabled}
-                            className="px-4 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-40 transition-all cursor-pointer flex items-center gap-2 hover:shadow-sm">
+                            className="px-4 py-2 text-sm border border-gray-200 rounded-xl bg-white text-gray-700 hover:bg-gray-50 font-medium disabled:opacity-40 transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2 hover:shadow-sm">
                             <svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             {isSyncing ? 'Syncing...' : 'Sync'}
                         </button>
                         <button onClick={handleBulkGenerate} disabled={isGenerating}
-                            className="px-4 py-2 text-sm bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl hover:bg-indigo-100 disabled:opacity-40 font-medium transition-all cursor-pointer flex items-center gap-2">
+                            className="px-4 py-2 text-sm bg-teal-50 text-teal-700 border border-teal-100 rounded-xl hover:bg-teal-100 disabled:opacity-40 font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                             {isGenerating ? 'Generating...' : 'Auto-Generate'}
                         </button>
                         <button onClick={handleBulkPublish} disabled={isPublishing || bulkDisabled}
-                            className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-200/60 disabled:opacity-40 font-medium transition-all cursor-pointer flex items-center gap-2">
+                            className="px-4 py-2 text-sm bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl hover:shadow-lg hover:shadow-teal-200/60 disabled:opacity-40 font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center gap-2">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                             {isPublishing ? 'Publishing...' : 'Post All Drafts'}
                         </button>
@@ -770,13 +770,13 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                     <div className="flex items-center gap-3">
                         <div className="flex bg-gray-100 p-1 rounded-xl">
                             <button onClick={() => { setTab('inbox'); setStackIndex(0) }}
-                                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${tab === 'inbox' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-2 ${tab === 'inbox' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
                                 Inbox
                                 {inboxCount > 0 && <span className="bg-amber-100 text-amber-700 text-[11px] font-bold px-2 py-0.5 rounded-full">{inboxCount}</span>}
                             </button>
                             <button onClick={() => { setTab('history'); setViewMode('list') }}
-                                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-2 ${tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 History
                                 {historyCount > 0 && <span className="bg-gray-200 text-gray-600 text-[11px] font-bold px-2 py-0.5 rounded-full">{historyCount}</span>}
@@ -786,12 +786,12 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                         {tab === 'inbox' && (
                             <div className="flex bg-gray-100 p-1 rounded-xl">
                                 <button onClick={() => setViewMode('list')}
-                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
                                     List
                                 </button>
                                 <button onClick={() => { setViewMode('focus'); setStackIndex(0) }}
-                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${viewMode === 'focus' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${viewMode === 'focus' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
                                     Focus
                                 </button>
@@ -802,7 +802,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                         <div className="flex items-center gap-2">
                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
                             <select value={sortBy} onChange={e => setSortBy(e.target.value as SortBy)}
-                                className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer">
                                 <option value="newest">Newest first</option>
                                 <option value="oldest">Oldest first</option>
                                 <option value="highest">Highest rating</option>

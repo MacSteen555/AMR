@@ -115,8 +115,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const tierColors: Record<string, string> = {
     FREE: 'bg-gray-100 text-gray-600',
-    PRO: 'bg-indigo-50 text-indigo-700',
-    BUSINESS: 'bg-violet-50 text-violet-700',
+    PRO: 'bg-teal-50 text-teal-700',
+    BUSINESS: 'bg-amber-50 text-amber-700',
     ENTERPRISE: 'bg-amber-50 text-amber-700',
   }
 
@@ -130,7 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => router.push('/dashboard')}
             className="flex items-center gap-2.5 hover:opacity-80 transition-opacity cursor-pointer"
           >
-            <img src="/images/purple-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+            <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
             <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
           </button>
         </div>
@@ -141,10 +141,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="relative" ref={teamDropdownRef}>
               <button
                 onClick={() => setTeamsOpen(!teamsOpen)}
-                className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer group"
+                className="w-full flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
                     <span className="text-white font-bold text-sm">{currentTeam.name.charAt(0).toUpperCase()}</span>
                   </div>
                   <div className="text-left overflow-hidden">
@@ -160,7 +160,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
 
               {teamsOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg shadow-gray-200/50 z-50 py-1.5 text-left" style={{ animation: 'fadeSlideUp 0.15s ease-out' }}>
+                <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-lg shadow-gray-200/50 z-50 py-1.5 text-left" style={{ animation: 'fadeSlideUp 0.15s ease-out' }}>
                   <div className="px-3 pb-1.5 mb-1.5 border-b border-gray-100">
                     <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Switch team</span>
                   </div>
@@ -176,19 +176,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           .catch(() => setLocations([]))
                         router.push(buildTeamUrl(team.id))
                       }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between transition-colors rounded-lg mx-auto cursor-pointer ${team.id === currentTeam.id ? 'bg-indigo-50/60' : ''}`}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between transition-all duration-200 rounded-lg mx-auto cursor-pointer active:scale-[0.98] ${team.id === currentTeam.id ? 'bg-teal-50/60' : ''}`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 ${team.id === currentTeam.id ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                        <div className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 ${team.id === currentTeam.id ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
                           {team.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className={`font-medium truncate ${team.id === currentTeam.id ? 'text-indigo-700' : 'text-gray-700'}`}>{team.name}</span>
+                          <span className={`font-medium truncate ${team.id === currentTeam.id ? 'text-teal-700' : 'text-gray-700'}`}>{team.name}</span>
                           <span className="text-[10px] text-gray-400">{team.subscription?.tier || 'FREE'}</span>
                         </div>
                       </div>
                       {team.id === currentTeam.id && (
-                        <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-teal-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -197,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="border-t border-gray-100 mt-1.5 pt-1.5">
                     <button
                       onClick={() => { setTeamsOpen(false); router.push('/teams') }}
-                      className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 font-medium transition-colors rounded-lg cursor-pointer flex items-center gap-2"
+                      className="w-full text-left px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 font-medium transition-all duration-200 rounded-lg cursor-pointer flex items-center gap-2 active:scale-[0.98]"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -214,7 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mt-3">
               <button
                 onClick={() => setLocationsOpen(!locationsOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-50 cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-50 cursor-pointer active:scale-[0.98]"
               >
                 <div className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,8 +238,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="mt-1 ml-3 pl-3 border-l-2 border-gray-100 space-y-0.5">
                   <button
                     onClick={() => router.push(buildTeamUrl(currentTeam.id))}
-                    className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors cursor-pointer ${!activeLocationId && pathname?.includes(`/teams/${currentTeam.id}`)
-                      ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-all duration-200 cursor-pointer active:scale-[0.98] ${!activeLocationId && pathname?.includes(`/teams/${currentTeam.id}`)
+                      ? 'bg-teal-50 text-teal-700 font-semibold'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                   >
@@ -250,13 +250,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <button
                       key={loc.id}
                       onClick={() => router.push(buildLocationUrl(loc.id))}
-                      className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors truncate flex items-center gap-2 cursor-pointer ${activeLocationId === loc.id
-                        ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                      className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-all duration-200 truncate flex items-center gap-2 cursor-pointer active:scale-[0.98] ${activeLocationId === loc.id
+                        ? 'bg-teal-50 text-teal-700 font-semibold'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                       title={loc.name}
                     >
-                      <svg className={`w-3 h-3 flex-shrink-0 ${activeLocationId === loc.id ? 'text-indigo-500' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-3 h-3 flex-shrink-0 ${activeLocationId === loc.id ? 'text-teal-500' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="4" />
                       </svg>
                       <span className="truncate">{loc.name}</span>
@@ -323,22 +323,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Credits & User */}
         <div className="px-4 py-4 border-t border-gray-100 space-y-3">
           {/* Credits */}
-          <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3.5 py-2.5">
+          <div className="flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
-                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <div className="text-lg font-bold text-indigo-600 leading-none">{credits}</div>
+                <div className="text-lg font-bold text-teal-600 leading-none">{credits}</div>
                 <div className="text-[10px] text-gray-400 font-medium">credits left</div>
               </div>
             </div>
             {currentTeam && (
               <button
                 onClick={() => router.push(`/teams/${currentTeam.id}/billing`)}
-                className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-indigo-200 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-lg transition-colors font-medium cursor-pointer"
+                className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
               >
                 Top up
               </button>
@@ -348,12 +348,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* User */}
           <button
             onClick={() => router.push('/settings')}
-            className="w-full flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer group"
+            className="w-full flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]"
           >
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
             ) : (
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-indigo-100">
+              <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-teal-100">
                 {(user.display_name || user.email).charAt(0).toUpperCase()}
               </div>
             )}
@@ -370,7 +370,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        {children}
+        <div className="page-enter">
+          {children}
+        </div>
       </main>
     </div>
   )
@@ -397,8 +399,8 @@ function NavItem({
     <button
       onClick={() => !disabled && router.push(href)}
       disabled={disabled}
-      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer ${active
-        ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.98] ${active
+        ? 'bg-teal-600 text-white shadow-sm shadow-teal-200'
         : disabled
           ? 'text-gray-300 cursor-not-allowed'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -411,7 +413,7 @@ function NavItem({
         <span className="text-sm font-medium">{label}</span>
       </div>
       {badge && (
-        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${active ? 'bg-white/20 text-white' : 'bg-indigo-50 text-indigo-600'}`}>
+        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${active ? 'bg-white/20 text-white' : 'bg-teal-50 text-teal-600'}`}>
           {badge}
         </span>
       )}
@@ -421,14 +423,96 @@ function NavItem({
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="relative w-12 h-12 mx-auto mb-4">
-          <div className="w-12 h-12 border-4 border-indigo-100 rounded-full" />
-          <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
+    <div className="flex h-screen bg-gray-50/80">
+      {/* Skeleton Sidebar */}
+      <aside className="w-[272px] bg-white border-r border-gray-200/80 flex flex-col shrink-0">
+        {/* Logo skeleton */}
+        <div className="px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-gray-100 animate-pulse" />
+            <div className="h-5 w-28 rounded-md bg-gray-100 animate-pulse" />
+          </div>
         </div>
-        <p className="text-gray-500 text-sm font-medium">Loading your workspace...</p>
-      </div>
+
+        {/* Team selector skeleton */}
+        <div className="px-4 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3 p-2.5">
+            <div className="w-9 h-9 rounded-lg bg-gray-100 animate-pulse" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-24 rounded-md bg-gray-100 animate-pulse" />
+              <div className="h-3 w-12 rounded bg-gray-100 animate-pulse" />
+            </div>
+          </div>
+          {/* Location skeletons */}
+          <div className="mt-3 ml-3 pl-3 border-l-2 border-gray-100 space-y-1">
+            <div className="h-4 w-20 rounded-md bg-gray-100 animate-pulse mx-3 my-2" />
+            <div className="h-4 w-32 rounded-md bg-gray-50 animate-pulse mx-3 my-2" />
+            <div className="h-4 w-28 rounded-md bg-gray-50 animate-pulse mx-3 my-2" />
+          </div>
+        </div>
+
+        {/* Nav items skeleton */}
+        <div className="flex-1 px-4 py-4 space-y-1.5">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+              <div className="w-5 h-5 rounded bg-gray-100 animate-pulse" />
+              <div className={`h-4 rounded-md bg-gray-100 animate-pulse ${i === 1 ? 'w-16' : i === 2 ? 'w-14' : 'w-18'}`} style={{ width: i === 1 ? 64 : i === 2 ? 56 : 72 }} />
+            </div>
+          ))}
+          <div className="pt-4 mt-4 border-t border-gray-100 space-y-1.5">
+            {[1, 2].map(i => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="w-5 h-5 rounded bg-gray-50 animate-pulse" />
+                <div className="h-4 rounded-md bg-gray-50 animate-pulse" style={{ width: i === 1 ? 48 : 56 }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Credits & user skeleton */}
+        <div className="px-4 py-4 border-t border-gray-100 space-y-3">
+          <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gray-100 animate-pulse" />
+              <div className="space-y-1">
+                <div className="h-5 w-8 rounded bg-gray-100 animate-pulse" />
+                <div className="h-2.5 w-14 rounded bg-gray-100 animate-pulse" />
+              </div>
+            </div>
+            <div className="h-6 w-14 rounded-lg bg-gray-100 animate-pulse" />
+          </div>
+          <div className="flex items-center gap-3 p-2.5">
+            <div className="w-9 h-9 rounded-full bg-gray-100 animate-pulse" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-20 rounded-md bg-gray-100 animate-pulse" />
+              <div className="h-3 w-32 rounded-md bg-gray-50 animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Skeleton Main Content */}
+      <main className="flex-1 overflow-auto p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="h-8 w-48 rounded-lg bg-gray-100 animate-pulse" />
+            <div className="h-9 w-28 rounded-lg bg-gray-100 animate-pulse" />
+          </div>
+          {/* Card skeletons */}
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-2xl border border-gray-100 bg-white p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="h-5 w-40 rounded-md bg-gray-100 animate-pulse" />
+                <div className="h-4 w-20 rounded-md bg-gray-50 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3.5 w-full rounded bg-gray-50 animate-pulse" />
+                <div className="h-3.5 w-3/4 rounded bg-gray-50 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
     </div>
   )
 }

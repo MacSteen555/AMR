@@ -4,11 +4,11 @@ export default function TermsPage() {
     return (
         <div className="min-h-screen bg-gray-50 py-20 px-6">
             <div className="max-w-3xl mx-auto bg-white p-10 md:p-14 rounded-3xl shadow-sm border border-gray-100">
-                <Link href="/" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 mb-8 inline-flex items-center gap-1">
+                <Link href="/" className="text-sm font-semibold text-teal-600 hover:text-teal-700 mb-8 inline-flex items-center gap-1">
                     ← Back to home
                 </Link>
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">AutoMyReply Terms of Service</h1>
-                <div className="prose prose-indigo max-w-none text-gray-600 space-y-6">
+                <div className="prose prose-teal max-w-none text-gray-600 space-y-6">
                     <p className="text-sm text-gray-400">Effective date: March 3, 2026</p>
 
                     <p>These Terms of Service ("Terms") govern your access to and use of AutoMyReply (the "Service"). The Service is operated by AutoMyReply ("we," "us," "our"). By creating an account, accessing, or using the Service, you agree to these Terms.</p>
@@ -101,7 +101,7 @@ export default function TermsPage() {
                     <div>
                         <h2 className="text-xl font-bold text-gray-900 mb-2 mt-8">10. Data retention and deletion</h2>
                         <p>We may retain Customer Content and logs for as long as needed to provide the Service, comply with law, resolve disputes, enforce agreements, and maintain security.</p>
-                        <p className="mt-4">You may request deletion of your account and associated data by emailing <a href="mailto:automyreply@gmail.com" className="text-indigo-600 hover:text-indigo-700">automyreply@gmail.com</a>. Some information may be retained where required for legal, tax, security, or fraud-prevention reasons (for example, billing records and audit logs).</p>
+                        <p className="mt-4">You may request deletion of your account and associated data by emailing <a href="mailto:automyreply@gmail.com" className="text-teal-600 hover:text-teal-700">automyreply@gmail.com</a>. Some information may be retained where required for legal, tax, security, or fraud-prevention reasons (for example, billing records and audit logs).</p>
                     </div>
 
                     <div>
@@ -161,7 +161,7 @@ export default function TermsPage() {
 
                     <div>
                         <h2 className="text-xl font-bold text-gray-900 mb-2 mt-8">19. Contact</h2>
-                        <p>Questions about these Terms: <a href="mailto:automyreply@gmail.com" className="text-indigo-600 hover:text-indigo-700">automyreply@gmail.com</a></p>
+                        <p>Questions about these Terms: <a href="mailto:automyreply@gmail.com" className="text-teal-600 hover:text-teal-700">automyreply@gmail.com</a></p>
                     </div>
 
                 </div>

@@ -85,6 +85,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
         periodStart: periodStartStr,
         periodEnd: absoluteEnd,
         locationName: loc?.name || null,
+        scope: 'location',
+        periodWindow: period.key as any,
       })
 
       return {

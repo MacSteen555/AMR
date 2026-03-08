@@ -51,9 +51,9 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             <div
               className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${
                 currentStep > step.id
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200/50'
+                  ? 'bg-teal-600 text-white shadow-lg shadow-teal-200/50'
                   : currentStep === step.id
-                    ? 'bg-white border-2 border-indigo-600 text-indigo-600 shadow-lg shadow-indigo-200/50'
+                    ? 'bg-white border-2 border-teal-600 text-teal-600 shadow-lg shadow-teal-200/50'
                     : 'bg-gray-100 border-2 border-gray-200 text-gray-400'
               }`}
             >
@@ -66,14 +66,14 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               )}
             </div>
             <span className={`mt-2.5 text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${
-              currentStep >= step.id ? 'text-indigo-600' : 'text-gray-400'
+              currentStep >= step.id ? 'text-teal-600' : 'text-gray-400'
             }`}>
               {step.label}
             </span>
           </div>
           {idx < STEPS.length - 1 && (
             <div className="w-24 h-0.5 mx-4 mt-[-20px] rounded-full overflow-hidden bg-gray-200">
-              <div className={`h-full bg-indigo-600 transition-all duration-500 ${
+              <div className={`h-full bg-teal-600 transition-all duration-500 ${
                 currentStep > step.id ? 'w-full' : 'w-0'
               }`} />
             </div>
@@ -302,7 +302,7 @@ export default function NewTeamPage() {
   const negEdited = negativeReplyText !== negativeOriginal
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
       <div className="max-w-5xl mx-auto px-6 py-8">
 
         {/* Back button */}
@@ -338,8 +338,8 @@ export default function NewTeamPage() {
         {step === 1 && (
           <div className="max-w-lg mx-auto" style={{ animation: 'fadeSlideUp 0.4s ease-out' }}>
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-100 to-violet-100 rounded-2xl mb-5 shadow-sm">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-2xl mb-5 shadow-sm">
+                <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
@@ -359,7 +359,7 @@ export default function NewTeamPage() {
                 value={teamName}
                 onChange={(e) => { setTeamName(e.target.value); setError(null) }}
                 placeholder="e.g., Downtown Restaurants, My Dental Group"
-                className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-gray-900 text-lg transition-all bg-gray-50 focus:bg-white"
+                className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 text-lg transition-all bg-gray-50 focus:bg-white"
                 disabled={creatingTeam}
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateTeam()}
@@ -369,7 +369,7 @@ export default function NewTeamPage() {
               <button
                 onClick={handleCreateTeam}
                 disabled={creatingTeam || !teamName.trim()}
-                className="mt-6 w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                className="mt-6 w-full py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 {creatingTeam ? (
                   <>
@@ -407,8 +407,8 @@ export default function NewTeamPage() {
         {step === 2 && (
           <div className="max-w-2xl mx-auto" style={{ animation: 'fadeSlideUp 0.4s ease-out' }}>
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-100 to-violet-100 rounded-2xl mb-5 shadow-sm">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-2xl mb-5 shadow-sm">
+                <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -419,7 +419,7 @@ export default function NewTeamPage() {
               </p>
               <button
                 onClick={() => { setStep(3); if (importedLocationIds.length > 0) loadSampleReviews(importedLocationIds[0].name) }}
-                className="mt-3 text-sm text-gray-400 hover:text-indigo-600 font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="mt-3 text-sm text-gray-400 hover:text-teal-600 font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 Skip for now
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,8 +432,8 @@ export default function NewTeamPage() {
               {loadingLocations ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="relative w-12 h-12 mb-4">
-                    <div className="w-12 h-12 border-4 border-indigo-100 rounded-full" />
-                    <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
+                    <div className="w-12 h-12 border-4 border-teal-100 rounded-full" />
+                    <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
                   </div>
                   <p className="text-gray-500 text-sm font-medium">Loading your Google locations...</p>
                   <p className="text-gray-400 text-xs mt-1">This may take a moment</p>
@@ -454,12 +454,12 @@ export default function NewTeamPage() {
                 <>
                   <div className="px-5 py-3.5 bg-gray-50/80 border-b border-gray-200 flex items-center justify-between">
                     <p className="text-sm text-gray-600">
-                      <span className="font-bold text-indigo-600">{selectedGoogleIds.length}</span>
+                      <span className="font-bold text-teal-600">{selectedGoogleIds.length}</span>
                       <span className="text-gray-400"> / {googleLocations.length} selected</span>
                     </p>
                     <button
                       onClick={() => setSelectedGoogleIds(selectedGoogleIds.length === googleLocations.length ? [] : googleLocations.map(l => l.location_id))}
-                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer"
+                      className="text-sm text-teal-600 hover:text-teal-800 font-medium cursor-pointer"
                     >
                       {selectedGoogleIds.length === googleLocations.length ? 'Deselect All' : 'Select All'}
                     </button>
@@ -470,10 +470,10 @@ export default function NewTeamPage() {
                       return (
                         <div
                           key={loc.location_id}
-                          className={`flex items-center gap-4 px-5 py-4 cursor-pointer transition-all duration-200 ${isSelected ? 'bg-indigo-50/60' : 'hover:bg-gray-50'}`}
+                          className={`flex items-center gap-4 px-5 py-4 cursor-pointer transition-all duration-200 ${isSelected ? 'bg-teal-50/60' : 'hover:bg-gray-50'}`}
                           onClick={() => handleToggleLocation(loc.location_id)}
                         >
-                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'}`}>
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${isSelected ? 'bg-teal-600 border-teal-600' : 'border-gray-300'}`}>
                             {isSelected && (
                               <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -481,7 +481,7 @@ export default function NewTeamPage() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium truncate ${isSelected ? 'text-indigo-900' : 'text-gray-900'}`}>{loc.location_name}</p>
+                            <p className={`text-sm font-medium truncate ${isSelected ? 'text-teal-900' : 'text-gray-900'}`}>{loc.location_name}</p>
                             <p className="text-xs text-gray-500 truncate">{loc.address?.addressLines?.join(', ') || 'No address'}</p>
                           </div>
                           <span className="text-xs text-gray-400 shrink-0">{loc.account_name}</span>
@@ -497,7 +497,7 @@ export default function NewTeamPage() {
                   <button
                     onClick={handleImportLocations}
                     disabled={importingLocations || selectedGoogleIds.length === 0}
-                    className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm cursor-pointer"
+                    className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm cursor-pointer"
                   >
                     {importingLocations ? (
                       <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Importing...</>
@@ -515,8 +515,8 @@ export default function NewTeamPage() {
         {step === 3 && (
           <div style={{ animation: 'fadeSlideUp 0.4s ease-out' }}>
             <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-100 to-violet-100 rounded-2xl mb-5 shadow-sm">
-                <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-100 rounded-2xl mb-5 shadow-sm">
+                <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                 </svg>
               </div>
@@ -526,7 +526,7 @@ export default function NewTeamPage() {
               </p>
               <button
                 onClick={() => { router.push('/teams'); router.refresh() }}
-                className="mt-3 text-sm text-gray-400 hover:text-indigo-600 font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                className="mt-3 text-sm text-gray-400 hover:text-teal-600 font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 Skip — use defaults
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,14 +534,14 @@ export default function NewTeamPage() {
                 </svg>
               </button>
               {importedLocationIds.length > 1 && (
-                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-full border border-indigo-100">
-                  <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-teal-50 rounded-full border border-teal-100">
+                  <svg className="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   </svg>
-                  <span className="text-sm text-indigo-700 font-semibold">
+                  <span className="text-sm text-teal-700 font-semibold">
                     Location {currentLocationIdx + 1} of {importedLocationIds.length}:
                   </span>
-                  <span className="text-sm text-indigo-600">{currentLocation?.name}</span>
+                  <span className="text-sm text-teal-600">{currentLocation?.name}</span>
                 </div>
               )}
             </div>
@@ -549,8 +549,8 @@ export default function NewTeamPage() {
             {loadingSamples ? (
               <div className="flex flex-col items-center justify-center py-24">
                 <div className="relative w-16 h-16 mb-6">
-                  <div className="w-16 h-16 border-4 border-indigo-100 rounded-full" />
-                  <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
+                  <div className="w-16 h-16 border-4 border-teal-100 rounded-full" />
+                  <div className="w-16 h-16 border-4 border-teal-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
                 </div>
                 <p className="text-gray-700 font-medium">Drafting sample reviews...</p>
                 <p className="text-gray-400 text-sm mt-1">for {currentLocation?.name}</p>
@@ -588,8 +588,8 @@ export default function NewTeamPage() {
                 {/* Brand Prompt */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                      <svg className="w-4.5 h-4.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                      <svg className="w-4.5 h-4.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
                     </div>
@@ -604,7 +604,7 @@ export default function NewTeamPage() {
                       <textarea
                         value={brandVoice}
                         onChange={e => { setBrandVoice(e.target.value); setUserEditedPrompt(true) }}
-                        className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all min-h-[80px]"
+                        className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all min-h-[80px]"
                         placeholder="General instructions for your brand voice..."
                       />
                     </div>
@@ -613,7 +613,7 @@ export default function NewTeamPage() {
                       <textarea
                         value={negativeSentiment}
                         onChange={e => { setNegativeSentiment(e.target.value); setUserEditedPrompt(true) }}
-                        className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all min-h-[100px]"
+                        className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all min-h-[100px]"
                         placeholder="Specific instructions for how to respond to negative reviews..."
                       />
                     </div>
@@ -625,7 +625,7 @@ export default function NewTeamPage() {
                   <button
                     onClick={handleSaveBrandVoice}
                     disabled={savingBrandVoice || (!brandVoice.trim() && !negativeSentiment.trim())}
-                    className="group px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                    className="group px-8 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                   >
                     {savingBrandVoice ? (
                       <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
@@ -648,7 +648,7 @@ export default function NewTeamPage() {
                 <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto">You can configure brand voice after importing locations from the Teams page.</p>
                 <button
                   onClick={() => { router.push('/teams'); router.refresh() }}
-                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors cursor-pointer"
+                  className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors cursor-pointer"
                 >
                   Go to Teams
                 </button>

@@ -159,7 +159,7 @@ function ReviewDemo() {
             onClick={() => switchReview(i)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 cursor-pointer ${
               i === activeIndex
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200'
+                ? 'bg-teal-600 text-white shadow-lg shadow-teal-200'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
             }`}
           >
@@ -171,7 +171,7 @@ function ReviewDemo() {
       <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden" key={activeIndex} style={{ animation: 'fadeSlideUp 0.5s ease-out' }}>
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 flex items-center justify-center text-white font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
               {review.author.charAt(0)}
             </div>
             <div>
@@ -183,18 +183,18 @@ function ReviewDemo() {
           <p className="text-gray-700 text-sm leading-relaxed">{review.text}</p>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-indigo-50/60 to-violet-50/60">
+        <div className="p-6 bg-teal-50/40">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
               <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">AI-Generated Reply</span>
+            <span className="text-xs font-semibold text-teal-600 uppercase tracking-wider">AI-Generated Reply</span>
             {!done && showReply && (
               <span className="ml-auto flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
-                <span className="text-xs text-indigo-400 font-medium">Generating...</span>
+                <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse" />
+                <span className="text-xs text-teal-400 font-medium">Generating...</span>
               </span>
             )}
             {done && (
@@ -208,7 +208,7 @@ function ReviewDemo() {
           </div>
           <p className="text-gray-700 text-sm leading-relaxed min-h-[80px]">
             {displayed}
-            {!done && showReply && <span className="inline-block w-0.5 h-4 bg-indigo-500 ml-0.5 animate-pulse align-text-bottom" />}
+            {!done && showReply && <span className="inline-block w-0.5 h-4 bg-teal-500 ml-0.5 animate-pulse align-text-bottom" />}
           </p>
         </div>
       </div>
@@ -222,7 +222,7 @@ function ReviewDemo() {
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden transition-all duration-300 hover:border-indigo-200">
+    <div className="border border-gray-100 rounded-2xl overflow-hidden transition-all duration-300 hover:border-teal-200">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-6 text-left cursor-pointer"
@@ -280,7 +280,7 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/images/purple-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+            <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
             <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
           </div>
 
@@ -290,7 +290,7 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Pricing</button>
             <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">FAQ</button>
             <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">Log in</Link>
-            <Link href="/login" className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-indigo-200 transition-all duration-300">
+            <Link href="/login" className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-200 transition-all duration-300">
               Get Started Free
             </Link>
           </div>
@@ -313,7 +313,7 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('pricing')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Pricing</button>
             <button onClick={() => scrollTo('faq')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">FAQ</button>
             <Link href="/login" className="block text-sm text-gray-600 hover:text-gray-900 py-2">Log in</Link>
-            <Link href="/login" className="block w-full text-center px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-semibold">
+            <Link href="/login" className="block w-full text-center px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold">
               Get Started Free
             </Link>
           </div>
@@ -325,17 +325,17 @@ export default function LandingPage() {
         <div className="absolute inset-0 dot-pattern opacity-40 pointer-events-none" />
 
         {/* Decorative orbs */}
-        <div className="absolute top-24 left-[10%] w-72 h-72 bg-indigo-200/30 rounded-full blur-3xl animate-float pointer-events-none" />
-        <div className="absolute top-48 right-[10%] w-80 h-80 bg-violet-200/25 rounded-full blur-3xl animate-float-delayed pointer-events-none" />
+        <div className="absolute top-24 left-[10%] w-72 h-72 bg-teal-200/30 rounded-full blur-3xl animate-float pointer-events-none" />
+        <div className="absolute top-48 right-[10%] w-80 h-80 bg-amber-200/25 rounded-full blur-3xl animate-float-delayed pointer-events-none" />
 
         <div className="relative max-w-5xl mx-auto px-6 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm border border-indigo-100 rounded-full mb-8 shadow-sm" style={{ animation: 'fadeSlideUp 0.6s ease-out' }}>
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm border border-teal-100 rounded-full mb-8 shadow-sm" style={{ animation: 'fadeSlideUp 0.6s ease-out' }}>
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
-            <span className="text-sm font-medium text-indigo-700">AI-Powered Review Management</span>
+            <span className="text-sm font-medium text-teal-700">AI-Powered Review Management</span>
           </div>
 
           {/* Headline */}
@@ -353,7 +353,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20" style={{ animation: 'fadeSlideUp 0.6s ease-out 0.3s both' }}>
             <Link
               href="/login"
-              className="group px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl text-lg font-semibold hover:shadow-xl hover:shadow-indigo-200/60 transition-all duration-300 inline-flex items-center justify-center gap-2"
+              className="group px-8 py-4 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-2xl text-lg font-semibold hover:shadow-xl hover:shadow-teal-200/60 transition-all duration-300 inline-flex items-center justify-center gap-2"
             >
               Start Free
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +362,7 @@ export default function LandingPage() {
             </Link>
             <button
               onClick={() => scrollTo('demo')}
-              className="px-8 py-4 bg-white text-gray-700 rounded-2xl text-lg font-semibold border-2 border-gray-200 hover:border-indigo-300 hover:text-indigo-700 hover:shadow-lg transition-all duration-300 inline-flex items-center justify-center gap-2 cursor-pointer"
+              className="px-8 py-4 bg-white text-gray-700 rounded-2xl text-lg font-semibold border-2 border-gray-200 hover:border-teal-300 hover:text-teal-700 hover:shadow-lg transition-all duration-300 inline-flex items-center justify-center gap-2 cursor-pointer"
             >
               See it in action
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -390,27 +390,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ TRUSTED BY ════════════════ */}
-      <section className="py-12 border-y border-gray-100 bg-gray-50/50 overflow-hidden">
-        <p className="text-center text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">Trusted by businesses worldwide</p>
-        <div className="flex items-center gap-16 animate-marquee whitespace-nowrap">
-          {[...Array(2)].map((_, setIdx) => (
-            <div key={setIdx} className="flex items-center gap-16">
-              {['The Breakfast Club', 'Urban Dental Co.', 'Peak Fitness', 'Bloom Salon', 'Harbor Eats', 'Swift Auto Care', 'The Green Leaf', 'CloudNine Spa'].map((name) => (
-                <span key={`${setIdx}-${name}`} className="text-gray-300 font-bold text-lg tracking-wide select-none">{name}</span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ════════════════ LIVE DEMO ════════════════ */}
       <section id="demo" className="py-24 px-6">
         <div ref={demoRef} className="reveal max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full mb-4">
-              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Live Demo</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-full mb-4">
+              <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span className="text-xs font-semibold text-teal-700 uppercase tracking-wider">Live Demo</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Watch AI craft the perfect reply</h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">Click a review type to see how AutoMyReply generates personalized, on-brand responses in real time.</p>
@@ -423,9 +409,9 @@ export default function LandingPage() {
       <section className="py-24 px-6 bg-gradient-to-b from-white to-gray-50/80">
         <div ref={stepsRef} className="reveal max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-full mb-4">
-              <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-              <span className="text-xs font-semibold text-violet-700 uppercase tracking-wider">Quick Setup</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-full mb-4">
+              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Quick Setup</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Get started in 3 simple steps</h2>
             <p className="text-gray-500 text-lg">From setup to your first reply in under 5 minutes.</p>
@@ -437,28 +423,28 @@ export default function LandingPage() {
                 num: '1',
                 title: 'Connect Google',
                 desc: 'Link your Google Business Profile in one click with secure OAuth authentication.',
-                icon: <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                icon: <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
               },
               {
                 num: '2',
                 title: 'Set Brand Voice',
                 desc: 'Tell the AI how your business sounds — professional, friendly, casual, or fully custom.',
-                icon: <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                icon: <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
               },
               {
                 num: '3',
                 title: 'Review & Post',
                 desc: 'AI generates replies instantly. Edit if needed, then post directly to Google.',
-                icon: <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                icon: <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               },
             ].map((step, i) => (
               <div key={i} className={`reveal-delay-${i + 1} group relative text-center`}>
                 {i < 2 && (
-                  <div className="hidden md:block absolute top-10 left-[60%] w-[80%] border-t-2 border-dashed border-indigo-200/60 pointer-events-none" />
+                  <div className="hidden md:block absolute top-10 left-[60%] w-[80%] border-t-2 border-dashed border-teal-200/60 pointer-events-none" />
                 )}
-                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100/50 mb-6 group-hover:shadow-lg group-hover:shadow-indigo-100 transition-all duration-300">
+                <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-teal-50 border border-teal-100/50 mb-6 group-hover:shadow-lg group-hover:shadow-teal-100 transition-all duration-300">
                   {step.icon}
-                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-white text-xs font-bold flex items-center justify-center shadow-md">
+                  <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 text-white text-xs font-bold flex items-center justify-center shadow-md">
                     {step.num}
                   </div>
                 </div>
@@ -470,59 +456,99 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ FEATURES GRID ════════════════ */}
+      {/* ════════════════ FEATURES BENTO GRID ════════════════ */}
       <section id="features" className="py-24 px-6">
         <div ref={featuresRef} className="reveal max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full mb-4">
-              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-              <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Features</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-full mb-4">
+              <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+              <span className="text-xs font-semibold text-teal-700 uppercase tracking-wider">Features</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Everything you need to manage reviews</h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">Powerful tools for businesses of every size.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />,
-                title: 'AI-Powered Replies',
-                desc: 'Generate personalized, context-aware replies in seconds. The AI learns from your edits to better match your voice over time.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
-                title: 'Team Collaboration',
-                desc: 'Invite team members, assign roles, and manage multiple locations together. Built for agencies and franchises.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />,
-                title: 'Brand Voice Control',
-                desc: 'Define how your AI replies sound — per location. Customize tone, style, and specific rules for negative reviews.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />,
-                title: 'Google Integration',
-                desc: 'Directly sync reviews from Google Business Profile. Post replies back to Google without leaving the app.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
-                title: 'AI Insights',
-                desc: 'Surface recurring themes, sentiment trends, and actionable recommendations from hundreds of reviews automatically.'
-              },
-              {
-                icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></>,
-                title: 'Multi-Location',
-                desc: 'Manage reviews across all your locations from one dashboard. Each location gets its own brand voice settings.'
-              },
-            ].map((feature, i) => (
-              <div key={i} className={`reveal-delay-${(i % 3) + 1} group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-indigo-200 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-50 cursor-pointer`}>
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100/50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">{feature.icon}</svg>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-5">
+            {/* Large card: AI-Powered Replies */}
+            <div className="reveal-delay-1 group relative bg-white rounded-2xl p-8 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-4 overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-teal-50 to-transparent rounded-bl-full pointer-events-none" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-teal-200/50">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">AI-Powered Replies</h3>
+                <p className="text-gray-500 leading-relaxed max-w-md">Generate personalized, context-aware replies in seconds. The AI learns from your edits to better match your voice over time.</p>
+                <div className="mt-6 flex items-center gap-4 text-sm">
+                  <span className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg font-medium">Smart Context</span>
+                  <span className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg font-medium">Adaptive Learning</span>
+                  <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg font-medium">Instant Drafts</span>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Small card: Team Collaboration */}
+            <div className="reveal-delay-2 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-2">
+              <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Team Collaboration</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">Invite members, assign roles, manage locations together. Built for agencies.</p>
+            </div>
+
+            {/* Small card: Brand Voice */}
+            <div className="reveal-delay-1 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-amber-200 transition-all duration-300 hover:shadow-xl hover:shadow-amber-50 cursor-pointer md:col-span-2">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100/50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Brand Voice Control</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">Define how your AI replies sound — per location. Customize tone and style.</p>
+            </div>
+
+            {/* Large card: Google Integration */}
+            <div className="reveal-delay-2 group relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 border border-gray-700 hover:border-teal-500 transition-all duration-300 hover:shadow-xl hover:shadow-teal-900/20 cursor-pointer md:col-span-4 overflow-hidden">
+              <div className="absolute bottom-0 right-0 w-48 h-48 bg-gradient-to-tl from-teal-500/10 to-transparent rounded-tl-full pointer-events-none" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-7 h-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Google Integration</h3>
+                <p className="text-gray-400 leading-relaxed max-w-md">Directly sync reviews from Google Business Profile. Post replies back to Google without leaving the app.</p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {['G', 'B', 'P'].map((l, i) => (
+                      <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold border-2 border-gray-900">{l}</div>
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-500">Syncs in real-time</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Small card: AI Insights */}
+            <div className="reveal-delay-3 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-3">
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Insights</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">Surface recurring themes, sentiment trends, and actionable recommendations from hundreds of reviews.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Small card: Multi-Location */}
+            <div className="reveal-delay-3 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-3">
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Multi-Location</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">Manage reviews across all your locations from one dashboard. Each location gets its own voice settings.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -533,9 +559,9 @@ export default function LandingPage() {
           {/* Insights */}
           <div ref={insightsRef} className="reveal grid md:grid-cols-2 gap-12 lg:gap-16 items-center mb-32">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-full mb-4">
-                <svg className="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                <span className="text-xs font-semibold text-violet-700 uppercase tracking-wider">AI Insights</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-full mb-4">
+                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">AI Insights</span>
               </div>
               <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Turn reviews into strategy</h3>
               <p className="text-gray-500 leading-relaxed mb-8">
@@ -544,8 +570,8 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 {['Sentiment trend analysis over time', 'Recurring praise & complaint themes', 'Actionable improvement recommendations', 'Location-by-location comparison'].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm text-gray-600">
-                    <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3.5 h-3.5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -554,7 +580,7 @@ export default function LandingPage() {
                 ))}
               </ul>
             </div>
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-xl shadow-violet-100/30">
+            <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-xl shadow-amber-100/30">
               <div className="flex items-center justify-between mb-6">
                 <h4 className="font-semibold text-gray-900 text-sm">Sentiment Breakdown</h4>
                 <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md">Last 30 days</span>
@@ -565,7 +591,7 @@ export default function LandingPage() {
                   { label: 'Wait Times', score: 64, color: 'bg-amber-500' },
                   { label: 'Food Quality', score: 88, color: 'bg-emerald-500' },
                   { label: 'Atmosphere', score: 95, color: 'bg-emerald-500' },
-                  { label: 'Value for Money', score: 78, color: 'bg-indigo-500' },
+                  { label: 'Value for Money', score: 78, color: 'bg-teal-500' },
                 ].map((item, i) => (
                   <div key={i}>
                     <div className="flex justify-between text-sm mb-2">
@@ -584,7 +610,7 @@ export default function LandingPage() {
 
           {/* Competitive Intelligence */}
           <div ref={competitiveRef} className="reveal grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div className="order-2 md:order-1 bg-white rounded-2xl p-8 border border-gray-100 shadow-xl shadow-indigo-100/30">
+            <div className="order-2 md:order-1 bg-white rounded-2xl p-8 border border-gray-100 shadow-xl shadow-teal-100/30">
               <div className="flex items-center justify-between mb-6">
                 <h4 className="font-semibold text-gray-900 text-sm">Competitive Overview</h4>
                 <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md font-medium">You're #1</span>
@@ -596,18 +622,18 @@ export default function LandingPage() {
                   { name: 'Competitor B', reviews: 215, rating: 4.1, isYou: false },
                   { name: 'Competitor C', reviews: 67, rating: 3.8, isYou: false },
                 ].map((item, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3.5 rounded-xl transition-colors duration-200 ${item.isYou ? 'bg-indigo-50 border border-indigo-100' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                  <div key={i} className={`flex items-center justify-between p-3.5 rounded-xl transition-colors duration-200 ${item.isYou ? 'bg-teal-50 border border-teal-100' : 'bg-gray-50 hover:bg-gray-100'}`}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${item.isYou ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${item.isYou ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
                         {item.name.charAt(0) === 'Y' ? 'Y' : item.name.split(' ')[1]}
                       </div>
                       <div>
-                        <div className={`text-sm font-medium ${item.isYou ? 'text-indigo-900' : 'text-gray-700'}`}>{item.name}</div>
+                        <div className={`text-sm font-medium ${item.isYou ? 'text-teal-900' : 'text-gray-700'}`}>{item.name}</div>
                         <div className="text-xs text-gray-400">{item.reviews} reviews</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className={`font-bold text-sm ${item.isYou ? 'text-indigo-900' : 'text-gray-700'}`}>{item.rating}</span>
+                      <span className={`font-bold text-sm ${item.isYou ? 'text-teal-900' : 'text-gray-700'}`}>{item.rating}</span>
                       <svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
@@ -618,9 +644,9 @@ export default function LandingPage() {
               <p className="text-xs text-gray-400 mt-4 pt-4 border-t border-gray-100">AI-generated competitive report available</p>
             </div>
             <div className="order-1 md:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full mb-4">
-                <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Competitive Intel</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-full mb-4">
+                <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                <span className="text-xs font-semibold text-teal-700 uppercase tracking-wider">Competitive Intel</span>
               </div>
               <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Know where you stand</h3>
               <p className="text-gray-500 leading-relaxed mb-8">
@@ -629,8 +655,8 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 {['Side-by-side competitor comparison', 'Competitor review sentiment tracking', 'AI-generated competitive reports', 'Identify competitor weaknesses'].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm text-gray-600">
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
@@ -646,8 +672,8 @@ export default function LandingPage() {
       {/* ════════════════ AI THAT LEARNS ════════════════ */}
       <section className="py-24 px-6">
         <div ref={aiLearnRef} className="reveal max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-violet-100 mb-6">
-            <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 mb-6">
+            <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
           </div>
@@ -658,23 +684,23 @@ export default function LandingPage() {
           <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
             {[
               {
-                icon: <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>,
+                icon: <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>,
                 title: 'Brand Voice Memory',
                 desc: 'Remembers your tone, style rules, and per-location preferences across sessions.'
               },
               {
-                icon: <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+                icon: <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
                 title: 'Learns From Edits',
                 desc: 'Adapts to how you refine generated drafts before posting to better match your expectations.'
               },
               {
-                icon: <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
+                icon: <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
                 title: 'Continuous Improvement',
                 desc: 'Each reply gets better as the AI deepens its understanding of your unique brand identity.'
               },
             ].map((item, i) => (
-              <div key={i} className={`reveal-delay-${i + 1} group bg-white rounded-2xl p-6 border border-gray-100 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50 transition-all duration-300 cursor-pointer`}>
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100/50 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+              <div key={i} className={`reveal-delay-${i + 1} group bg-white rounded-2xl p-6 border border-gray-100 hover:border-teal-200 hover:shadow-lg hover:shadow-teal-50 transition-all duration-300 cursor-pointer`}>
+                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
                   {item.icon}
                 </div>
                 <h4 className="font-semibold text-gray-900 mb-2">{item.title}</h4>
@@ -685,10 +711,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ TESTIMONIALS ════════════════ */}
-      <section className="py-24 px-6 bg-gradient-to-b from-gray-50/80 to-white">
-        <div ref={testimonialsRef} className="reveal max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+      {/* ════════════════ TESTIMONIALS MARQUEE ════════════════ */}
+      <section className="py-24 bg-gradient-to-b from-gray-50/80 to-white overflow-hidden">
+        <div ref={testimonialsRef} className="reveal">
+          <div className="text-center mb-16 px-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-full mb-4">
               <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
               <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Testimonials</span>
@@ -697,45 +723,66 @@ export default function LandingPage() {
             <p className="text-gray-500 text-lg max-w-xl mx-auto">See what our customers have to say about AutoMyReply.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                quote: 'AutoMyReply saved us at least 10 hours a week. We manage 12 locations, and the AI replies are always on-brand and professional. Our team loves it.',
-                name: 'Rachel Torres',
-                role: 'Operations Manager, Peak Fitness',
-                initials: 'RT',
-              },
-              {
-                quote: 'The competitive intelligence feature is a game-changer. We can now see exactly how we stack up against nearby competitors and adjust our strategy accordingly.',
-                name: 'Marcus Chen',
-                role: 'Owner, Harbor Eats',
-                initials: 'MC',
-              },
-              {
-                quote: 'I was skeptical about AI-written replies, but these genuinely sound like us. The brand voice controls are incredibly fine-tuned. Worth every penny.',
-                name: 'Sophia Williams',
-                role: 'Marketing Director, Bloom Salon',
-                initials: 'SW',
-              },
-            ].map((t, i) => (
-              <div key={i} className={`reveal-delay-${i + 1} bg-white rounded-2xl p-7 border border-gray-100 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-50 transition-all duration-300`}>
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 flex items-center justify-center text-white text-sm font-bold">
-                    {t.initials}
+          {/* Row 1 — scrolls left */}
+          <div className="flex gap-6 mb-6 animate-marquee whitespace-nowrap">
+            {[...Array(2)].map((_, setIdx) => (
+              <div key={setIdx} className="flex gap-6 shrink-0">
+                {[
+                  { quote: 'AutoMyReply saved us at least 10 hours a week. We manage 12 locations, and the AI replies are always on-brand and professional.', name: 'Rachel Torres', role: 'Operations Manager, Peak Fitness', initials: 'RT' },
+                  { quote: 'The competitive intelligence feature is a game-changer. We can see exactly how we stack up against nearby competitors.', name: 'Marcus Chen', role: 'Owner, Harbor Eats', initials: 'MC' },
+                  { quote: 'I was skeptical about AI-written replies, but these genuinely sound like us. The brand voice controls are incredibly fine-tuned.', name: 'Sophia Williams', role: 'Marketing Director, Bloom Salon', initials: 'SW' },
+                  { quote: 'Setup took 5 minutes. We connected Google, set our brand voice, and the first AI reply was spot-on. Incredible experience.', name: 'David Park', role: 'Founder, Swift Auto Care', initials: 'DP' },
+                ].map((t, i) => (
+                  <div key={`${setIdx}-${i}`} className="w-[380px] shrink-0 bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 hover:shadow-lg hover:shadow-teal-50 transition-all duration-300 whitespace-normal">
+                    <div className="flex gap-1 mb-4">
+                      {[...Array(5)].map((_, j) => (
+                        <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold">{t.initials}</div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
+                        <div className="text-xs text-gray-400">{t.role}</div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
-                    <div className="text-xs text-gray-400">{t.role}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Row 2 — scrolls right */}
+          <div className="flex gap-6 animate-marquee-reverse whitespace-nowrap">
+            {[...Array(2)].map((_, setIdx) => (
+              <div key={setIdx} className="flex gap-6 shrink-0">
+                {[
+                  { quote: 'The AI insights surfaced a recurring complaint about parking we never noticed. We fixed it and our ratings jumped from 4.2 to 4.7 in two months.', name: 'Amara Okafor', role: 'GM, The Green Leaf', initials: 'AO' },
+                  { quote: 'We went from ignoring most reviews to responding to every single one. Our response rate is now 100% and customers notice the difference.', name: 'Jake Morrison', role: 'Owner, CloudNine Spa', initials: 'JM' },
+                  { quote: 'Managing reviews for 8 franchise locations used to be a nightmare. AutoMyReply turned it into a 10-minute daily task. Life-changing.', name: 'Priya Sharma', role: 'Franchise Director, Urban Dental Co.', initials: 'PS' },
+                  { quote: 'The credit system is super fair. We use the Pro plan and never run out. The AI replies are better than what our team was writing manually.', name: 'Carlos Mendez', role: 'Marketing Lead, The Breakfast Club', initials: 'CM' },
+                ].map((t, i) => (
+                  <div key={`${setIdx}-${i}`} className="w-[380px] shrink-0 bg-white rounded-2xl p-7 border border-gray-100 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-50 transition-all duration-300 whitespace-normal">
+                    <div className="flex gap-1 mb-4">
+                      {[...Array(5)].map((_, j) => (
+                        <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white text-sm font-bold">{t.initials}</div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
+                        <div className="text-xs text-gray-400">{t.role}</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             ))}
           </div>
@@ -791,12 +838,12 @@ export default function LandingPage() {
             ].map((plan, i) => (
               <div key={i} className={`reveal-delay-${i + 1} relative bg-white rounded-2xl p-7 border-2 transition-all duration-300 ${
                 plan.popular
-                  ? 'border-indigo-500 shadow-xl shadow-indigo-100/50 scale-[1.02]'
-                  : 'border-gray-100 hover:border-indigo-200 hover:shadow-lg'
+                  ? 'border-teal-500 shadow-xl shadow-teal-100/50 scale-[1.02]'
+                  : 'border-gray-100 hover:border-teal-200 hover:shadow-lg'
               }`}>
                 {plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1.5 bg-gradient-to-r from-indigo-500 to-violet-500 text-white text-xs font-bold rounded-full shadow-lg shadow-indigo-200/50">Most Popular</span>
+                    <span className="px-4 py-1.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white text-xs font-bold rounded-full shadow-lg shadow-teal-200/50">Most Popular</span>
                   </div>
                 )}
                 <div className="mb-5">
@@ -809,7 +856,7 @@ export default function LandingPage() {
                 <ul className="space-y-3 mb-7">
                   {plan.features.map((f, j) => (
                     <li key={j} className="flex items-start gap-2.5 text-sm text-gray-600">
-                      <svg className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {f}
@@ -820,8 +867,8 @@ export default function LandingPage() {
                   href="/login"
                   className={`block w-full py-3 px-4 rounded-xl font-semibold text-center transition-all duration-300 cursor-pointer ${
                     plan.popular
-                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:shadow-lg hover:shadow-indigo-200'
-                      : 'bg-gray-50 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 border border-gray-200'
+                      ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white hover:shadow-lg hover:shadow-teal-200'
+                      : 'bg-gray-50 text-gray-700 hover:bg-teal-50 hover:text-teal-700 border border-gray-200'
                   }`}
                 >
                   {plan.cta}
@@ -836,9 +883,9 @@ export default function LandingPage() {
       <section id="faq" className="py-24 px-6 bg-gradient-to-b from-gray-50/50 to-white">
         <div ref={faqRef} className="reveal max-w-3xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full mb-4">
-              <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">FAQ</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-teal-50 border border-teal-100 rounded-full mb-4">
+              <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span className="text-xs font-semibold text-teal-700 uppercase tracking-wider">FAQ</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Frequently asked questions</h2>
             <p className="text-gray-500 text-lg">Everything you need to know about AutoMyReply.</p>
@@ -876,21 +923,21 @@ export default function LandingPage() {
       {/* ════════════════ CTA BANNER ════════════════ */}
       <section className="py-24 px-6">
         <div ref={ctaRef} className="reveal max-w-4xl mx-auto">
-          <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-3xl p-12 md:p-16 text-center overflow-hidden">
+          <div className="relative bg-gradient-to-br from-teal-700 via-teal-800 to-teal-900 rounded-3xl p-12 md:p-16 text-center overflow-hidden">
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-sm" />
             <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-sm" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
 
             <div className="relative">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">Ready to automate your reviews?</h2>
-              <p className="text-indigo-200 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+              <p className="text-teal-200 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
                 Join hundreds of businesses saving hours every week with AI-powered review management. Start free — no credit card required.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   href="/login"
-                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-indigo-600 rounded-2xl text-lg font-bold hover:shadow-xl transition-all duration-300"
+                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-teal-600 rounded-2xl text-lg font-bold hover:shadow-xl transition-all duration-300"
                 >
                   Get Started Free
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -910,19 +957,66 @@ export default function LandingPage() {
       </section>
 
       {/* ════════════════ FOOTER ════════════════ */}
-      <footer className="border-t border-gray-100 py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <img src="/images/purple-logo.png" alt="AutoMyReply" className="h-7 w-auto" />
-              <span className="font-bold text-gray-900">AutoMyReply</span>
+      <footer className="border-t border-gray-100 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
+            {/* Brand column */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+                <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-sm mb-6">
+                AI-powered review management for Google Business Profile. Save time, stay consistent, and never miss a review.
+              </p>
+              <div className="flex items-center gap-4">
+                {/* Twitter/X */}
+                <a href="#" className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-all duration-200" aria-label="Twitter">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                </a>
+                {/* LinkedIn */}
+                <a href="#" className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-all duration-200" aria-label="LinkedIn">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+                </a>
+              </div>
             </div>
-            <div className="flex items-center gap-8">
-              <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Privacy Policy</Link>
-              <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors cursor-pointer">FAQ</button>
+
+            {/* Product links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Product</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Features</button></li>
+                <li><button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Pricing</button></li>
+                <li><button onClick={() => scrollTo('demo')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Live Demo</button></li>
+              </ul>
             </div>
+
+            {/* Company links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Company</h4>
+              <ul className="space-y-3">
+                <li><Link href="/terms" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Terms of Service</Link></li>
+                <li><Link href="/privacy" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Privacy Policy</Link></li>
+              </ul>
+            </div>
+
+            {/* Support links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Support</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">FAQ</button></li>
+                <li><a href="mailto:support@automyreply.com" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Contact Us</a></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} AutoMyReply. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy</Link>
+            </div>
           </div>
         </div>
       </footer>

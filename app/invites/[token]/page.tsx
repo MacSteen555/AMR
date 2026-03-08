@@ -87,12 +87,12 @@ export default function AcceptInvitePage() {
     }, [state.type, (state as any).authenticated, token])
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center px-4">
+        <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-gray-50 flex items-center justify-center px-4">
             <div className="max-w-md w-full">
                 {/* Loading */}
                 {state.type === 'loading' && (
                     <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4" />
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mx-auto mb-4" />
                         <p className="text-gray-500">Loading invitation...</p>
                     </div>
                 )}
@@ -101,14 +101,14 @@ export default function AcceptInvitePage() {
                 {state.type === 'valid' && (
                     <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
                         {/* Header */}
-                        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6 text-center">
+                        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-8 py-6 text-center">
                             <h1 className="text-xl font-bold text-white">AutoMyReply</h1>
                         </div>
 
                         <div className="p-8">
                             {/* Envelope Icon */}
                             <div className="text-center mb-6">
-                                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-50 rounded-full text-3xl">
+                                <div className="inline-flex items-center justify-center w-16 h-16 bg-teal-50 rounded-full text-3xl">
                                     ✉️
                                 </div>
                             </div>
@@ -134,7 +134,7 @@ export default function AcceptInvitePage() {
                                     {state.currentEmail?.toLowerCase() === state.invite.invited_email.toLowerCase() ? (
                                         <button
                                             onClick={handleAccept}
-                                            className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+                                            className="w-full py-3 px-4 bg-gradient-to-r from-teal-600 to-teal-700 text-white font-semibold rounded-lg hover:from-teal-700 hover:to-teal-800 transition-all shadow-md hover:shadow-lg"
                                         >
                                             Join Team
                                         </button>
@@ -172,7 +172,7 @@ export default function AcceptInvitePage() {
                 {/* Accepting */}
                 {state.type === 'accepting' && (
                     <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto mb-4" />
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mx-auto mb-4" />
                         <p className="text-gray-600 font-medium">Joining team...</p>
                     </div>
                 )}
@@ -195,7 +195,7 @@ export default function AcceptInvitePage() {
                             </p>
                             <button
                                 onClick={() => router.push('/teams')}
-                                className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                                className="px-6 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors"
                             >
                                 Go to Teams
                             </button>
