@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState, useEffect, useMemo } from 'react'
 import { apiGet, apiPost } from '@/lib/api'
 import { Toast } from '@/components/Toast'
+import { AIInsightsPanel } from '@/components/AIInsightsPanel'
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -170,7 +171,7 @@ export default function LocationInsightsPage() {
                 <button
                   key={opt.key}
                   onClick={() => setPeriod(opt.key)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${period === opt.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-all duration-200 active:scale-[0.98] ${period === opt.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
                     }`}
                 >
                   {opt.label}
@@ -181,12 +182,37 @@ export default function LocationInsightsPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-32">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
+          <div className="py-8 space-y-6 animate-pulse">
+            {/* KPI skeleton */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg" />
+                    <div className="h-4 w-20 bg-gray-200 rounded" />
+                  </div>
+                  <div className="h-8 w-24 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
+            {/* Chart skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <div className="h-4 w-40 bg-gray-200 rounded mb-2" />
+                  <div className="h-3 w-28 bg-gray-100 rounded mb-4" />
+                  <div className="h-[260px] bg-gray-100 rounded-lg" />
+                </div>
+              ))}
+            </div>
           </div>
         ) : !analytics || kpis?.totalReviews === 0 ? (
           <div className="text-center py-32 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-            <div className="text-5xl mb-4">📊</div>
+            <div className="w-14 h-14 mx-auto mb-4 text-gray-400">
+              <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h2v8H3zM9 9h2v12H9zM15 5h2v16h-2zM21 1h-2v20h2z" />
+              </svg>
+            </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">No review data yet</h2>
             <p className="text-gray-500">Sync your reviews first to see analytics here.</p>
           </div>
@@ -355,7 +381,7 @@ export default function LocationInsightsPage() {
                 {tier === 'FREE' ? (
                   <button
                     onClick={() => router.push(teamId ? `/teams/${teamId}/billing` : '#')}
-                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-medium text-sm flex items-center gap-2 shadow hover:shadow-md transition-all"
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-medium text-sm flex items-center gap-2 shadow hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                   >
                     <SparklesIcon /> Upgrade Now
                   </button>
@@ -363,7 +389,7 @@ export default function LocationInsightsPage() {
                   <button
                     onClick={handleGenerateInsights}
                     disabled={generating}
-                    className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-colors"
+                    className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all duration-200 active:scale-[0.98]"
                   >
                     {generating ? (
                       <>
@@ -396,7 +422,7 @@ export default function LocationInsightsPage() {
                   </p>
                   <button
                     onClick={() => router.push(teamId ? `/teams/${teamId}/billing` : '#')}
-                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-bold shadow transition-all"
+                    className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-bold shadow transition-all duration-200 active:scale-[0.98]"
                   >
                     Upgrade Now
                   </button>
@@ -405,13 +431,17 @@ export default function LocationInsightsPage() {
                 <AIInsightsPanel insight={latestAI} />
               ) : (
                 <div className="bg-teal-50 rounded-xl border border-teal-100 p-12 text-center">
-                  <div className="text-4xl mb-3">✨</div>
+                  <div className="w-10 h-10 mx-auto mb-3 text-teal-500">
+                    <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">No AI insights yet</h3>
                   <p className="text-gray-500 text-sm mb-4">Generate AI-powered analysis to uncover hidden patterns in your reviews.</p>
                   <button
                     onClick={handleGenerateInsights}
                     disabled={generating}
-                    className="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium"
+                    className="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium transition-all duration-200 active:scale-[0.98]"
                   >
                     Generate First Report
                   </button>
@@ -468,18 +498,30 @@ function KPICard({ label, value, suffix, icon, color }: {
     green: 'text-green-600',
     emerald: 'text-emerald-600',
   }
+  const hoverBorderMap: Record<string, string> = {
+    teal: 'hover:border-teal-200',
+    yellow: 'hover:border-yellow-200',
+    green: 'hover:border-green-200',
+    emerald: 'hover:border-emerald-200',
+  }
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 ${bgMap[color]} rounded-lg flex items-center justify-center ${iconColorMap[color]}`}>
+    <div className={`group relative bg-white rounded-2xl border border-gray-100 p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${hoverBorderMap[color] || ''} cursor-default`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-500 mb-3">{label}</p>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-3xl font-bold text-gray-900 tracking-tight">{value}</span>
+            {suffix && <span className="text-lg text-gray-400 font-medium">{suffix}</span>}
+          </div>
+        </div>
+        <div className={`${bgMap[color]} ${iconColorMap[color]} p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-110`}>
           {icon}
         </div>
-        <span className="text-sm font-medium text-gray-500">{label}</span>
       </div>
-      <div className="flex items-baseline gap-1">
-        <span className="text-3xl font-bold text-gray-900">{value}</span>
-        {suffix && <span className="text-lg text-gray-400">{suffix}</span>}
-      </div>
+      {/* Hover glow effect */}
+      <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
+        style={{ background: `radial-gradient(circle at 80% 20%, ${color === 'teal' ? 'rgba(13,148,136,0.04)' : color === 'yellow' ? 'rgba(234,179,8,0.04)' : color === 'green' ? 'rgba(34,197,94,0.04)' : 'rgba(16,185,129,0.04)'}, transparent 70%)` }}
+      />
     </div>
   )
 }
@@ -490,209 +532,12 @@ function ChartCard({ title, subtitle, children }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg transition-all duration-300">
       <div className="mb-4">
         <h3 className="text-base font-semibold text-gray-900">{title}</h3>
         <p className="text-xs text-gray-400">{subtitle}</p>
       </div>
       {children}
-    </div>
-  )
-}
-
-function AIInsightsPanel({ insight }: { insight: AIInsight }) {
-  const d = insight.data
-
-  // Support both new and legacy formats
-  const summary = d.executiveSummary || d.summary || ''
-  const strengths = d.keyStrengths || []
-  const weaknesses = d.keyWeaknesses || []
-  const topics = d.emergingTopics || []
-  const alerts = d.riskAlerts || []
-  const recs = d.recommendations || []
-  const quotes = d.notableQuotes || []
-
-  const urgencyColors: Record<string, string> = {
-    high: 'bg-red-100 text-red-700 border-red-200',
-    medium: 'bg-amber-100 text-amber-700 border-amber-200',
-    low: 'bg-blue-100 text-blue-700 border-blue-200',
-  }
-
-  const impactColors: Record<string, string> = {
-    high: 'bg-green-100 text-green-700',
-    medium: 'bg-yellow-100 text-yellow-700',
-    low: 'bg-gray-100 text-gray-600',
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Executive Summary */}
-      {summary && (
-        <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl p-5 border border-teal-100">
-          <h4 className="text-sm font-semibold text-teal-800 mb-2 flex items-center gap-2">
-            <SparklesIcon /> Executive Summary
-          </h4>
-          <p className="text-gray-700 leading-relaxed">{summary}</p>
-          {d.ratingTrend && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${d.ratingTrend === 'improving' ? 'bg-green-100 text-green-700' :
-                d.ratingTrend === 'declining' ? 'bg-red-100 text-red-700' :
-                  'bg-gray-100 text-gray-700'
-                }`}>
-                {d.ratingTrend === 'improving' ? '↑' : d.ratingTrend === 'declining' ? '↓' : '→'}
-                {d.ratingTrend.charAt(0).toUpperCase() + d.ratingTrend.slice(1)}
-              </span>
-              {d.ratingTrendDescription && (
-                <span className="text-sm text-gray-500">{d.ratingTrendDescription}</span>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Risk Alerts */}
-      {alerts.length > 0 && (
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Risk Alerts</h4>
-          <div className="space-y-2">
-            {alerts.map((alert, i) => (
-              <div key={i} className={`p-4 rounded-lg border ${urgencyColors[alert.urgency] || urgencyColors.low}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-sm">{alert.title}</span>
-                  <span className="text-xs uppercase font-bold opacity-60">{alert.urgency}</span>
-                </div>
-                <p className="text-sm opacity-80">{alert.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Strengths & Weaknesses */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {strengths.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span> Key Strengths
-            </h4>
-            <div className="space-y-2">
-              {strengths.map((s, i) => (
-                <div key={i} className="bg-green-50 border border-green-100 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm text-green-800">{s.theme}</span>
-                    {s.mentionCount > 0 && (
-                      <span className="text-xs text-green-600">{s.mentionCount} mentions</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-green-700">{s.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {weaknesses.length > 0 && (
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500"></span> Key Weaknesses
-            </h4>
-            <div className="space-y-2">
-              {weaknesses.map((w, i) => (
-                <div key={i} className="bg-red-50 border border-red-100 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm text-red-800">{w.theme}</span>
-                    <div className="flex items-center gap-2">
-                      {w.mentionCount > 0 && (
-                        <span className="text-xs text-red-600">{w.mentionCount} mentions</span>
-                      )}
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-semibold ${w.severity === 'high' ? 'bg-red-200 text-red-800' :
-                        w.severity === 'medium' ? 'bg-amber-200 text-amber-800' :
-                          'bg-gray-200 text-gray-700'
-                        }`}>{w.severity}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-red-700">{w.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Emerging Topics */}
-      {topics.length > 0 && (
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Emerging Topics</h4>
-          <div className="flex flex-wrap gap-2">
-            {topics.map((t, i) => (
-              <div key={i} className={`px-4 py-2 rounded-lg border text-sm ${t.sentiment === 'positive' ? 'bg-green-50 border-green-200 text-green-800' :
-                t.sentiment === 'negative' ? 'bg-red-50 border-red-200 text-red-800' :
-                  'bg-yellow-50 border-yellow-200 text-yellow-800'
-                }`}>
-                <span className="font-semibold">{t.topic}</span>
-                <span className="opacity-60 ml-1">- {t.description}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recommendations */}
-      {recs.length > 0 && (
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Recommendations</h4>
-          <div className="space-y-2">
-            {recs.map((r, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-sm text-gray-900">{r.title}</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${impactColors[r.impact] || impactColors.low}`}>
-                      {r.impact} impact
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                      {r.effort} effort
-                    </span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600">{r.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Notable Quotes */}
-      {quotes.length > 0 && (
-        <div>
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Notable Customer Voices</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {quotes.map((q, i) => (
-              <div key={i} className={`p-4 rounded-lg border-l-4 bg-gray-50 ${q.sentiment === 'positive' ? 'border-l-green-500' : 'border-l-red-500'
-                }`}>
-                <p className="text-sm text-gray-700 italic mb-2">"{q.quote}"</p>
-                <div className="flex text-yellow-400 text-xs">
-                  {'★'.repeat(q.rating)}{'☆'.repeat(5 - q.rating)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Customer Persona */}
-      {d.customerPersona && (
-        <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-amber-800 mb-1">Typical Reviewer</h4>
-          <p className="text-sm text-amber-700">{d.customerPersona}</p>
-        </div>
-      )}
-
-      {/* Metadata */}
-      <div className="flex items-center gap-4 text-xs text-gray-400 pt-2 border-t border-gray-100">
-        <span>Generated {new Date(insight.generated_at).toLocaleString()}</span>
-        <span>Model: {insight.model}</span>
-        <span>Period: {insight.period_start} to {insight.period_end}</span>
-      </div>
     </div>
   )
 }

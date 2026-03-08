@@ -83,6 +83,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         })),
         periodStart: periodStartStr,
         periodEnd: absoluteEnd,
+        scope: 'team',
+        periodWindow: period.key as any,
       })
 
       return {

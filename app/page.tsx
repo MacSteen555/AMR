@@ -390,20 +390,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ TRUSTED BY ════════════════ */}
-      <section className="py-12 border-y border-gray-100 bg-gray-50/50 overflow-hidden">
-        <p className="text-center text-xs font-semibold text-gray-400 uppercase tracking-widest mb-8">Trusted by businesses worldwide</p>
-        <div className="flex items-center gap-16 animate-marquee whitespace-nowrap">
-          {[...Array(2)].map((_, setIdx) => (
-            <div key={setIdx} className="flex items-center gap-16">
-              {['The Breakfast Club', 'Urban Dental Co.', 'Peak Fitness', 'Bloom Salon', 'Harbor Eats', 'Swift Auto Care', 'The Green Leaf', 'CloudNine Spa'].map((name) => (
-                <span key={`${setIdx}-${name}`} className="text-gray-300 font-bold text-lg tracking-wide select-none">{name}</span>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ════════════════ LIVE DEMO ════════════════ */}
       <section id="demo" className="py-24 px-6">
         <div ref={demoRef} className="reveal max-w-5xl mx-auto">
@@ -470,7 +456,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ FEATURES GRID ════════════════ */}
+      {/* ════════════════ FEATURES BENTO GRID ════════════════ */}
       <section id="features" className="py-24 px-6">
         <div ref={featuresRef} className="reveal max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -482,47 +468,87 @@ export default function LandingPage() {
             <p className="text-gray-500 text-lg max-w-xl mx-auto">Powerful tools for businesses of every size.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />,
-                title: 'AI-Powered Replies',
-                desc: 'Generate personalized, context-aware replies in seconds. The AI learns from your edits to better match your voice over time.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />,
-                title: 'Team Collaboration',
-                desc: 'Invite team members, assign roles, and manage multiple locations together. Built for agencies and franchises.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />,
-                title: 'Brand Voice Control',
-                desc: 'Define how your AI replies sound — per location. Customize tone, style, and specific rules for negative reviews.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />,
-                title: 'Google Integration',
-                desc: 'Directly sync reviews from Google Business Profile. Post replies back to Google without leaving the app.'
-              },
-              {
-                icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />,
-                title: 'AI Insights',
-                desc: 'Surface recurring themes, sentiment trends, and actionable recommendations from hundreds of reviews automatically.'
-              },
-              {
-                icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></>,
-                title: 'Multi-Location',
-                desc: 'Manage reviews across all your locations from one dashboard. Each location gets its own brand voice settings.'
-              },
-            ].map((feature, i) => (
-              <div key={i} className={`reveal-delay-${(i % 3) + 1} group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer`}>
-                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
-                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">{feature.icon}</svg>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-5">
+            {/* Large card: AI-Powered Replies */}
+            <div className="reveal-delay-1 group relative bg-white rounded-2xl p-8 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-4 overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-teal-50 to-transparent rounded-bl-full pointer-events-none" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-teal-200/50">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">AI-Powered Replies</h3>
+                <p className="text-gray-500 leading-relaxed max-w-md">Generate personalized, context-aware replies in seconds. The AI learns from your edits to better match your voice over time.</p>
+                <div className="mt-6 flex items-center gap-4 text-sm">
+                  <span className="px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg font-medium">Smart Context</span>
+                  <span className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg font-medium">Adaptive Learning</span>
+                  <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg font-medium">Instant Drafts</span>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* Small card: Team Collaboration */}
+            <div className="reveal-delay-2 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-2">
+              <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Team Collaboration</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">Invite members, assign roles, manage locations together. Built for agencies.</p>
+            </div>
+
+            {/* Small card: Brand Voice */}
+            <div className="reveal-delay-1 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-amber-200 transition-all duration-300 hover:shadow-xl hover:shadow-amber-50 cursor-pointer md:col-span-2">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100/50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Brand Voice Control</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">Define how your AI replies sound — per location. Customize tone and style.</p>
+            </div>
+
+            {/* Large card: Google Integration */}
+            <div className="reveal-delay-2 group relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-8 border border-gray-700 hover:border-teal-500 transition-all duration-300 hover:shadow-xl hover:shadow-teal-900/20 cursor-pointer md:col-span-4 overflow-hidden">
+              <div className="absolute bottom-0 right-0 w-48 h-48 bg-gradient-to-tl from-teal-500/10 to-transparent rounded-tl-full pointer-events-none" />
+              <div className="relative">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-7 h-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-3">Google Integration</h3>
+                <p className="text-gray-400 leading-relaxed max-w-md">Directly sync reviews from Google Business Profile. Post replies back to Google without leaving the app.</p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {['G', 'B', 'P'].map((l, i) => (
+                      <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold border-2 border-gray-900">{l}</div>
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-500">Syncs in real-time</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Small card: AI Insights */}
+            <div className="reveal-delay-3 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-3">
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Insights</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">Surface recurring themes, sentiment trends, and actionable recommendations from hundreds of reviews.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Small card: Multi-Location */}
+            <div className="reveal-delay-3 group relative bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 transition-all duration-300 hover:shadow-xl hover:shadow-teal-50 cursor-pointer md:col-span-3">
+              <div className="flex items-start gap-5">
+                <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Multi-Location</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">Manage reviews across all your locations from one dashboard. Each location gets its own voice settings.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -685,10 +711,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ TESTIMONIALS ════════════════ */}
-      <section className="py-24 px-6 bg-gradient-to-b from-gray-50/80 to-white">
-        <div ref={testimonialsRef} className="reveal max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+      {/* ════════════════ TESTIMONIALS MARQUEE ════════════════ */}
+      <section className="py-24 bg-gradient-to-b from-gray-50/80 to-white overflow-hidden">
+        <div ref={testimonialsRef} className="reveal">
+          <div className="text-center mb-16 px-6">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-full mb-4">
               <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
               <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Testimonials</span>
@@ -697,45 +723,66 @@ export default function LandingPage() {
             <p className="text-gray-500 text-lg max-w-xl mx-auto">See what our customers have to say about AutoMyReply.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                quote: 'AutoMyReply saved us at least 10 hours a week. We manage 12 locations, and the AI replies are always on-brand and professional. Our team loves it.',
-                name: 'Rachel Torres',
-                role: 'Operations Manager, Peak Fitness',
-                initials: 'RT',
-              },
-              {
-                quote: 'The competitive intelligence feature is a game-changer. We can now see exactly how we stack up against nearby competitors and adjust our strategy accordingly.',
-                name: 'Marcus Chen',
-                role: 'Owner, Harbor Eats',
-                initials: 'MC',
-              },
-              {
-                quote: 'I was skeptical about AI-written replies, but these genuinely sound like us. The brand voice controls are incredibly fine-tuned. Worth every penny.',
-                name: 'Sophia Williams',
-                role: 'Marketing Director, Bloom Salon',
-                initials: 'SW',
-              },
-            ].map((t, i) => (
-              <div key={i} className={`reveal-delay-${i + 1} bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 hover:shadow-lg hover:shadow-teal-50 transition-all duration-300`}>
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, j) => (
-                    <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
-                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold">
-                    {t.initials}
+          {/* Row 1 — scrolls left */}
+          <div className="flex gap-6 mb-6 animate-marquee whitespace-nowrap">
+            {[...Array(2)].map((_, setIdx) => (
+              <div key={setIdx} className="flex gap-6 shrink-0">
+                {[
+                  { quote: 'AutoMyReply saved us at least 10 hours a week. We manage 12 locations, and the AI replies are always on-brand and professional.', name: 'Rachel Torres', role: 'Operations Manager, Peak Fitness', initials: 'RT' },
+                  { quote: 'The competitive intelligence feature is a game-changer. We can see exactly how we stack up against nearby competitors.', name: 'Marcus Chen', role: 'Owner, Harbor Eats', initials: 'MC' },
+                  { quote: 'I was skeptical about AI-written replies, but these genuinely sound like us. The brand voice controls are incredibly fine-tuned.', name: 'Sophia Williams', role: 'Marketing Director, Bloom Salon', initials: 'SW' },
+                  { quote: 'Setup took 5 minutes. We connected Google, set our brand voice, and the first AI reply was spot-on. Incredible experience.', name: 'David Park', role: 'Founder, Swift Auto Care', initials: 'DP' },
+                ].map((t, i) => (
+                  <div key={`${setIdx}-${i}`} className="w-[380px] shrink-0 bg-white rounded-2xl p-7 border border-gray-100 hover:border-teal-200 hover:shadow-lg hover:shadow-teal-50 transition-all duration-300 whitespace-normal">
+                    <div className="flex gap-1 mb-4">
+                      {[...Array(5)].map((_, j) => (
+                        <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold">{t.initials}</div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
+                        <div className="text-xs text-gray-400">{t.role}</div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
-                    <div className="text-xs text-gray-400">{t.role}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Row 2 — scrolls right */}
+          <div className="flex gap-6 animate-marquee-reverse whitespace-nowrap">
+            {[...Array(2)].map((_, setIdx) => (
+              <div key={setIdx} className="flex gap-6 shrink-0">
+                {[
+                  { quote: 'The AI insights surfaced a recurring complaint about parking we never noticed. We fixed it and our ratings jumped from 4.2 to 4.7 in two months.', name: 'Amara Okafor', role: 'GM, The Green Leaf', initials: 'AO' },
+                  { quote: 'We went from ignoring most reviews to responding to every single one. Our response rate is now 100% and customers notice the difference.', name: 'Jake Morrison', role: 'Owner, CloudNine Spa', initials: 'JM' },
+                  { quote: 'Managing reviews for 8 franchise locations used to be a nightmare. AutoMyReply turned it into a 10-minute daily task. Life-changing.', name: 'Priya Sharma', role: 'Franchise Director, Urban Dental Co.', initials: 'PS' },
+                  { quote: 'The credit system is super fair. We use the Pro plan and never run out. The AI replies are better than what our team was writing manually.', name: 'Carlos Mendez', role: 'Marketing Lead, The Breakfast Club', initials: 'CM' },
+                ].map((t, i) => (
+                  <div key={`${setIdx}-${i}`} className="w-[380px] shrink-0 bg-white rounded-2xl p-7 border border-gray-100 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-50 transition-all duration-300 whitespace-normal">
+                    <div className="flex gap-1 mb-4">
+                      {[...Array(5)].map((_, j) => (
+                        <svg key={j} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-6">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white text-sm font-bold">{t.initials}</div>
+                      <div>
+                        <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
+                        <div className="text-xs text-gray-400">{t.role}</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
             ))}
           </div>
@@ -910,19 +957,66 @@ export default function LandingPage() {
       </section>
 
       {/* ════════════════ FOOTER ════════════════ */}
-      <footer className="border-t border-gray-100 py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-7 w-auto" />
-              <span className="font-bold text-gray-900">AutoMyReply</span>
+      <footer className="border-t border-gray-100 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
+            {/* Brand column */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+                <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-sm mb-6">
+                AI-powered review management for Google Business Profile. Save time, stay consistent, and never miss a review.
+              </p>
+              <div className="flex items-center gap-4">
+                {/* Twitter/X */}
+                <a href="#" className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-all duration-200" aria-label="Twitter">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                </a>
+                {/* LinkedIn */}
+                <a href="#" className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-all duration-200" aria-label="LinkedIn">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
+                </a>
+              </div>
             </div>
-            <div className="flex items-center gap-8">
-              <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Privacy Policy</Link>
-              <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors cursor-pointer">FAQ</button>
+
+            {/* Product links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Product</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Features</button></li>
+                <li><button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Pricing</button></li>
+                <li><button onClick={() => scrollTo('demo')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Live Demo</button></li>
+              </ul>
             </div>
+
+            {/* Company links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Company</h4>
+              <ul className="space-y-3">
+                <li><Link href="/terms" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Terms of Service</Link></li>
+                <li><Link href="/privacy" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Privacy Policy</Link></li>
+              </ul>
+            </div>
+
+            {/* Support links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Support</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">FAQ</button></li>
+                <li><a href="mailto:support@automyreply.com" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Contact Us</a></li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} AutoMyReply. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Terms</Link>
+              <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy</Link>
+            </div>
           </div>
         </div>
       </footer>

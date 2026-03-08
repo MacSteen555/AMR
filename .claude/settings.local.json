@@ -5,7 +5,10 @@
       "Bash(xargs cat:*)",
       "Bash(npm run:*)",
       "Bash(npm install:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "mcp__magic__21st_magic_component_inspiration",
+      "mcp__magic__21st_magic_component_builder",
+      "mcp__magic__21st_magic_component_refiner"
     ]
   }
 }
