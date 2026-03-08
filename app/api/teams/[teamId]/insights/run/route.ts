@@ -48,8 +48,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       ? await serviceClient
         .schema('app')
         .from('google_reviews')
-        .select('rating, comment, review_date, reply_status')
-        .in('location_id', locationIds)
+        .select('id, rating, comment, review_date, reply_status, reviewer_name')
         .in('location_id', locationIds)
         .gte('review_date', absoluteStart)
         .lte('review_date', absoluteEnd)
@@ -76,10 +75,12 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
       const insightsData = await insightsRun({
         reviews: periodReviews.map((r: any) => ({
+          id: r.id,
           rating: r.rating,
           comment: r.comment,
           review_date: r.review_date,
           reply_status: r.reply_status,
+          reviewer_name: r.reviewer_name,
         })),
         periodStart: periodStartStr,
         periodEnd: absoluteEnd,

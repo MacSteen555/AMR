@@ -1,5 +1,14 @@
 'use client'
 
+import { useState, useMemo } from 'react'
+
+interface ReferencedReview {
+  rating: number
+  comment: string | null
+  review_date: string
+  reviewer_name?: string | null
+}
+
 interface AIInsight {
   id: string
   period_start: string
@@ -10,8 +19,159 @@ interface AIInsight {
   model: string
 }
 
+// ── Review Reference Modal ──────────────────────────────────────────────────
+
+function ReviewModal({ review, onClose }: { review: ReferencedReview; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+        >
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div>
+            <div className="font-semibold text-gray-900 text-sm">
+              {review.reviewer_name || 'Anonymous Reviewer'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {new Date(review.review_date).toLocaleDateString('en-US', {
+                year: 'numeric', month: 'long', day: 'numeric'
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 mb-4">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <svg
+              key={star}
+              className={`w-5 h-5 ${star <= review.rating ? 'text-amber-400' : 'text-gray-200'}`}
+              fill="currentColor" viewBox="0 0 20 20"
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          ))}
+          <span className="text-sm font-semibold text-gray-700 ml-1">{review.rating}/5</span>
+        </div>
+
+        {review.comment ? (
+          <div className="bg-gray-50 rounded-xl p-4">
+            <p className="text-sm text-gray-700 leading-relaxed">{review.comment}</p>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-xl p-4 text-center">
+            <p className="text-sm text-gray-400 italic">No comment left with this review</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Rich Text: parses {{REV:id}} into inline clickable links ────────────────
+
+// Matches {{REV:uuid:display text}} (with display text) or {{REV:uuid}} (legacy, no display text)
+const REV_PATTERN = /\{\{REV:([a-f0-9-]+)(?::([^}]+))?\}\}/g
+
+function RichText({
+  text,
+  referencedReviews,
+  onReviewClick,
+  className = '',
+  variant = 'default',
+}: {
+  text: string
+  referencedReviews: Record<string, ReferencedReview>
+  onReviewClick: (review: ReferencedReview) => void
+  className?: string
+  variant?: 'default' | 'light'
+}) {
+  const parts = useMemo(() => {
+    const result: Array<
+      | { type: 'text'; value: string }
+      | { type: 'ref'; id: string; review: ReferencedReview; displayText: string }
+    > = []
+    let lastIndex = 0
+    let match
+
+    const pattern = new RegExp(REV_PATTERN.source, 'g')
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ type: 'text', value: text.slice(lastIndex, match.index) })
+      }
+      const reviewId = match[1]
+      const displayText = match[2] || null // capture group 2 = display text
+      const review = referencedReviews[reviewId]
+      if (review) {
+        result.push({
+          type: 'ref',
+          id: reviewId,
+          review,
+          displayText: displayText || review.reviewer_name || `${review.rating}★ review`,
+        })
+      } else if (displayText) {
+        // Review not in map but display text exists — render as plain text
+        result.push({ type: 'text', value: displayText })
+      }
+      lastIndex = match.index + match[0].length
+    }
+    if (lastIndex < text.length) {
+      result.push({ type: 'text', value: text.slice(lastIndex) })
+    }
+    return result
+  }, [text, referencedReviews])
+
+  if (parts.length === 1 && parts[0].type === 'text') {
+    return <span className={className}>{text}</span>
+  }
+
+  const linkClass = variant === 'light'
+    ? 'text-amber-200 hover:text-amber-100 decoration-amber-300/50 hover:decoration-amber-200'
+    : 'text-teal-600 hover:text-teal-800 decoration-teal-400/60 hover:decoration-teal-600'
+
+  return (
+    <span className={className}>
+      {parts.map((part, i) => {
+        if (part.type === 'text') {
+          return <span key={i}>{part.value}</span>
+        }
+        return (
+          <button
+            key={i}
+            onClick={() => onReviewClick(part.review)}
+            className={`inline cursor-pointer transition-colors underline underline-offset-2 decoration-dotted font-medium ${linkClass}`}
+            title={`View review by ${part.review.reviewer_name || 'reviewer'} (${part.review.rating}★)`}
+          >
+            {part.displayText}
+          </button>
+        )
+      })}
+    </span>
+  )
+}
+
+// ── Main Panel ──────────────────────────────────────────────────────────────
+
 export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
+  const [activeReview, setActiveReview] = useState<ReferencedReview | null>(null)
+
   const d = insight.data
+  const referencedReviews: Record<string, ReferencedReview> = d.referencedReviews || {}
 
   // Support both old format (string customerPersona) and new format (object)
   const summary = d.executiveSummary || d.summary || ''
@@ -38,7 +198,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
   const sentimentLabel = sentiment !== null
     ? sentiment >= 80 ? 'Excellent' : sentiment >= 60 ? 'Good' : sentiment >= 40 ? 'Mixed' : sentiment >= 20 ? 'Concerning' : 'Critical'
     : 'N/A'
-  // SVG circular gauge calculations
   const gaugeRadius = 54
   const gaugeCircumference = 2 * Math.PI * gaugeRadius
   const gaugeOffset = sentiment !== null ? gaugeCircumference - (sentiment / 100) * gaugeCircumference : gaugeCircumference
@@ -64,8 +223,18 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
     product: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   }
 
+  // Shorthand for rendering rich text with review references
+  const rt = (text: string, extraClass?: string, variant?: 'default' | 'light') => (
+    <RichText text={text} referencedReviews={referencedReviews} onReviewClick={setActiveReview} className={extraClass} variant={variant} />
+  )
+
   return (
     <div className="space-y-8">
+      {/* Review Modal */}
+      {activeReview && (
+        <ReviewModal review={activeReview} onClose={() => setActiveReview(null)} />
+      )}
+
       {/* ── Hero Section: Sentiment Gauge + Momentum + Top Action ── */}
       {(sentiment !== null || momentum !== null || topAction) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -75,9 +244,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
               <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Sentiment Score</div>
               <div className="relative w-36 h-36 mb-3">
                 <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120">
-                  {/* Background ring */}
                   <circle cx="60" cy="60" r={gaugeRadius} fill="none" stroke="#f3f4f6" strokeWidth="8" />
-                  {/* Progress ring */}
                   <circle
                     cx="60" cy="60" r={gaugeRadius}
                     fill="none"
@@ -111,11 +278,9 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
             <div className="group bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center justify-center hover:shadow-lg hover:border-teal-200/50 transition-all duration-300">
               <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Momentum</div>
               <div className="relative w-36 h-36 mb-3 flex items-center justify-center">
-                {/* Background circle */}
                 <div className={`absolute inset-3 rounded-full ${
                   momentum > 0 ? 'bg-green-50' : momentum < 0 ? 'bg-red-50' : 'bg-gray-50'
                 } transition-colors duration-300`} />
-                {/* Animated arrow */}
                 <div className="relative flex flex-col items-center">
                   <svg
                     className={`w-10 h-10 mb-1 transition-all duration-500 ${
@@ -134,7 +299,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                   </span>
                 </div>
               </div>
-              {/* Momentum bar */}
               <div className="w-full max-w-[140px]">
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
@@ -151,10 +315,9 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
             </div>
           )}
 
-          {/* Top Action Item — Premium gradient card */}
+          {/* Top Action Item */}
           {topAction && (
             <div className="group relative bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-6 text-white overflow-hidden hover:shadow-lg hover:shadow-teal-200/30 transition-all duration-300">
-              {/* Decorative elements */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
               <div className="relative">
@@ -166,8 +329,8 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                   </div>
                   <span className="text-xs font-semibold text-teal-200 uppercase tracking-wider">Priority Action</span>
                 </div>
-                <div className="text-lg font-bold mb-2 leading-tight">{topAction.title}</div>
-                <p className="text-teal-100 text-sm leading-relaxed">{topAction.description}</p>
+                <div className="text-lg font-bold mb-2 leading-tight">{rt(topAction.title, undefined, 'light')}</div>
+                <p className="text-teal-100 text-sm leading-relaxed">{rt(topAction.description, undefined, 'light')}</p>
               </div>
             </div>
           )}
@@ -185,7 +348,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
             </div>
             <h4 className="text-sm font-semibold text-gray-900">Executive Summary</h4>
           </div>
-          <p className="text-gray-700 leading-relaxed text-[15px]">{summary}</p>
+          <p className="text-gray-700 leading-relaxed text-[15px]">{rt(summary)}</p>
           {d.ratingTrend && (
             <div className="mt-4 flex items-center gap-2">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
@@ -199,14 +362,14 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                 {d.ratingTrend.charAt(0).toUpperCase() + d.ratingTrend.slice(1)}
               </span>
               {d.ratingTrendDescription && (
-                <span className="text-sm text-gray-500">{d.ratingTrendDescription}</span>
+                <span className="text-sm text-gray-500">{rt(d.ratingTrendDescription)}</span>
               )}
             </div>
           )}
         </div>
       )}
 
-      {/* ── Risk Alerts (prominent) ── */}
+      {/* ── Risk Alerts ── */}
       {alerts.length > 0 && (
         <div className="space-y-3">
           {alerts.map((alert: any, i: number) => (
@@ -222,14 +385,14 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                 }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
-                <span className="font-bold text-sm text-gray-900">{alert.title}</span>
+                <span className="font-bold text-sm text-gray-900">{rt(alert.title)}</span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                   alert.urgency === 'high' ? 'bg-red-200 text-red-800' :
                   alert.urgency === 'medium' ? 'bg-amber-200 text-amber-800' :
                   'bg-blue-200 text-blue-800'
                 }`}>{alert.urgency}</span>
               </div>
-              <p className="text-sm text-gray-600 leading-relaxed pl-7">{alert.description}</p>
+              <p className="text-sm text-gray-600 leading-relaxed pl-7">{rt(alert.description)}</p>
             </div>
           ))}
         </div>
@@ -237,7 +400,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
 
       {/* ── Strengths & Weaknesses ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Strengths */}
         {strengths.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -254,10 +416,10 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                       <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{s.mentionCount} mentions</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">{s.description}</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{rt(s.description)}</p>
                   {s.exampleQuote && (
                     <div className="mt-2 pl-3 border-l-2 border-green-200">
-                      <p className="text-xs text-gray-500 italic">&ldquo;{s.exampleQuote}&rdquo;</p>
+                      <p className="text-xs text-gray-500 italic">{rt(s.exampleQuote)}</p>
                     </div>
                   )}
                 </div>
@@ -266,7 +428,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           </div>
         )}
 
-        {/* Weaknesses */}
         {weaknesses.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
@@ -290,10 +451,10 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                       }`}>{w.severity}</span>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">{w.description}</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{rt(w.description)}</p>
                   {w.exampleQuote && (
                     <div className="mt-2 pl-3 border-l-2 border-red-200">
-                      <p className="text-xs text-gray-500 italic">&ldquo;{w.exampleQuote}&rdquo;</p>
+                      <p className="text-xs text-gray-500 italic">{rt(w.exampleQuote)}</p>
                     </div>
                   )}
                 </div>
@@ -329,7 +490,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-600 leading-relaxed">{t.description}</p>
+                <p className="text-xs text-gray-600 leading-relaxed">{rt(t.description)}</p>
               </div>
             ))}
           </div>
@@ -361,7 +522,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Impact dots */}
                     <div className="flex flex-col items-center">
                       <span className="text-[9px] text-gray-400 uppercase mb-0.5">Impact</span>
                       <div className="flex gap-0.5">
@@ -373,7 +533,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                         ))}
                       </div>
                     </div>
-                    {/* Effort dots */}
                     <div className="flex flex-col items-center">
                       <span className="text-[9px] text-gray-400 uppercase mb-0.5">Effort</span>
                       <div className="flex gap-0.5">
@@ -387,7 +546,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed pl-[42px]">{r.description}</p>
+                <p className="text-sm text-gray-600 leading-relaxed pl-[42px]">{rt(r.description)}</p>
               </div>
             ))}
           </div>
@@ -421,7 +580,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
 
       {/* ── Response Strategy + Customer Persona ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Response Strategy */}
         {responseStrategy && (
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -435,7 +593,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
             <div className="space-y-3">
               <div>
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tone</span>
-                <p className="text-sm text-gray-700 mt-0.5">{responseStrategy.tone}</p>
+                <p className="text-sm text-gray-700 mt-0.5">{rt(responseStrategy.tone)}</p>
               </div>
               {responseStrategy.priorities?.length > 0 && (
                 <div>
@@ -446,7 +604,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                         <svg className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
-                        {p}
+                        {rt(p)}
                       </li>
                     ))}
                   </ul>
@@ -457,7 +615,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Avoid</span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {responseStrategy.avoidTopics.map((t: string, i: number) => (
-                      <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{t}</span>
+                      <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{rt(t)}</span>
                     ))}
                   </div>
                 </div>
@@ -466,7 +624,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           </div>
         )}
 
-        {/* Customer Persona */}
         {persona && (
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -477,16 +634,16 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
               </div>
               <h4 className="text-sm font-bold text-gray-900">Customer Persona</h4>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-3">{persona.description}</p>
+            <p className="text-sm text-gray-700 leading-relaxed mb-3">{rt(persona.description)}</p>
             {persona.demographics && (
-              <p className="text-xs text-gray-500 mb-3">{persona.demographics}</p>
+              <p className="text-xs text-gray-500 mb-3">{rt(persona.demographics)}</p>
             )}
             {persona.motivations?.length > 0 && (
               <div className="mb-3">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Motivations</span>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {persona.motivations.map((m: string, i: number) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-100">{m}</span>
+                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-100">{rt(m)}</span>
                   ))}
                 </div>
               </div>
@@ -496,7 +653,7 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pain Points</span>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {persona.painPoints.map((p: string, i: number) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{p}</span>
+                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{rt(p)}</span>
                   ))}
                 </div>
               </div>

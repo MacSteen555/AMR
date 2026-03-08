@@ -9,6 +9,7 @@ export type PeriodWindow = '30d' | '90d' | '6m' | '1y'
 
 export interface InsightsInput {
   reviews: Array<{
+    id?: string
     rating: number
     comment: string | null
     review_date: string
@@ -123,7 +124,35 @@ export async function insightsRun(input: InsightsInput): Promise<GeneratedInsigh
   }
 
   try {
-    return JSON.parse(insightsText)
+    const parsed = JSON.parse(insightsText)
+
+    // Scan the entire JSON for {{REV:uuid}} markers and build a lookup map
+    const reviewsById = new Map(
+      input.reviews.filter(r => r.id).map(r => [r.id!, r])
+    )
+    const jsonStr = JSON.stringify(parsed)
+    const refPattern = /\{\{REV:([a-f0-9-]+)(?::[^}]+)?\}\}/g
+    const referencedIds = new Set<string>()
+    let match
+    while ((match = refPattern.exec(jsonStr)) !== null) {
+      referencedIds.add(match[1])
+    }
+
+    const referencedReviews: Record<string, { rating: number; comment: string | null; review_date: string; reviewer_name?: string | null }> = {}
+    for (const id of referencedIds) {
+      const r = reviewsById.get(id)
+      if (r) {
+        referencedReviews[id] = {
+          rating: r.rating,
+          comment: r.comment,
+          review_date: r.review_date,
+          reviewer_name: r.reviewer_name || null,
+        }
+      }
+    }
+
+    parsed.referencedReviews = referencedReviews
+    return parsed
   } catch (error) {
     throw new Error('Failed to parse insights JSON')
   }
@@ -275,7 +304,9 @@ function buildInsightsPrompt(input: InsightsInput, scope: InsightScope, periodWi
   prompt += `Reviews (up to 100):\n`
   input.reviews.slice(0, 100).forEach((review, idx) => {
     const date = new Date(review.review_date).toISOString().split('T')[0]
-    prompt += `${idx + 1}. [${review.rating}/5] [${date}] ${review.comment || '(No comment)'}\n`
+    const idTag = review.id ? ` [ID:${review.id}]` : ''
+    const nameTag = review.reviewer_name ? ` by ${review.reviewer_name}` : ''
+    prompt += `${idx + 1}.${idTag} [${review.rating}/5] [${date}]${nameTag} ${review.comment || '(No comment)'}\n`
   })
 
   prompt += `\nReturn a JSON object with this EXACT structure:
@@ -295,6 +326,34 @@ function buildInsightsPrompt(input: InsightsInput, scope: InsightScope, periodWi
   "customerPersona": { "description": "...", "demographics": "...", "motivations": ["..."], "painPoints": ["..."] },
   "notableQuotes": [{ "quote": "...", "rating": N, "sentiment": "positive|negative", "theme": "..." }]
 }
+
+INLINE REVIEW REFERENCES:
+You CAN link to specific reviews using this format: {{REV:review_id:display text}}
+The display text becomes a clickable link to the original review. Weave references naturally into the sentence so they read as part of the prose.
+
+WHEN TO USE (sparingly):
+- When attributing a specific claim to a specific reviewer in descriptions or the executive summary
+- In exampleQuote fields to make the quote clickable
+
+WHEN NOT TO USE:
+- notableQuotes: NEVER use {{REV}} inside notableQuotes. Those are already displayed as standalone quote cards.
+- General trends or aggregate observations ("most reviewers said..." needs no link)
+- Summaries that synthesize multiple reviews into one point
+- Recommendations, strategy advice, persona descriptions
+- topActionItem, responseStrategy, customerPersona (strategic, not review-specific)
+
+CRITICAL: Do NOT write a quote in plain text and THEN repeat it inside a {{REV}} marker. The display text should be a short attribution phrase like "one cafe owner" or "a returning customer", NOT the quote itself. The quote should appear once in the sentence as normal text.
+
+Aim for 3-8 total references across ALL fields combined. Most paragraphs should have zero.
+
+GOOD examples:
+- "{{REV:abc-123:One cafe owner}} reported that automation cut their review response time in half."
+- "The strongest complaint came from {{REV:ghi-789:a first-time visitor}} who waited 45 minutes for cold food."
+
+BAD examples:
+- 'one customer said "Great service" ({{REV:abc:Great service}})' — quote repeated twice
+- "{{REV:abc:Reviewers}} praised {{REV:def:the service}} and {{REV:ghi:the food}}" — overlinked
+- "Staff friendliness was highlighted {{REV:abc-123}}" — no display text
 
 Rules:
 - overallSentiment: 0-100 where 50 is neutral, 80+ is excellent, below 30 is crisis.
