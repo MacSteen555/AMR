@@ -1,11 +1,43 @@
+'use client'
+
 import Link from 'next/link'
 import { GoogleLoginButton } from '@/components/GoogleLoginButton'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string }
-}) {
+export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const error = searchParams.get('error')
+  const [checking, setChecking] = useState(true)
+
+  // Check if user already has a valid session
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(res => {
+        if (res.ok) {
+          router.replace('/dashboard')
+        } else {
+          setChecking(false)
+        }
+      })
+      .catch(() => setChecking(false))
+  }, [router])
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex items-center gap-3">
+          <svg className="animate-spin h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <span className="text-gray-500 text-sm">Checking session...</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex">
 
@@ -120,12 +152,12 @@ export default function LoginPage({
             </div>
 
             {/* Error from URL params */}
-            {searchParams?.error && (
+            {error && (
               <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-xl mb-8">
                 <svg className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p className="text-sm text-red-600">{searchParams.error}</p>
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 

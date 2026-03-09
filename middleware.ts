@@ -7,7 +7,7 @@ import { createServerClient } from '@supabase/ssr'
 const BYPASS_ROUTES = ['/api/stripe/webhook']
 
 // Strict tier: auth & onboarding
-const STRICT_PATTERNS = ['/api/auth/', '/api/onboarding/']
+const STRICT_PATTERNS = ['/api/auth/', '/api/onboarding/', 'reviews/sync']
 
 // Quick AI: single review generation (POST only)
 const QUICK_AI_PATTERNS = ['/generate', '/regenerate', '/stream']
@@ -24,7 +24,7 @@ function getTier(pathname: string, method: string) {
 }
 
 const TIER_CONFIGS = {
-  strict: { limit: 10, window: '60 s' as const, prefix: 'rl:strict' },
+  strict: { limit: 5, window: '60 s' as const, prefix: 'rl:strict' },
   'quick-ai': { limit: 40, window: '60 s' as const, prefix: 'rl:quick-ai' },
   'large-ai': { limit: 5, window: '60 s' as const, prefix: 'rl:large-ai' },
   write: { limit: 30, window: '60 s' as const, prefix: 'rl:write' },
