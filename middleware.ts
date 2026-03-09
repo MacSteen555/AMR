@@ -6,8 +6,11 @@ import { createServerClient } from '@supabase/ssr'
 // Routes that bypass rate limiting entirely
 const BYPASS_ROUTES = ['/api/stripe/webhook']
 
-// Strict tier: auth & onboarding
-const STRICT_PATTERNS = ['/api/auth/', '/api/onboarding/', 'reviews/sync']
+// Strict tier: auth & onboarding (matched with startsWith)
+const STRICT_PREFIX_PATTERNS = ['/api/auth/', '/api/onboarding/']
+
+// Sync tier: review syncing & competitor scraping (matched with includes/endsWith)
+const SYNC_PATTERNS = ['/reviews/sync']
 
 // Quick AI: single review generation (POST only)
 const QUICK_AI_PATTERNS = ['/generate', '/regenerate', '/stream']
@@ -16,7 +19,8 @@ const QUICK_AI_PATTERNS = ['/generate', '/regenerate', '/stream']
 const LARGE_AI_PATTERNS = ['/bulk-generate', '/insights/run', '/competitive-runs']
 
 function getTier(pathname: string, method: string) {
-  if (STRICT_PATTERNS.some((p) => pathname.startsWith(p))) return 'strict'
+  if (STRICT_PREFIX_PATTERNS.some((p) => pathname.startsWith(p))) return 'strict'
+  if (SYNC_PATTERNS.some((p) => pathname.endsWith(p))) return 'sync'
   if (method === 'POST' && LARGE_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'large-ai'
   if (method === 'POST' && QUICK_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'quick-ai'
   if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) return 'write'
@@ -25,6 +29,7 @@ function getTier(pathname: string, method: string) {
 
 const TIER_CONFIGS = {
   strict: { limit: 5, window: '60 s' as const, prefix: 'rl:strict' },
+  sync: { limit: 3, window: '60 s' as const, prefix: 'rl:sync' },
   'quick-ai': { limit: 40, window: '60 s' as const, prefix: 'rl:quick-ai' },
   'large-ai': { limit: 5, window: '60 s' as const, prefix: 'rl:large-ai' },
   write: { limit: 30, window: '60 s' as const, prefix: 'rl:write' },
