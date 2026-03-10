@@ -43,6 +43,14 @@ interface TeamAnalytics {
   ratingDistribution: RatingBucket[]
   sentimentBreakdown: { positive: number; neutral: number; negative: number }
   perLocation: LocationStat[]
+  replyGap?: Array<{
+    reviewDate: string
+    rating: number
+    comment: string | null
+    daysSince: number
+    locationId: string | null
+    locationName: string | null
+  }>
 }
 
 interface AIInsight {
@@ -507,6 +515,40 @@ export default function TeamInsightsPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* Reply Gap */}
+            {analytics.replyGap && analytics.replyGap.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
+                <div className="p-5 border-b border-gray-100">
+                  <h3 className="text-base font-semibold text-gray-900">Reply Gap</h3>
+                  <p className="text-xs text-gray-400">Unanswered negative reviews needing attention</p>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {analytics.replyGap.slice(0, 10).map((item, i) => (
+                    <div key={i} className="px-5 py-3 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded shrink-0 ${
+                          item.rating <= 1 ? 'bg-red-100 text-red-700' :
+                          item.rating === 2 ? 'bg-orange-100 text-orange-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {item.rating}★
+                        </span>
+                        <span className="text-sm text-gray-700 truncate">{item.comment || 'No comment'}</span>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {isTeamView && item.locationName && (
+                          <span className="text-xs text-gray-400">{item.locationName}</span>
+                        )}
+                        <span className={`text-xs font-medium ${item.daysSince > 7 ? 'text-red-600' : 'text-gray-500'}`}>
+                          {item.daysSince}d ago
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

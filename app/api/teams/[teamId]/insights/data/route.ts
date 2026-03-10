@@ -49,6 +49,7 @@ function computeTeamAnalytics(
       ],
       sentimentBreakdown: { positive: 0, neutral: 0, negative: 0 },
       perLocation: [],
+      replyGap: [],
     }
   }
 
@@ -162,6 +163,23 @@ function computeTeamAnalytics(
     }
   }).sort((a, b) => b.totalReviews - a.totalReviews)
 
+  // Reply gap — unanswered reviews with rating <= 3
+  const unanswered = reviews.filter(r =>
+    !['posted', 'synced_external', 'dismissed'].includes(r.reply_status) && r.rating <= 3
+  )
+
+  const replyGap = unanswered
+    .map(r => ({
+      reviewDate: r.review_date,
+      rating: r.rating,
+      comment: r.comment?.slice(0, 120) || null,
+      daysSince: Math.floor((Date.now() - new Date(r.review_date).getTime()) / (1000 * 60 * 60 * 24)),
+      locationId: r.location_id || null,
+      locationName: r.location_id ? (locationMap.get(r.location_id) || null) : null,
+    }))
+    .sort((a, b) => a.rating - b.rating || b.daysSince - a.daysSince)
+    .slice(0, 20)
+
   return {
     kpis: {
       totalReviews,
@@ -180,6 +198,7 @@ function computeTeamAnalytics(
     ratingDistribution,
     sentimentBreakdown: { positive, neutral, negative },
     perLocation,
+    replyGap,
   }
 }
 
@@ -207,6 +226,7 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
         { rating: 1, count: 0 },
       ],
       sentimentBreakdown: { positive: 0, neutral: 0, negative: 0 },
+      replyGap: [],
     }
   }
 
@@ -283,6 +303,23 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     }
   })
 
+  // Reply gap — unanswered reviews with rating <= 3
+  const unanswered = reviews.filter(r =>
+    !['posted', 'synced_external', 'dismissed'].includes(r.reply_status) && r.rating <= 3
+  )
+
+  const replyGap = unanswered
+    .map(r => ({
+      reviewDate: r.review_date,
+      rating: r.rating,
+      comment: r.comment?.slice(0, 120) || null,
+      daysSince: Math.floor((Date.now() - new Date(r.review_date).getTime()) / (1000 * 60 * 60 * 24)),
+      locationId: null,
+      locationName: null,
+    }))
+    .sort((a, b) => a.rating - b.rating || b.daysSince - a.daysSince)
+    .slice(0, 20)
+
   return {
     kpis: {
       totalReviews,
@@ -299,6 +336,7 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     responseRateOverTime,
     ratingDistribution,
     sentimentBreakdown: { positive, neutral, negative },
+    replyGap,
   }
 }
 
