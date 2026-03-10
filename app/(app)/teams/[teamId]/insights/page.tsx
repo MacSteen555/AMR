@@ -68,6 +68,8 @@ interface AIInsight {
   model: string
 }
 
+type InsightsTab = 'insights' | 'reports'
+
 // ─── Period Helpers ──────────────────────────────────────────────────────────
 
 type PeriodKey = '30d' | '90d' | '6m' | '1y' | 'all'
@@ -121,6 +123,7 @@ export default function TeamInsightsPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [activeTab, setActiveTab] = useState<InsightsTab>('insights')
 
   const currentTeam = teams.find(t => t.id === teamId)
   const tier = currentTeam?.subscription?.tier || 'FREE'
@@ -210,6 +213,33 @@ export default function TeamInsightsPage() {
           </div>
         </div>
 
+        {/* Tab Bar */}
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg mb-8 w-fit">
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer ${
+              activeTab === 'insights'
+                ? 'bg-white shadow text-gray-900'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Insights
+          </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer ${
+              activeTab === 'reports'
+                ? 'bg-white shadow text-gray-900'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Reports
+            {!insightsEnabled && (
+              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">PRO</span>
+            )}
+          </button>
+        </div>
+
         {loading ? (
           <div className="space-y-6 animate-pulse">
             <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
@@ -254,6 +284,8 @@ export default function TeamInsightsPage() {
           </div>
         ) : (
           <>
+            {activeTab === 'insights' && (
+              <>
             {/* KPI Cards */}
             <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
               <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
@@ -458,6 +490,24 @@ export default function TeamInsightsPage() {
               </div>
             )}
 
+            {/* Report CTA at bottom */}
+            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-100 p-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Want deeper analysis?</h3>
+                <p className="text-sm text-gray-500 mt-1">Generate an AI-powered report with sentiment analysis, recommendations, and more.</p>
+              </div>
+              <button
+                onClick={() => setActiveTab('reports')}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium shrink-0 cursor-pointer transition-colors"
+              >
+                View Reports
+              </button>
+            </div>
+              </>
+            )}
+
+            {activeTab === 'reports' && (
+              <>
             {/* AI Insights Section */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
@@ -560,6 +610,8 @@ export default function TeamInsightsPage() {
                 </div>
               )}
             </div>
+              </>
+            )}
           </>
         )}
       </div>
