@@ -107,7 +107,11 @@ export function ScopeBar({ teams }: ScopeBarProps) {
       </Link>
 
       {/* Divider — only show if there's something after it */}
-      {(teams.length > 1 || showLocationDropdown) && <div className="w-px h-6 bg-gray-200" />}
+      {(teams.length > 1 || showLocationDropdown) && (
+        <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      )}
 
       {/* Team Dropdown — only if 2+ teams */}
       {teams.length > 1 && (
@@ -157,7 +161,11 @@ export function ScopeBar({ teams }: ScopeBarProps) {
       {/* Location Dropdown — only on location-enabled pages */}
       {showLocationDropdown && (
         <>
-          {teams.length > 1 && <div className="w-px h-6 bg-gray-200" />}
+          {teams.length > 1 && (
+            <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          )}
           <div className="relative" ref={locationDropdownRef}>
             <button
               onClick={() => setLocationsOpen(!locationsOpen)}
