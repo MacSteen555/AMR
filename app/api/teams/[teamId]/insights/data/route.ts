@@ -4,6 +4,62 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
+function extractKeywordThemes(
+  reviews: Array<{ comment: string | null; rating: number; review_date: string }>,
+  periodStart: string,
+  periodEnd: string,
+): Array<{ theme: string; count: number; avgRating: number; trend: 'up' | 'down' | 'stable' }> {
+  const STOP_WORDS = new Set([
+    'the','a','an','is','was','were','are','been','be','have','has','had','do','does','did',
+    'will','would','could','should','may','might','shall','can','need','dare','ought','used',
+    'to','of','in','for','on','with','at','by','from','as','into','through','during','before',
+    'after','above','below','between','out','off','over','under','again','further','then','once',
+    'here','there','when','where','why','how','all','both','each','few','more','most','other',
+    'some','such','no','nor','not','only','own','same','so','than','too','very','just','because',
+    'but','and','or','if','while','about','up','it','its','i','my','me','we','our','you','your',
+    'they','their','them','he','she','his','her','this','that','these','those','what','which',
+    'who','whom','get','got','really','also','much','even','back','still','well','way','like',
+    'one','two','three','go','going','went','come','came','make','made','know','say','said',
+    'take','took','see','saw','think','thought','give','gave','tell','told','good','great',
+    'nice','bad','place','time','always','never','every','been','being','would','could',
+  ])
+
+  const themeMap = new Map<string, { count: number; ratings: number[]; dates: Date[] }>()
+
+  for (const r of reviews) {
+    if (!r.comment) continue
+    const words = r.comment.toLowerCase()
+      .replace(/[^a-z\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !STOP_WORDS.has(w))
+
+    for (let i = 0; i < words.length - 1; i++) {
+      const bigram = `${words[i]} ${words[i + 1]}`
+      if (!themeMap.has(bigram)) themeMap.set(bigram, { count: 0, ratings: [], dates: [] })
+      const entry = themeMap.get(bigram)!
+      entry.count++
+      entry.ratings.push(r.rating)
+      entry.dates.push(new Date(r.review_date))
+    }
+  }
+
+  const midDate = new Date((new Date(periodStart).getTime() + new Date(periodEnd).getTime()) / 2)
+
+  return [...themeMap.entries()]
+    .filter(([, v]) => v.count >= 3)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 15)
+    .map(([theme, v]) => {
+      const avgRating = v.ratings.reduce((a, b) => a + b, 0) / v.ratings.length
+      const firstHalf = v.dates.filter(d => d < midDate).length
+      const secondHalf = v.dates.filter(d => d >= midDate).length
+      const trend: 'up' | 'down' | 'stable' =
+        secondHalf > firstHalf * 1.3 ? 'up' :
+        secondHalf < firstHalf * 0.7 ? 'down' : 'stable'
+      return { theme, count: v.count, avgRating: Math.round(avgRating * 10) / 10, trend }
+    })
+}
+
 interface ReviewRow {
   rating: number
   comment: string | null
@@ -51,6 +107,7 @@ function computeTeamAnalytics(
       perLocation: [],
       replyGap: [],
       reviewVelocity: { heatmap: Array.from({ length: 7 }, () => Array(24).fill(0)), peakDay: 'Mon', peakHour: 12 },
+      keywordThemes: [],
     }
   }
 
@@ -199,6 +256,8 @@ function computeTeamAnalytics(
     peakHour: hourTotals.reduce((maxH, v, h, arr) => v > arr[maxH] ? h : maxH, 0),
   }
 
+  const keywordThemes = extractKeywordThemes(reviews, periodStart, periodEnd)
+
   return {
     kpis: {
       totalReviews,
@@ -219,6 +278,7 @@ function computeTeamAnalytics(
     perLocation,
     replyGap,
     reviewVelocity,
+    keywordThemes,
   }
 }
 
@@ -248,6 +308,7 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
       sentimentBreakdown: { positive: 0, neutral: 0, negative: 0 },
       replyGap: [],
       reviewVelocity: { heatmap: Array.from({ length: 7 }, () => Array(24).fill(0)), peakDay: 'Mon', peakHour: 12 },
+      keywordThemes: [],
     }
   }
 
@@ -359,6 +420,8 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     peakHour: hourTotals.reduce((maxH, v, h, arr) => v > arr[maxH] ? h : maxH, 0),
   }
 
+  const keywordThemes = extractKeywordThemes(reviews, periodStart, periodEnd)
+
   return {
     kpis: {
       totalReviews,
@@ -377,6 +440,7 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     sentimentBreakdown: { positive, neutral, negative },
     replyGap,
     reviewVelocity,
+    keywordThemes,
   }
 }
 

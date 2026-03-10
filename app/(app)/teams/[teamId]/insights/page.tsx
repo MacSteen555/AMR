@@ -56,6 +56,12 @@ interface TeamAnalytics {
     peakDay: string
     peakHour: number
   }
+  keywordThemes?: Array<{
+    theme: string
+    count: number
+    avgRating: number
+    trend: 'up' | 'down' | 'stable'
+  }>
 }
 
 interface AIInsight {
@@ -560,6 +566,41 @@ export default function TeamInsightsPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {/* Keyword Themes */}
+            {analytics.keywordThemes && analytics.keywordThemes.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
+                <div className="p-5 border-b border-gray-100">
+                  <h3 className="text-base font-semibold text-gray-900">Trending Themes</h3>
+                  <p className="text-xs text-gray-400">Common topics mentioned in reviews</p>
+                </div>
+                <div className="p-5">
+                  <div className="flex flex-wrap gap-2">
+                    {analytics.keywordThemes.map((t, i) => (
+                      <div
+                        key={i}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="text-sm font-medium text-gray-800">{t.theme}</span>
+                        <span className="text-xs text-gray-400">&times;{t.count}</span>
+                        <span className={`text-xs font-medium ${
+                          t.avgRating >= 4 ? 'text-green-600' :
+                          t.avgRating >= 3 ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {t.avgRating}&#9733;
+                        </span>
+                        {t.trend !== 'stable' && (
+                          <span className={`text-xs ${t.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
+                            {t.trend === 'up' ? '\u2191' : '\u2193'}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
