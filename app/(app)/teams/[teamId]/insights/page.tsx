@@ -317,7 +317,7 @@ export default function TeamInsightsPage() {
                         </linearGradient>
                       </defs>
                       <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#0d9488" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
-                      {analytics.perLocation.map((loc, i) => (
+                      {analytics.perLocation?.map((loc, i) => (
                         <Line
                           key={loc.locationId}
                           type="monotone"
@@ -405,7 +405,7 @@ export default function TeamInsightsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {analytics.perLocation.map((loc, i) => (
+                      {analytics.perLocation?.map((loc, i) => (
                         <tr
                           key={loc.locationId}
                           className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-gray-25'}`}
