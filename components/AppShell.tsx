@@ -18,7 +18,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const credits = navTeam?.creditBalance || 0
   const tier = navTeam?.subscription?.tier || 'FREE'
 
-  const locationQs = searchParams?.get('location') ? '?location=' + searchParams.get('location') : ''
+  // Only carry location param forward when we're actually on a team-scoped page
+  // (otherwise we'd carry a stale location from a different team)
+  const locationQs = currentTeam && searchParams?.get('location') ? '?location=' + searchParams.get('location') : ''
 
   if (loading) {
     return <LoadingScreen />

@@ -80,13 +80,13 @@ export function ScopeBar({ teams }: ScopeBarProps) {
   const handleLocationSwitch = (locationId: string | null) => {
     setLocationsOpen(false)
     if (!teamId) return
-    const params = new URLSearchParams(searchParams?.toString() || '')
+    const searchQuery = new URLSearchParams(searchParams?.toString() || '')
     if (locationId) {
-      params.set('location', locationId)
+      searchQuery.set('location', locationId)
     } else {
-      params.delete('location')
+      searchQuery.delete('location')
     }
-    const qs = params.toString()
+    const qs = searchQuery.toString()
     router.replace(`/teams/${teamId}/${section}${qs ? `?${qs}` : ''}`)
   }
 
@@ -157,7 +157,11 @@ export function ScopeBar({ teams }: ScopeBarProps) {
       {/* Location Dropdown — only on location-enabled pages */}
       {showLocationDropdown && (
         <>
-          {teams.length > 1 && <div className="w-px h-6 bg-gray-200" />}
+          {teams.length > 1 && (
+            <svg className="w-4 h-4 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          )}
           <div className="relative" ref={locationDropdownRef}>
             <button
               onClick={() => setLocationsOpen(!locationsOpen)}

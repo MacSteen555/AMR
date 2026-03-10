@@ -410,9 +410,9 @@ export default function TeamInsightsPage() {
                           key={loc.locationId}
                           className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-gray-25'}`}
                           onClick={() => {
-                            const params = new URLSearchParams(searchParams?.toString() || '')
-                            params.set('location', loc.locationId)
-                            router.replace(`/teams/${teamId}/insights?${params.toString()}`)
+                            const searchQuery = new URLSearchParams(searchParams?.toString() || '')
+                            searchQuery.set('location', loc.locationId)
+                            router.replace(`/teams/${teamId}/insights?${searchQuery.toString()}`)
                           }}
                         >
                           <td className="px-5 py-3.5">

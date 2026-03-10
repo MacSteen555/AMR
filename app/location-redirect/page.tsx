@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { apiGet } from '@/lib/api'
 
-export default function LocationRedirectPage() {
+function LocationRedirectContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const locationId = searchParams?.get('locationId')
@@ -26,5 +26,17 @@ export default function LocationRedirectPage() {
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
     </div>
+  )
+}
+
+export default function LocationRedirectPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+      </div>
+    }>
+      <LocationRedirectContent />
+    </Suspense>
   )
 }
