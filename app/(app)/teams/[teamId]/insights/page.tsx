@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { apiGet, apiPost } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
@@ -51,6 +51,11 @@ interface TeamAnalytics {
     locationId: string | null
     locationName: string | null
   }>
+  reviewVelocity?: {
+    heatmap: number[][]
+    peakDay: string
+    peakHour: number
+  }
 }
 
 interface AIInsight {
@@ -456,6 +461,46 @@ export default function TeamInsightsPage() {
                   ))}
                 </div>
               </ChartCard>
+
+              {/* Review Velocity Heatmap */}
+              {analytics.reviewVelocity && (
+                <ChartCard
+                  title="Review Velocity"
+                  subtitle={`Peak: ${analytics.reviewVelocity.peakDay}s around ${analytics.reviewVelocity.peakHour}:00`}
+                >
+                  <div className="px-2">
+                    <div className="grid gap-[3px]" style={{ gridTemplateColumns: 'auto repeat(24, 1fr)' }}>
+                      {/* Hour labels row */}
+                      <div />
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <div key={h} className="text-center text-[9px] text-gray-400 leading-none">
+                          {h % 6 === 0 ? `${h}` : ''}
+                        </div>
+                      ))}
+                      {/* Day rows */}
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, d) => {
+                        const max = Math.max(...analytics.reviewVelocity!.heatmap.flat(), 1)
+                        return (
+                          <React.Fragment key={d}>
+                            <div className="text-[10px] text-gray-500 pr-1.5 text-right leading-none flex items-center justify-end">{day}</div>
+                            {analytics.reviewVelocity!.heatmap[d].map((count, h) => {
+                              const intensity = count / max
+                              return (
+                                <div
+                                  key={h}
+                                  className="aspect-square rounded-[2px]"
+                                  style={{ backgroundColor: count === 0 ? '#f3f4f6' : `rgba(13, 148, 136, ${Math.max(intensity, 0.15)})` }}
+                                  title={`${day} ${h}:00 — ${count} reviews`}
+                                />
+                              )
+                            })}
+                          </React.Fragment>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </ChartCard>
+              )}
             </div>
 
             {/* Per-Location Breakdown */}

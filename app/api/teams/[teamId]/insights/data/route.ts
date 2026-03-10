@@ -50,6 +50,7 @@ function computeTeamAnalytics(
       sentimentBreakdown: { positive: 0, neutral: 0, negative: 0 },
       perLocation: [],
       replyGap: [],
+      reviewVelocity: { heatmap: Array.from({ length: 7 }, () => Array(24).fill(0)), peakDay: 'Mon', peakHour: 12 },
     }
   }
 
@@ -180,6 +181,24 @@ function computeTeamAnalytics(
     .sort((a, b) => a.rating - b.rating || b.daysSince - a.daysSince)
     .slice(0, 20)
 
+  // Review velocity — day-of-week × hour-of-day heatmap
+  const velocityMap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0))
+  for (const r of reviews) {
+    const d = new Date(r.review_date)
+    velocityMap[d.getUTCDay()][d.getUTCHours()]++
+  }
+
+  const dayTotals = velocityMap.map(row => row.reduce((s, v) => s + v, 0))
+  const hourTotals = velocityMap.reduce((totals, row) => row.map((v, h) => totals[h] + v), Array(24).fill(0) as number[])
+
+  const reviewVelocity = {
+    heatmap: velocityMap,
+    peakDay: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
+      dayTotals.reduce((maxI, v, i, arr) => v > arr[maxI] ? i : maxI, 0)
+    ],
+    peakHour: hourTotals.reduce((maxH, v, h, arr) => v > arr[maxH] ? h : maxH, 0),
+  }
+
   return {
     kpis: {
       totalReviews,
@@ -199,6 +218,7 @@ function computeTeamAnalytics(
     sentimentBreakdown: { positive, neutral, negative },
     perLocation,
     replyGap,
+    reviewVelocity,
   }
 }
 
@@ -227,6 +247,7 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
       ],
       sentimentBreakdown: { positive: 0, neutral: 0, negative: 0 },
       replyGap: [],
+      reviewVelocity: { heatmap: Array.from({ length: 7 }, () => Array(24).fill(0)), peakDay: 'Mon', peakHour: 12 },
     }
   }
 
@@ -320,6 +341,24 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     .sort((a, b) => a.rating - b.rating || b.daysSince - a.daysSince)
     .slice(0, 20)
 
+  // Review velocity — day-of-week × hour-of-day heatmap
+  const velocityMap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0))
+  for (const r of reviews) {
+    const d = new Date(r.review_date)
+    velocityMap[d.getUTCDay()][d.getUTCHours()]++
+  }
+
+  const dayTotals = velocityMap.map(row => row.reduce((s, v) => s + v, 0))
+  const hourTotals = velocityMap.reduce((totals, row) => row.map((v, h) => totals[h] + v), Array(24).fill(0) as number[])
+
+  const reviewVelocity = {
+    heatmap: velocityMap,
+    peakDay: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
+      dayTotals.reduce((maxI, v, i, arr) => v > arr[maxI] ? i : maxI, 0)
+    ],
+    peakHour: hourTotals.reduce((maxH, v, h, arr) => v > arr[maxH] ? h : maxH, 0),
+  }
+
   return {
     kpis: {
       totalReviews,
@@ -337,6 +376,7 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     ratingDistribution,
     sentimentBreakdown: { positive, neutral, negative },
     replyGap,
+    reviewVelocity,
   }
 }
 
