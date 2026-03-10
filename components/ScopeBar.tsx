@@ -3,13 +3,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/hooks/useAuth'
 import { apiGet } from '@/lib/api'
+import type { Team } from '@/hooks/useAuth'
 
 interface Location {
   id: string
   name: string
   google_place_id?: string
+}
+
+interface ScopeBarProps {
+  teams: Team[]
 }
 
 // Pages that support location-level filtering
@@ -23,8 +27,7 @@ function getCurrentSection(pathname: string | null): string {
   return 'reviews'
 }
 
-export function ScopeBar() {
-  const { teams } = useAuth()
+export function ScopeBar({ teams }: ScopeBarProps) {
   const params = useParams()
   const pathname = usePathname()
   const searchParams = useSearchParams()

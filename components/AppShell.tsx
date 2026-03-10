@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50/80">
-      <ScopeBar />
+      <ScopeBar teams={teams} />
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-[240px] bg-white border-r border-gray-200/80 flex flex-col shrink-0">
           {/* Navigation */}
