@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { apiGet } from '@/lib/api'
 
@@ -30,7 +31,7 @@ export function ScopeBar() {
   const router = useRouter()
 
   const teamId = params?.teamId as string | undefined
-  const currentTeam = teams.find(t => t.id === teamId) || teams[0] || null
+  const currentTeam = teams.find(t => t.id === teamId) || null
   const selectedLocationId = searchParams?.get('location') || null
   const section = getCurrentSection(pathname)
   const showLocationDropdown = LOCATION_ENABLED_SECTIONS.includes(section)
@@ -91,16 +92,16 @@ export function ScopeBar() {
   return (
     <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shrink-0 z-50">
       {/* Logo */}
-      <button
-        onClick={() => router.push(`/teams/${currentTeam.id}/reviews`)}
-        className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+      <Link
+        href={`/teams/${currentTeam.id}/reviews`}
+        className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
       >
         <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-7 w-auto" />
         <span className="text-base font-bold text-gray-900 hidden sm:block">AutoMyReply</span>
-      </button>
+      </Link>
 
-      {/* Divider */}
-      <div className="w-px h-6 bg-gray-200" />
+      {/* Divider — only show if there's something after it */}
+      {(teams.length > 1 || showLocationDropdown) && <div className="w-px h-6 bg-gray-200" />}
 
       {/* Team Dropdown — only if 2+ teams */}
       {teams.length > 1 && (
