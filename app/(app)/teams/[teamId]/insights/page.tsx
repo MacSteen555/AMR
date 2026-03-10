@@ -201,7 +201,7 @@ export default function TeamInsightsPage() {
 
         {loading ? (
           <div className="space-y-6 animate-pulse">
-            <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
               {Array.from({ length: isTeamView ? 5 : 4 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
                   <div className="flex items-center gap-3 mb-3">
@@ -244,7 +244,7 @@ export default function TeamInsightsPage() {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
               <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
               <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
               <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" />

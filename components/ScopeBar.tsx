@@ -15,6 +15,8 @@ interface Location {
 
 interface ScopeBarProps {
   teams: Team[]
+  onMobileMenuToggle?: () => void
+  mobileMenuOpen?: boolean
 }
 
 // Pages that support location-level filtering
@@ -28,7 +30,7 @@ function getCurrentSection(pathname: string | null): string {
   return 'reviews'
 }
 
-export function ScopeBar({ teams }: ScopeBarProps) {
+export function ScopeBar({ teams, onMobileMenuToggle, mobileMenuOpen }: ScopeBarProps) {
   const params = useParams()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -107,7 +109,26 @@ export function ScopeBar({ teams }: ScopeBarProps) {
   if (!displayTeam) return null
 
   return (
-    <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shrink-0 z-50">
+    <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3 md:gap-4 shrink-0 z-50">
+      {/* Mobile menu toggle */}
+      {onMobileMenuToggle && (
+        <button
+          onClick={onMobileMenuToggle}
+          className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+        >
+          {mobileMenuOpen ? (
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
+        </button>
+      )}
+
       {/* Logo */}
       <Link
         href={`/teams/${displayTeam.id}/reviews`}
@@ -134,7 +155,7 @@ export function ScopeBar({ teams }: ScopeBarProps) {
             <div className="w-6 h-6 bg-gradient-to-br from-teal-500 to-teal-600 rounded-md flex items-center justify-center shrink-0">
               <span className="text-white font-bold text-xs">{displayTeam.name.charAt(0).toUpperCase()}</span>
             </div>
-            <span className="max-w-[140px] truncate">{displayTeam.name}</span>
+            <span className="max-w-[100px] sm:max-w-[140px] truncate">{displayTeam.name}</span>
             <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${teamsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -186,7 +207,7 @@ export function ScopeBar({ teams }: ScopeBarProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              <span className="max-w-[180px] truncate">
+              <span className="max-w-[120px] sm:max-w-[180px] truncate">
                 {selectedLocation ? selectedLocation.name : 'All Locations'}
               </span>
               {locations.length > 0 && (

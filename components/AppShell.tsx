@@ -58,12 +58,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('amr:sidebar-collapsed') === '1' } catch { return false }
   })
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const toggleSidebar = () => {
     const next = !collapsed
     setCollapsed(next)
     try { localStorage.setItem('amr:sidebar-collapsed', next ? '1' : '0') } catch { /* noop */ }
   }
+
+  // Close mobile drawer on navigation
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
 
   // Close profile popover on outside click
   useEffect(() => {
@@ -84,13 +90,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return null
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-50/80">
-      <ScopeBar teams={teams} />
-      <div className="flex flex-1 overflow-hidden">
-        <aside className={`${collapsed ? 'w-[68px]' : 'w-[240px]'} bg-white border-r border-gray-200/80 flex flex-col shrink-0 transition-all duration-200`}>
-          {/* Navigation */}
-          <nav className={`flex-1 ${collapsed ? 'px-2' : 'px-4'} py-4 space-y-1 overflow-y-auto`}>
+  // On mobile drawer, always show expanded labels
+  const isCollapsed = collapsed && !mobileOpen
+
+  const sidebarContent = (
+    <>
+      {/* Navigation */}
+      <nav className={`flex-1 ${isCollapsed ? 'px-2' : 'px-4'} py-4 space-y-1 overflow-y-auto`}>
             {navTeam ? (
               <>
                 <NavItem
@@ -98,21 +104,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   icon={<DashboardIcon />}
                   label="Dashboard"
                   active={pathname === `/teams/${navTeam.id}` || pathname === '/dashboard'}
-                  collapsed={collapsed}
+                  collapsed={isCollapsed}
                 />
                 <NavItem
                   href={`/teams/${navTeam.id}/reviews${locationQs}`}
                   icon={<ReviewIcon />}
                   label="Reviews"
                   active={pathname?.includes('/reviews')}
-                  collapsed={collapsed}
+                  collapsed={isCollapsed}
                 />
                 <NavItem
                   href={`/teams/${navTeam.id}/insights${locationQs}`}
                   icon={<InsightsIcon />}
                   label="Insights"
                   active={pathname?.includes('/insights')}
-                  collapsed={collapsed}
+                  collapsed={isCollapsed}
                 />
                 <NavItem
                   href={`/teams/${navTeam.id}/competitive`}
@@ -121,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   active={pathname?.includes('/competitive')}
                   badge={tier === 'FREE' ? 'PRO+' : undefined}
                   disabled={tier === 'FREE'}
-                  collapsed={collapsed}
+                  collapsed={isCollapsed}
                 />
               </>
             ) : (
@@ -131,9 +137,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   icon={<DashboardIcon />}
                   label="Dashboard"
                   active={pathname === '/dashboard'}
-                  collapsed={collapsed}
+                  collapsed={isCollapsed}
                 />
-                {!collapsed && (
+                {!isCollapsed && (
                   <div className="text-center py-4 px-4 text-gray-500 text-sm">
                     Create a team to get started
                   </div>
@@ -146,27 +152,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 icon={<TeamsIcon />}
                 label="Teams"
                 active={pathname === '/teams'}
-                collapsed={collapsed}
+                collapsed={isCollapsed}
               />
+              {/* Collapse toggle — desktop only */}
               <button
                 onClick={toggleSidebar}
-                className={`w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all duration-200 cursor-pointer mt-1`}
-                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                className={`hidden md:flex w-full items-center ${isCollapsed ? 'justify-center px-0' : 'px-3'} py-2.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all duration-200 cursor-pointer mt-1`}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
-                  <svg className={`w-5 h-5 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
+                  <svg className={`w-5 h-5 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
                   </svg>
-                  {!collapsed && <span className="text-sm font-medium">Collapse</span>}
+                  {!isCollapsed && <span className="text-sm font-medium">Collapse</span>}
                 </div>
               </button>
             </div>
           </nav>
 
           {/* Credits & User */}
-          <div className={`${collapsed ? 'px-2' : 'px-4'} py-4 border-t border-gray-100 space-y-3`}>
+          <div className={`${isCollapsed ? 'px-2' : 'px-4'} py-4 border-t border-gray-100 space-y-3`}>
             {/* Credits */}
-            {collapsed ? (
+            {isCollapsed ? (
               <button
                 onClick={() => navTeam && router.push(`/teams/${navTeam.id}/billing`)}
                 className="w-full flex flex-col items-center gap-0.5 bg-gray-50 rounded-xl border border-gray-100 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
@@ -207,8 +214,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className={`w-full flex items-center ${collapsed ? 'justify-center p-2' : 'gap-3 p-2.5'} hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]`}
-                title={collapsed ? (user.display_name || user.email) : undefined}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-2.5'} hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]`}
+                title={isCollapsed ? (user.display_name || user.email) : undefined}
               >
                 {user.avatar_url ? (
                   <Image src={user.avatar_url} alt="Avatar" width={36} height={36} className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
@@ -217,7 +224,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {(user.display_name || user.email).charAt(0).toUpperCase()}
                   </div>
                 )}
-                {!collapsed && (
+                {!isCollapsed && (
                   <>
                     <div className="flex-1 text-left min-w-0">
                       <div className="text-sm font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
@@ -231,7 +238,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
 
               {profileOpen && (
-                <div className={`absolute bottom-full ${collapsed ? 'left-0 min-w-[200px]' : 'left-0 right-0'} mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50`} style={{ animation: 'fadeSlideUp 0.15s ease-out' }}>
+                <div className={`absolute bottom-full ${isCollapsed ? 'left-0 min-w-[200px]' : 'left-0 right-0'} mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50`} style={{ animation: 'fadeSlideUp 0.15s ease-out' }}>
                   <div className="px-3 py-2 border-b border-gray-100">
                     <div className="text-xs font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
                     <div className="text-[11px] text-gray-400 truncate">{user.email}</div>
@@ -249,6 +256,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </div>
+    </>
+  )
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50/80">
+      <ScopeBar teams={teams} onMobileMenuToggle={() => setMobileOpen(!mobileOpen)} mobileMenuOpen={mobileOpen} />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Desktop sidebar */}
+        <aside className={`hidden md:flex ${collapsed ? 'w-[68px]' : 'w-[240px]'} bg-white border-r border-gray-200/80 flex-col shrink-0 transition-all duration-200`}>
+          {sidebarContent}
+        </aside>
+
+        {/* Mobile drawer backdrop */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-40 md:hidden"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+
+        {/* Mobile drawer */}
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white border-r border-gray-200/80 flex flex-col transform transition-transform duration-250 ease-in-out md:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          {sidebarContent}
         </aside>
 
         {/* Main Content */}
@@ -323,7 +353,7 @@ function LoadingScreen() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Skeleton Sidebar */}
-        <aside className="w-[240px] bg-white border-r border-gray-200/80 flex flex-col shrink-0">
+        <aside className="hidden md:flex w-[240px] bg-white border-r border-gray-200/80 flex-col shrink-0">
           {/* Nav items skeleton */}
           <div className="flex-1 px-4 py-4 space-y-1.5">
             {[1, 2, 3].map(i => (
