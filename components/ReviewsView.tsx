@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { apiGet, apiPost, apiPatch, streamDraft } from '@/lib/api'
 import { Toast } from '@/components/Toast'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 
 /* ─── Types ─── */
 
@@ -541,6 +541,8 @@ function ReviewCard({
 
 export default function ReviewsView({ mode, entityId, title, subtitle }: ReviewsViewProps) {
     const router = useRouter()
+    const params = useParams()
+    const teamId = params?.teamId as string | undefined
     const [reviews, setReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(true)
     const [tab, setTab] = useState<'inbox' | 'history'>('inbox')
@@ -832,7 +834,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                             onEditChange={(id, text) => setEdits(prev => ({ ...prev, [id]: text }))}
                             onSkip={handleFocusSkip}
                             onBack={() => setViewMode('list')}
-                            onLocationClick={id => router.push(`/locations/${id}/reviews`)}
+                            onLocationClick={id => teamId ? router.push(`/teams/${teamId}/reviews?location=${id}`) : router.push(`/locations/${id}/reviews`)}
                         />
                     ) : filteredReviews.length === 0 ? (
                         tab === 'inbox' ? <EmptyInbox /> : <EmptyHistory />
@@ -854,7 +856,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                                     onDismiss={handleDismiss}
                                     onEditChange={(id, text) => setEdits(prev => ({ ...prev, [id]: text }))}
                                     showLocation={mode === 'team'}
-                                    onLocationClick={id => router.push(`/locations/${id}/reviews`)}
+                                    onLocationClick={id => teamId ? router.push(`/teams/${teamId}/reviews?location=${id}`) : router.push(`/locations/${id}/reviews`)}
                                 />
                             ))}
                         </div>
