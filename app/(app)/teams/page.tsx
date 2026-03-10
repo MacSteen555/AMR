@@ -564,7 +564,7 @@ export default function TeamsPage() {
                                   <div
                                     key={location.id}
                                     className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-                                    onClick={() => router.push(`/locations/${location.id}`)}
+                                    onClick={() => router.push(`/teams/${selectedTeamId}/reviews?location=${location.id}`)}
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className="w-9 h-9 bg-teal-50 rounded-lg flex items-center justify-center">

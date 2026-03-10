@@ -1,7 +1,7 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
-import { useState, useEffect, useMemo } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { apiGet, apiPost } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
@@ -111,6 +111,9 @@ const SENTIMENT_COLORS = { positive: '#22c55e', neutral: '#eab308', negative: '#
 export default function TeamInsightsPage() {
   const { teamId } = useParams() as { teamId: string }
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const locationId = searchParams?.get('location') || null
+  const isTeamView = !locationId
   const { teams } = useAuth()
   const [period, setPeriod] = useState<PeriodKey>('6m')
   const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
@@ -125,16 +128,15 @@ export default function TeamInsightsPage() {
 
   const { start, end } = useMemo(() => getPeriodDates(period), [period])
 
-  useEffect(() => {
-    loadData()
-  }, [teamId, start, end])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
+      const entityPath = locationId
+        ? `/api/locations/${locationId}`
+        : `/api/teams/${teamId}`
       const [analyticsRes, insightsRes] = await Promise.all([
-        apiGet<{ analytics: TeamAnalytics }>(`/api/teams/${teamId}/insights/data?period_start=${start}&period_end=${end}`),
-        apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}`),
+        apiGet<any>(`${entityPath}/insights/data?period_start=${start}&period_end=${end}`),
+        apiGet<{ insights: AIInsight[] }>(`${entityPath}/insights/run?period_window=${period}`),
       ])
       setAnalytics(analyticsRes.analytics)
       setAiInsights(insightsRes.insights || [])
@@ -143,14 +145,21 @@ export default function TeamInsightsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [teamId, locationId, start, end, period])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleGenerateInsights = async () => {
     setGenerating(true)
     try {
-      await apiPost(`/api/teams/${teamId}/insights/run`, {})
+      const entityPath = locationId
+        ? `/api/locations/${locationId}`
+        : `/api/teams/${teamId}`
+      await apiPost(`${entityPath}/insights/run`, {})
       setToast({ message: 'AI insights generated!', type: 'success' })
-      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}`)
+      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`${entityPath}/insights/run?period_window=${period}`)
       setAiInsights(insightsRes.insights || [])
     } catch (err: any) {
       setToast({ message: err.message || 'Failed to generate insights', type: 'error' })
@@ -171,8 +180,8 @@ export default function TeamInsightsPage() {
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Team Insights</h1>
-            <p className="text-gray-500 mt-1">Review analytics across all your locations.</p>
+            <h1 className="text-3xl font-bold text-gray-900">{isTeamView ? 'Team Insights' : 'Insights'}</h1>
+            <p className="text-gray-500 mt-1">{isTeamView ? 'Review analytics across all your locations.' : 'Review analytics and AI-powered insights for this location.'}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -192,8 +201,8 @@ export default function TeamInsightsPage() {
 
         {loading ? (
           <div className="space-y-6 animate-pulse">
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              {Array.from({ length: 5 }).map((_, i) => (
+            <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
+              {Array.from({ length: isTeamView ? 5 : 4 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 bg-gray-200 rounded-lg" />
@@ -235,30 +244,30 @@ export default function TeamInsightsPage() {
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
               <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
               <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
               <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" />
               <KPICard label="Positive" value={`${kpis!.positivePercent.toFixed(0)}%`} icon={<ThumbsUpIcon />} color="emerald" />
-              <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="amber" />
+              {isTeamView && <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="amber" />}
             </div>
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Rating Over Time */}
-              <ChartCard title="Average Rating Over Time" subtitle="Monthly trend across all locations">
+              <ChartCard title="Average Rating Over Time" subtitle={isTeamView ? "Monthly trend across all locations" : "Monthly rating trend"}>
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={analytics.ratingOverTime.filter(d => d.averageRating !== null)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 12 }} stroke="#9ca3af" />
                     <Tooltip
-                      formatter={(value: any, name: any) => [Number(value).toFixed(2), name === 'averageRating' ? 'Team Avg' : name]}
+                      formatter={(value: any, name: any) => [Number(value).toFixed(2), name === 'averageRating' ? (isTeamView ? 'Team Avg' : 'Avg Rating') : name]}
                       labelFormatter={(label: any) => formatMonth(label)}
                       contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                     />
-                    <Line type="monotone" dataKey="averageRating" name="Team Avg" stroke="#0d9488" strokeWidth={3} dot={{ fill: '#0d9488', r: 4 }} activeDot={{ r: 6 }} />
-                    {analytics.perLocation.map((loc, i) => (
+                    <Line type="monotone" dataKey="averageRating" name={isTeamView ? 'Team Avg' : 'Avg Rating'} stroke="#0d9488" strokeWidth={3} dot={{ fill: '#0d9488', r: 4 }} activeDot={{ r: 6 }} />
+                    {isTeamView && analytics.perLocation?.map((loc, i) => (
                       <Line
                         key={loc.locationId}
                         type="monotone"
@@ -289,38 +298,58 @@ export default function TeamInsightsPage() {
               </ChartCard>
 
               {/* Response Rate Over Time */}
-              <ChartCard title="Response Rate Over Time" subtitle="Percentage of reviews replied to">
-                <ResponsiveContainer width="100%" height={260}>
-                  <ComposedChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={v => `${v}%`} />
-                    <Tooltip
-                      formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name === 'rate' ? 'Team Avg' : name]}
-                      labelFormatter={(label: any) => formatMonth(label)}
-                      contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
-                    />
-                    <defs>
-                      <linearGradient id="teamResponseGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#0d9488" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
-                    {analytics.perLocation.map((loc, i) => (
-                      <Line
-                        key={loc.locationId}
-                        type="monotone"
-                        dataKey={loc.locationName}
-                        name={loc.locationName}
-                        stroke={`hsl(${i * 137.5 % 360}, 70%, 50%)`}
-                        strokeWidth={2}
-                        dot={false}
+              {isTeamView ? (
+                <ChartCard title="Response Rate Over Time" subtitle="Percentage of reviews replied to">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <ComposedChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={v => `${v}%`} />
+                      <Tooltip
+                        formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name === 'rate' ? 'Team Avg' : name]}
+                        labelFormatter={(label: any) => formatMonth(label)}
+                        contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
                       />
-                    ))}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </ChartCard>
+                      <defs>
+                        <linearGradient id="teamResponseGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#0d9488" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
+                      {analytics.perLocation?.map((loc, i) => (
+                        <Line
+                          key={loc.locationId}
+                          type="monotone"
+                          dataKey={loc.locationName}
+                          name={loc.locationName}
+                          stroke={`hsl(${i * 137.5 % 360}, 70%, 50%)`}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      ))}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              ) : (
+                <ChartCard title="Response Rate Over Time" subtitle="Percentage of reviews replied to">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={v => `${v}%`} />
+                      <Tooltip formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Response Rate']} labelFormatter={(label: any) => formatMonth(label)} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
+                      <defs>
+                        <linearGradient id="responseGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area type="monotone" dataKey="rate" stroke="#0d9488" strokeWidth={2.5} fill="url(#responseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartCard>
+              )}
 
               {/* Rating Distribution */}
               <ChartCard title="Rating Distribution" subtitle="Breakdown by star rating">
@@ -358,7 +387,7 @@ export default function TeamInsightsPage() {
             </div>
 
             {/* Per-Location Breakdown */}
-            {analytics.perLocation.length > 0 && (
+            {isTeamView && analytics.perLocation?.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
                 <div className="p-5 border-b border-gray-100">
                   <h3 className="text-base font-semibold text-gray-900">Location Breakdown</h3>
@@ -376,11 +405,15 @@ export default function TeamInsightsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {analytics.perLocation.map((loc, i) => (
+                      {analytics.perLocation?.map((loc, i) => (
                         <tr
                           key={loc.locationId}
                           className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-gray-25'}`}
-                          onClick={() => router.push(`/locations/${loc.locationId}/insights`)}
+                          onClick={() => {
+                            const searchQuery = new URLSearchParams(searchParams?.toString() || '')
+                            searchQuery.set('location', loc.locationId)
+                            router.replace(`/teams/${teamId}/insights?${searchQuery.toString()}`)
+                          }}
                         >
                           <td className="px-5 py-3.5">
                             <span className="text-sm font-medium text-gray-900 hover:text-teal-600">{loc.locationName}</span>
@@ -453,7 +486,7 @@ export default function TeamInsightsPage() {
                     ) : (
                       <>
                         <SparklesIcon />
-                        Generate Team Insights (3 credits)
+                        {isTeamView ? 'Generate Team Insights (3 credits)' : 'Generate Insights (3 credits)'}
                       </>
                     )}
                   </button>
