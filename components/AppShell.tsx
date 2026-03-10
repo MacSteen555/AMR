@@ -13,10 +13,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const teamId = params?.teamId as string | undefined
   const currentTeam = teams.find(t => t.id === teamId) || null
-  // Fallback to first team only for credits display (e.g., on /settings page)
-  const creditTeam = currentTeam || (teams.length > 0 ? teams[0] : null)
-  const credits = creditTeam?.creditBalance || 0
-  const tier = currentTeam?.subscription?.tier || 'FREE'
+  // Fallback to first team for nav links and credits when not on a team-scoped page
+  const navTeam = currentTeam || (teams.length > 0 ? teams[0] : null)
+  const credits = navTeam?.creditBalance || 0
+  const tier = navTeam?.subscription?.tier || 'FREE'
 
   const locationQs = searchParams?.get('location') ? '?location=' + searchParams.get('location') : ''
 
@@ -35,22 +35,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <aside className="w-[240px] bg-white border-r border-gray-200/80 flex flex-col shrink-0">
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {currentTeam && teamId ? (
+            {navTeam ? (
               <>
                 <NavItem
-                  href={`/teams/${currentTeam.id}/reviews${locationQs}`}
+                  href={`/teams/${navTeam.id}/reviews${locationQs}`}
                   icon={<ReviewIcon />}
                   label="Reviews"
                   active={pathname?.includes('/reviews')}
                 />
                 <NavItem
-                  href={`/teams/${currentTeam.id}/insights${locationQs}`}
+                  href={`/teams/${navTeam.id}/insights${locationQs}`}
                   icon={<InsightsIcon />}
                   label="Insights"
                   active={pathname?.includes('/insights')}
                 />
                 <NavItem
-                  href={`/teams/${currentTeam.id}/competitive`}
+                  href={`/teams/${navTeam.id}/competitive`}
                   icon={<CompeteIcon />}
                   label="Compete"
                   active={pathname?.includes('/competitive')}
@@ -94,9 +94,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="text-[10px] text-gray-400 font-medium">credits left</div>
                 </div>
               </div>
-              {creditTeam && (
+              {navTeam && (
                 <button
-                  onClick={() => router.push(`/teams/${creditTeam.id}/billing`)}
+                  onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
                   className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
                 >
                   Top up
