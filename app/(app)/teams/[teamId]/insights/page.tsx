@@ -113,8 +113,8 @@ export default function TeamInsightsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const locationId = searchParams?.get('location') || null
-  const isTeamView = !locationId
   const { teams } = useAuth()
+  const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([])
   const [period, setPeriod] = useState<PeriodKey>('6m')
   const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([])
@@ -128,10 +128,24 @@ export default function TeamInsightsPage() {
 
   const { start, end } = useMemo(() => getPeriodDates(period), [period])
 
+  useEffect(() => {
+    apiGet<{ locations: Array<{ id: string; name: string }> }>(`/api/teams/${teamId}/locations`)
+      .then(res => setLocations(res.locations || []))
+      .catch(() => {})
+  }, [teamId])
+
+  const effectiveLocationId = useMemo(() => {
+    if (locationId) return locationId
+    if (locations.length === 1) return locations[0].id
+    return null
+  }, [locationId, locations])
+
+  const isTeamView = !effectiveLocationId
+
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const locParam = locationId ? `&location=${locationId}` : ''
+      const locParam = effectiveLocationId ? `&location=${effectiveLocationId}` : ''
       const [analyticsRes, insightsRes] = await Promise.all([
         apiGet<any>(`/api/teams/${teamId}/insights/data?period_start=${start}&period_end=${end}${locParam}`),
         apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}${locParam}`),
@@ -143,7 +157,7 @@ export default function TeamInsightsPage() {
     } finally {
       setLoading(false)
     }
-  }, [teamId, locationId, start, end, period])
+  }, [teamId, effectiveLocationId, start, end, period])
 
   useEffect(() => {
     loadData()
@@ -152,10 +166,10 @@ export default function TeamInsightsPage() {
   const handleGenerateInsights = async () => {
     setGenerating(true)
     try {
-      const locParam = locationId ? `?location=${locationId}` : ''
+      const locParam = effectiveLocationId ? `?location=${effectiveLocationId}` : ''
       await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, {})
       setToast({ message: 'AI insights generated!', type: 'success' })
-      const locQp = locationId ? `&location=${locationId}` : ''
+      const locQp = effectiveLocationId ? `&location=${effectiveLocationId}` : ''
       const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}${locQp}`)
       setAiInsights(insightsRes.insights || [])
     } catch (err: any) {
