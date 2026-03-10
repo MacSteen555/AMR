@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useState, useRef, useEffect } from 'react'
 import { ScopeBar } from '@/components/ScopeBar'
 
@@ -210,7 +211,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 title={collapsed ? (user.display_name || user.email) : undefined}
               >
                 {user.avatar_url ? (
-                  <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
+                  <Image src={user.avatar_url} alt="Avatar" width={36} height={36} className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
                 ) : (
                   <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-teal-100">
                     {(user.display_name || user.email).charAt(0).toUpperCase()}

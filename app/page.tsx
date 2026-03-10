@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 /* ════════════════════════════════════════════════════════════════════
@@ -287,7 +288,7 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+            <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={32} height={32} className="h-8 w-auto" />
             <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
           </div>
 
@@ -970,7 +971,7 @@ export default function LandingPage() {
             {/* Brand column */}
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+                <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={32} height={32} className="h-8 w-auto" />
                 <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
               </div>
               <p className="text-sm text-gray-500 leading-relaxed max-w-sm mb-6">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { apiGet } from '@/lib/api'
 import type { Team } from '@/hooks/useAuth'
 
@@ -112,7 +113,7 @@ export function ScopeBar({ teams }: ScopeBarProps) {
         href={`/teams/${displayTeam.id}/reviews`}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
       >
-        <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-7 w-auto" />
+        <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={28} height={28} className="h-7 w-auto" />
         <span className="text-base font-bold text-gray-900 hidden sm:block">AutoMyReply</span>
       </Link>
 
