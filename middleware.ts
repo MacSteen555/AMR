@@ -80,6 +80,26 @@ async function getUserId(request: NextRequest): Promise<string | null> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Redirect old /locations/:id/... URLs to new ?location= pattern
+  const locationMatch = pathname.match(/^\/locations\/([^/]+)\/(reviews|insights)/)
+  if (locationMatch) {
+    const [, locationId, section] = locationMatch
+    const url = request.nextUrl.clone()
+    url.pathname = '/location-redirect'
+    url.searchParams.set('locationId', locationId)
+    url.searchParams.set('section', section)
+    return NextResponse.redirect(url)
+  }
+
+  const bareLocationMatch = pathname.match(/^\/locations\/([^/]+)$/)
+  if (bareLocationMatch) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/location-redirect'
+    url.searchParams.set('locationId', bareLocationMatch[1])
+    url.searchParams.set('section', 'reviews')
+    return NextResponse.redirect(url)
+  }
+
   // Only rate-limit API routes
   if (!pathname.startsWith('/api/')) {
     return NextResponse.next()
@@ -127,5 +147,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/locations/:path*'],
 }
