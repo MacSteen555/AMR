@@ -32,9 +32,12 @@ export function ScopeBar() {
 
   const teamId = params?.teamId as string | undefined
   const currentTeam = teams.find(t => t.id === teamId) || null
+  // Fallback to first team for logo link and team dropdown on non-team pages (/teams, /settings)
+  const displayTeam = currentTeam || (teams.length > 0 ? teams[0] : null)
   const selectedLocationId = searchParams?.get('location') || null
   const section = getCurrentSection(pathname)
-  const showLocationDropdown = LOCATION_ENABLED_SECTIONS.includes(section)
+  // Only show location dropdown on team-scoped pages with reviews/insights
+  const showLocationDropdown = !!teamId && LOCATION_ENABLED_SECTIONS.includes(section)
 
   const [locations, setLocations] = useState<Location[]>([])
   const [teamsOpen, setTeamsOpen] = useState(false)
@@ -44,11 +47,11 @@ export function ScopeBar() {
 
   // Fetch locations when team changes
   useEffect(() => {
-    if (!currentTeam) return
-    apiGet<{ locations: Location[] }>(`/api/teams/${currentTeam.id}/locations`)
+    if (!displayTeam) return
+    apiGet<{ locations: Location[] }>(`/api/teams/${displayTeam.id}/locations`)
       .then(res => setLocations(res.locations || []))
       .catch(() => setLocations([]))
-  }, [currentTeam?.id])
+  }, [displayTeam?.id])
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -86,14 +89,14 @@ export function ScopeBar() {
 
   const selectedLocation = locations.find(l => l.id === selectedLocationId)
 
-  // Don't render on pages without a team context (e.g., /settings, /teams management)
-  if (!teamId || !currentTeam) return null
+  // Don't render if user has no teams at all
+  if (!displayTeam) return null
 
   return (
     <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shrink-0 z-50">
       {/* Logo */}
       <Link
-        href={`/teams/${currentTeam.id}/reviews`}
+        href={`/teams/${displayTeam.id}/reviews`}
         className="flex items-center gap-2 hover:opacity-80 transition-opacity shrink-0"
       >
         <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-7 w-auto" />
@@ -111,9 +114,9 @@ export function ScopeBar() {
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-sm font-medium text-gray-700"
           >
             <div className="w-6 h-6 bg-gradient-to-br from-teal-500 to-teal-600 rounded-md flex items-center justify-center shrink-0">
-              <span className="text-white font-bold text-xs">{currentTeam.name.charAt(0).toUpperCase()}</span>
+              <span className="text-white font-bold text-xs">{displayTeam.name.charAt(0).toUpperCase()}</span>
             </div>
-            <span className="max-w-[140px] truncate">{currentTeam.name}</span>
+            <span className="max-w-[140px] truncate">{displayTeam.name}</span>
             <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${teamsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -128,15 +131,15 @@ export function ScopeBar() {
                 <button
                   key={team.id}
                   onClick={() => handleTeamSwitch(team.id)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between cursor-pointer ${team.id === currentTeam.id ? 'bg-teal-50/60' : ''}`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between cursor-pointer ${team.id === displayTeam.id ? 'bg-teal-50/60' : ''}`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${team.id === currentTeam.id ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${team.id === displayTeam.id ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500'}`}>
                       {team.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className={`truncate ${team.id === currentTeam.id ? 'text-teal-700 font-medium' : 'text-gray-700'}`}>{team.name}</span>
+                    <span className={`truncate ${team.id === displayTeam.id ? 'text-teal-700 font-medium' : 'text-gray-700'}`}>{team.name}</span>
                   </div>
-                  {team.id === currentTeam.id && (
+                  {team.id === displayTeam.id && (
                     <svg className="w-4 h-4 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
