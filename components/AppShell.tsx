@@ -12,8 +12,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   const teamId = params?.teamId as string | undefined
-  const currentTeam = teams.find(t => t.id === teamId) || (teams.length > 0 ? teams[0] : null)
-  const credits = currentTeam?.creditBalance || 0
+  const currentTeam = teams.find(t => t.id === teamId) || null
+  // Fallback to first team only for credits display (e.g., on /settings page)
+  const creditTeam = currentTeam || (teams.length > 0 ? teams[0] : null)
+  const credits = creditTeam?.creditBalance || 0
   const tier = currentTeam?.subscription?.tier || 'FREE'
 
   const locationQs = searchParams?.get('location') ? '?location=' + searchParams.get('location') : ''
@@ -92,9 +94,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="text-[10px] text-gray-400 font-medium">credits left</div>
                 </div>
               </div>
-              {currentTeam && (
+              {creditTeam && (
                 <button
-                  onClick={() => router.push(`/teams/${currentTeam.id}/billing`)}
+                  onClick={() => router.push(`/teams/${creditTeam.id}/billing`)}
                   className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
                 >
                   Top up
