@@ -176,7 +176,7 @@ export default function TeamInsightsPage() {
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className="p-8 max-w-[1400px] mx-auto">
+      <div className="p-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>

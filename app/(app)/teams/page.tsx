@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { apiGet, apiPost, apiDelete, apiPatch } from '@/lib/api'
 import { Toast } from '@/components/Toast'
@@ -655,7 +656,7 @@ export default function TeamsPage() {
                                   >
                                     <div className="flex items-center gap-3">
                                       {member.avatar_url ? (
-                                        <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full" />
+                                        <Image src={member.avatar_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full" />
                                       ) : (
                                         <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
                                           {(member.display_name || member.email).charAt(0).toUpperCase()}

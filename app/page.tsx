@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 /* ════════════════════════════════════════════════════════════════════
@@ -245,6 +246,13 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(res => { if (res.ok) setIsLoggedIn(true) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -280,7 +288,7 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+            <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={32} height={32} className="h-8 w-auto" />
             <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
           </div>
 
@@ -289,9 +297,9 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Features</button>
             <button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Pricing</button>
             <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">FAQ</button>
-            <Link href="/login" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">Log in</Link>
-            <Link href="/login" className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-200 transition-all duration-300">
-              Get Started Free
+            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">{isLoggedIn ? "Dashboard" : "Log in"}</Link>
+            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-200 transition-all duration-300">
+              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}
             </Link>
           </div>
 
@@ -312,9 +320,9 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('features')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Features</button>
             <button onClick={() => scrollTo('pricing')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Pricing</button>
             <button onClick={() => scrollTo('faq')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">FAQ</button>
-            <Link href="/login" className="block text-sm text-gray-600 hover:text-gray-900 py-2">Log in</Link>
-            <Link href="/login" className="block w-full text-center px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold">
-              Get Started Free
+            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="block text-sm text-gray-600 hover:text-gray-900 py-2">{isLoggedIn ? "Dashboard" : "Log in"}</Link>
+            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="block w-full text-center px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold">
+              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}
             </Link>
           </div>
         )}
@@ -352,10 +360,10 @@ export default function LandingPage() {
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20" style={{ animation: 'fadeSlideUp 0.6s ease-out 0.3s both' }}>
             <Link
-              href="/login"
+              href={isLoggedIn ? "/dashboard" : "/login"}
               className="group px-8 py-4 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-2xl text-lg font-semibold hover:shadow-xl hover:shadow-teal-200/60 transition-all duration-300 inline-flex items-center justify-center gap-2"
             >
-              Start Free
+              {isLoggedIn ? "Go to Dashboard" : "Start Free"}
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -864,14 +872,14 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/login"
+                  href={isLoggedIn ? "/dashboard" : "/login"}
                   className={`block w-full py-3 px-4 rounded-xl font-semibold text-center transition-all duration-300 cursor-pointer ${
                     plan.popular
                       ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white hover:shadow-lg hover:shadow-teal-200'
                       : 'bg-gray-50 text-gray-700 hover:bg-teal-50 hover:text-teal-700 border border-gray-200'
                   }`}
                 >
-                  {plan.cta}
+                  {isLoggedIn ? "Go to Dashboard" : plan.cta}
                 </Link>
               </div>
             ))}
@@ -936,10 +944,10 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
-                  href="/login"
+                  href={isLoggedIn ? "/dashboard" : "/login"}
                   className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-teal-600 rounded-2xl text-lg font-bold hover:shadow-xl transition-all duration-300"
                 >
-                  Get Started Free
+                  {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}
                   <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
@@ -963,7 +971,7 @@ export default function LandingPage() {
             {/* Brand column */}
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <img src="/images/amber_teal-logo.png" alt="AutoMyReply" className="h-8 w-auto" />
+                <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={32} height={32} className="h-8 w-auto" />
                 <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
               </div>
               <p className="text-sm text-gray-500 leading-relaxed max-w-sm mb-6">
