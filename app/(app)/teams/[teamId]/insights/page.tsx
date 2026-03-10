@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { apiGet, apiPost } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
@@ -128,11 +128,7 @@ export default function TeamInsightsPage() {
 
   const { start, end } = useMemo(() => getPeriodDates(period), [period])
 
-  useEffect(() => {
-    loadData()
-  }, [teamId, locationId, start, end])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const entityPath = locationId
@@ -149,7 +145,11 @@ export default function TeamInsightsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [teamId, locationId, start, end, period])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleGenerateInsights = async () => {
     setGenerating(true)
