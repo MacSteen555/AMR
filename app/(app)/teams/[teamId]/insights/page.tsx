@@ -131,12 +131,10 @@ export default function TeamInsightsPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const entityPath = locationId
-        ? `/api/locations/${locationId}`
-        : `/api/teams/${teamId}`
+      const locParam = locationId ? `&location=${locationId}` : ''
       const [analyticsRes, insightsRes] = await Promise.all([
-        apiGet<any>(`${entityPath}/insights/data?period_start=${start}&period_end=${end}`),
-        apiGet<{ insights: AIInsight[] }>(`${entityPath}/insights/run?period_window=${period}`),
+        apiGet<any>(`/api/teams/${teamId}/insights/data?period_start=${start}&period_end=${end}${locParam}`),
+        apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}${locParam}`),
       ])
       setAnalytics(analyticsRes.analytics)
       setAiInsights(insightsRes.insights || [])
@@ -154,12 +152,11 @@ export default function TeamInsightsPage() {
   const handleGenerateInsights = async () => {
     setGenerating(true)
     try {
-      const entityPath = locationId
-        ? `/api/locations/${locationId}`
-        : `/api/teams/${teamId}`
-      await apiPost(`${entityPath}/insights/run`, {})
+      const locParam = locationId ? `?location=${locationId}` : ''
+      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, {})
       setToast({ message: 'AI insights generated!', type: 'success' })
-      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`${entityPath}/insights/run?period_window=${period}`)
+      const locQp = locationId ? `&location=${locationId}` : ''
+      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}${locQp}`)
       setAiInsights(insightsRes.insights || [])
     } catch (err: any) {
       setToast({ message: err.message || 'Failed to generate insights', type: 'error' })
