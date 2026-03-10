@@ -73,6 +73,10 @@ export function ScopeBar({ teams }: ScopeBarProps) {
   const handleTeamSwitch = (newTeamId: string) => {
     setTeamsOpen(false)
     setLocations([])
+    // Clear stored location for the old team so we start fresh
+    if (teamId) {
+      try { sessionStorage.removeItem('amr:location:' + teamId) } catch { /* noop */ }
+    }
     // Navigate to same section on new team, drop location param
     router.push(`/teams/${newTeamId}/${section}`)
   }
@@ -80,6 +84,12 @@ export function ScopeBar({ teams }: ScopeBarProps) {
   const handleLocationSwitch = (locationId: string | null) => {
     setLocationsOpen(false)
     if (!teamId) return
+    // Persist to sessionStorage so filter survives cross-page navigation
+    try {
+      const key = 'amr:location:' + teamId
+      if (locationId) sessionStorage.setItem(key, locationId)
+      else sessionStorage.removeItem(key)
+    } catch { /* SSR / private browsing */ }
     const searchQuery = new URLSearchParams(searchParams?.toString() || '')
     if (locationId) {
       searchQuery.set('location', locationId)

@@ -8,7 +8,7 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
+        <div>
           <div className="animate-pulse mb-8">
             <div className="h-8 w-40 bg-gray-200 rounded mb-2"></div>
             <div className="h-4 w-72 bg-gray-200 rounded"></div>
@@ -36,7 +36,7 @@ export default function SettingsPage() {
   return (
     <>
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
+        <div>
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
