@@ -348,9 +348,9 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-gray-900 mb-6 leading-[1.08]" style={{ animation: 'fadeSlideUp 0.6s ease-out 0.1s both' }}>
-            Reply to every review
+            Every review answered.
             <br />
-            <span className="text-gradient">in seconds, not hours</span>
+            <span className="text-gradient">Zero effort required.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto mb-10 leading-relaxed" style={{ animation: 'fadeSlideUp 0.6s ease-out 0.2s both' }}>
