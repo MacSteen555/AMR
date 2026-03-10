@@ -57,11 +57,12 @@ export function useAuth() {
     }
   }
 
-  const logout = () => {
-    // Clear local state
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+    } catch { /* best-effort */ }
     setUser(null)
     setTeams([])
-    // Redirect to login
     router.push('/login')
   }
 

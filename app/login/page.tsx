@@ -1,11 +1,18 @@
 import Link from "next/link";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
+import { getSupabaseUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: { error?: string };
 }) {
+  const user = await getSupabaseUser()
+  if (user) {
+    redirect('/dashboard')
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* ── Left Panel: Branding & Feature Highlights ── */}

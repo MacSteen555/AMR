@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/useAuth'
 import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ScopeBar } from '@/components/ScopeBar'
 
 // Persist selected location per team in sessionStorage so it survives
@@ -22,7 +22,7 @@ function storeLocation(teamId: string, locationId: string | null) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, teams, loading } = useAuth()
+  const { user, teams, loading, logout } = useAuth()
   const params = useParams()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -52,6 +52,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const locationQs = activeLocation ? '?location=' + activeLocation : ''
 
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef<HTMLDivElement>(null)
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('amr:sidebar-collapsed') === '1' } catch { return false }
+  })
+
+  const toggleSidebar = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    try { localStorage.setItem('amr:sidebar-collapsed', next ? '1' : '0') } catch { /* noop */ }
+  }
+
+  // Close profile popover on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   if (loading) {
     return <LoadingScreen />
   }
@@ -64,9 +87,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-screen bg-gray-50/80">
       <ScopeBar teams={teams} />
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-[240px] bg-white border-r border-gray-200/80 flex flex-col shrink-0">
+        <aside className={`${collapsed ? 'w-[68px]' : 'w-[240px]'} bg-white border-r border-gray-200/80 flex flex-col shrink-0 transition-all duration-200`}>
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+          <nav className={`flex-1 ${collapsed ? 'px-2' : 'px-4'} py-4 space-y-1 overflow-y-auto`}>
             {navTeam ? (
               <>
                 <NavItem
@@ -74,18 +97,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   icon={<DashboardIcon />}
                   label="Dashboard"
                   active={pathname === `/teams/${navTeam.id}` || pathname === '/dashboard'}
+                  collapsed={collapsed}
                 />
                 <NavItem
                   href={`/teams/${navTeam.id}/reviews${locationQs}`}
                   icon={<ReviewIcon />}
                   label="Reviews"
                   active={pathname?.includes('/reviews')}
+                  collapsed={collapsed}
                 />
                 <NavItem
                   href={`/teams/${navTeam.id}/insights${locationQs}`}
                   icon={<InsightsIcon />}
                   label="Insights"
                   active={pathname?.includes('/insights')}
+                  collapsed={collapsed}
                 />
                 <NavItem
                   href={`/teams/${navTeam.id}/competitive`}
@@ -94,6 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   active={pathname?.includes('/competitive')}
                   badge={tier === 'FREE' ? 'PRO+' : undefined}
                   disabled={tier === 'FREE'}
+                  collapsed={collapsed}
                 />
               </>
             ) : (
@@ -103,10 +130,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   icon={<DashboardIcon />}
                   label="Dashboard"
                   active={pathname === '/dashboard'}
+                  collapsed={collapsed}
                 />
-                <div className="text-center py-4 px-4 text-gray-500 text-sm">
-                  Create a team to get started
-                </div>
+                {!collapsed && (
+                  <div className="text-center py-4 px-4 text-gray-500 text-sm">
+                    Create a team to get started
+                  </div>
+                )}
               </>
             )}
             <div className="pt-4 mt-4 border-t border-gray-100">
@@ -115,61 +145,117 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 icon={<TeamsIcon />}
                 label="Teams"
                 active={pathname === '/teams'}
+                collapsed={collapsed}
               />
-              <NavItem
-                href="/settings"
-                icon={<SettingsIcon />}
-                label="Settings"
-                active={pathname === '/settings'}
-              />
+              {navTeam && (
+                <NavItem
+                  href={`/teams/${navTeam.id}/settings`}
+                  icon={<SettingsIcon />}
+                  label="Team Settings"
+                  active={pathname?.includes('/settings')}
+                  collapsed={collapsed}
+                />
+              )}
+              <button
+                onClick={toggleSidebar}
+                className={`w-full flex items-center ${collapsed ? 'justify-center px-0' : 'px-3'} py-2.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all duration-200 cursor-pointer mt-1`}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
+                  <svg className={`w-5 h-5 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                  </svg>
+                  {!collapsed && <span className="text-sm font-medium">Collapse</span>}
+                </div>
+              </button>
             </div>
           </nav>
 
           {/* Credits & User */}
-          <div className="px-4 py-4 border-t border-gray-100 space-y-3">
+          <div className={`${collapsed ? 'px-2' : 'px-4'} py-4 border-t border-gray-100 space-y-3`}>
             {/* Credits */}
-            <div className="flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5">
-              <div className="flex items-center gap-2">
+            {collapsed ? (
+              <button
+                onClick={() => navTeam && router.push(`/teams/${navTeam.id}/billing`)}
+                className="w-full flex flex-col items-center gap-0.5 bg-gray-50 rounded-xl border border-gray-100 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
+                title={`${credits} credits left`}
+              >
                 <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
                   <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-teal-600 leading-none">{credits}</div>
-                  <div className="text-[10px] text-gray-400 font-medium">credits left</div>
+                <div className="text-sm font-bold text-teal-600 leading-none">{credits}</div>
+              </button>
+            ) : (
+              <div className="flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-teal-600 leading-none">{credits}</div>
+                    <div className="text-[10px] text-gray-400 font-medium">credits left</div>
+                  </div>
                 </div>
+                {navTeam && (
+                  <button
+                    onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
+                    className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
+                  >
+                    Top up
+                  </button>
+                )}
               </div>
-              {navTeam && (
-                <button
-                  onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
-                  className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
-                >
-                  Top up
-                </button>
+            )}
+
+            {/* User Profile with Popover */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                className={`w-full flex items-center ${collapsed ? 'justify-center p-2' : 'gap-3 p-2.5'} hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]`}
+                title={collapsed ? (user.display_name || user.email) : undefined}
+              >
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
+                ) : (
+                  <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-teal-100">
+                    {(user.display_name || user.email).charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {!collapsed && (
+                  <>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
+                      <div className="text-xs text-gray-400 truncate">{user.email}</div>
+                    </div>
+                    <svg className={`w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-all flex-shrink-0 ${profileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                  </>
+                )}
+              </button>
+
+              {profileOpen && (
+                <div className={`absolute bottom-full ${collapsed ? 'left-0 min-w-[200px]' : 'left-0 right-0'} mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50`} style={{ animation: 'fadeSlideUp 0.15s ease-out' }}>
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <div className="text-xs font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
+                    <div className="text-[11px] text-gray-400 truncate">{user.email}</div>
+                  </div>
+                  <button
+                    onClick={() => { setProfileOpen(false); logout() }}
+                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
               )}
             </div>
-
-            {/* User */}
-            <button
-              onClick={() => router.push('/settings')}
-              className="w-full flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]"
-            >
-              {user.avatar_url ? (
-                <img src={user.avatar_url} alt="Avatar" className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
-              ) : (
-                <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-teal-100">
-                  {(user.display_name || user.email).charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="flex-1 text-left min-w-0">
-                <div className="text-sm font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
-                <div className="text-xs text-gray-400 truncate">{user.email}</div>
-              </div>
-              <svg className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
           </div>
         </aside>
 
@@ -188,7 +274,8 @@ function NavItem({
   label,
   active,
   badge,
-  disabled
+  disabled,
+  collapsed
 }: {
   href: string
   icon: React.ReactNode
@@ -196,6 +283,7 @@ function NavItem({
   active?: boolean
   badge?: string
   disabled?: boolean
+  collapsed?: boolean
 }) {
   const router = useRouter()
 
@@ -203,20 +291,21 @@ function NavItem({
     <button
       onClick={() => !disabled && router.push(href)}
       disabled={disabled}
-      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.98] ${active
+      title={collapsed ? label : undefined}
+      className={`w-full flex items-center ${collapsed ? 'justify-center px-0 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.98] ${active
         ? 'bg-teal-600 text-white shadow-sm shadow-teal-200'
         : disabled
           ? 'text-gray-300 cursor-not-allowed'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
         }`}
     >
-      <div className="flex items-center gap-3">
+      <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
         <div className={active ? 'text-white' : disabled ? 'text-gray-300' : 'text-gray-400'}>
           {icon}
         </div>
-        <span className="text-sm font-medium">{label}</span>
+        {!collapsed && <span className="text-sm font-medium">{label}</span>}
       </div>
-      {badge && (
+      {!collapsed && badge && (
         <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${active ? 'bg-white/20 text-white' : 'bg-teal-50 text-teal-600'}`}>
           {badge}
         </span>
