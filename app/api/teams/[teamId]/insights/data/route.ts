@@ -67,6 +67,7 @@ interface ReviewRow {
   reply_status: string
   replied_at: string | null
   location_id: string
+  reviewer_name: string | null
 }
 
 interface LocationInfo {
@@ -92,6 +93,9 @@ function computeTeamAnalytics(
         positivePercent: 0,
         negativePercent: 0,
         locationCount: locations.length,
+        sentimentMomentum: null,
+        anonymousRatio: 0,
+        anonymousNegativeCount: 0,
       },
       ratingOverTime: [],
       volumeOverTime: [],
@@ -258,6 +262,23 @@ function computeTeamAnalytics(
 
   const keywordThemes = extractKeywordThemes(reviews, periodStart, periodEnd)
 
+  // Sentiment momentum — compare first-half avg rating to second-half
+  const midDate = new Date((new Date(periodStart).getTime() + new Date(periodEnd).getTime()) / 2)
+  const firstHalfReviews = reviews.filter(r => new Date(r.review_date) < midDate)
+  const secondHalfReviews = reviews.filter(r => new Date(r.review_date) >= midDate)
+
+  const firstAvg = firstHalfReviews.length > 0 ? firstHalfReviews.reduce((s, r) => s + r.rating, 0) / firstHalfReviews.length : null
+  const secondAvg = secondHalfReviews.length > 0 ? secondHalfReviews.reduce((s, r) => s + r.rating, 0) / secondHalfReviews.length : null
+
+  const sentimentMomentum = firstAvg !== null && secondAvg !== null
+    ? Math.round((secondAvg - firstAvg) * 100) / 100
+    : null
+
+  // Anonymous review ratio
+  const anonymousReviews = reviews.filter(r => !r.reviewer_name || r.reviewer_name === 'Anonymous' || r.reviewer_name.trim() === '')
+  const anonymousRatio = totalReviews > 0 ? Math.round((anonymousReviews.length / totalReviews) * 10000) / 100 : 0
+  const anonymousNegativeCount = anonymousReviews.filter(r => r.rating <= 2).length
+
   return {
     kpis: {
       totalReviews,
@@ -269,6 +290,9 @@ function computeTeamAnalytics(
       positivePercent: Math.round((positive / totalReviews) * 10000) / 100,
       negativePercent: Math.round((negative / totalReviews) * 10000) / 100,
       locationCount: locations.length,
+      sentimentMomentum,
+      anonymousRatio,
+      anonymousNegativeCount,
     },
     ratingOverTime,
     volumeOverTime,
@@ -294,6 +318,9 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
         averageResponseTimeHours: null,
         positivePercent: 0,
         negativePercent: 0,
+        sentimentMomentum: null,
+        anonymousRatio: 0,
+        anonymousNegativeCount: 0,
       },
       ratingOverTime: [],
       volumeOverTime: [],
@@ -422,6 +449,23 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
 
   const keywordThemes = extractKeywordThemes(reviews, periodStart, periodEnd)
 
+  // Sentiment momentum — compare first-half avg rating to second-half
+  const midDate = new Date((new Date(periodStart).getTime() + new Date(periodEnd).getTime()) / 2)
+  const firstHalfReviews = reviews.filter(r => new Date(r.review_date) < midDate)
+  const secondHalfReviews = reviews.filter(r => new Date(r.review_date) >= midDate)
+
+  const firstAvg = firstHalfReviews.length > 0 ? firstHalfReviews.reduce((s, r) => s + r.rating, 0) / firstHalfReviews.length : null
+  const secondAvg = secondHalfReviews.length > 0 ? secondHalfReviews.reduce((s, r) => s + r.rating, 0) / secondHalfReviews.length : null
+
+  const sentimentMomentum = firstAvg !== null && secondAvg !== null
+    ? Math.round((secondAvg - firstAvg) * 100) / 100
+    : null
+
+  // Anonymous review ratio
+  const anonymousReviews = reviews.filter(r => !r.reviewer_name || r.reviewer_name === 'Anonymous' || r.reviewer_name.trim() === '')
+  const anonymousRatio = totalReviews > 0 ? Math.round((anonymousReviews.length / totalReviews) * 10000) / 100 : 0
+  const anonymousNegativeCount = anonymousReviews.filter(r => r.rating <= 2).length
+
   return {
     kpis: {
       totalReviews,
@@ -432,6 +476,9 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
         : null,
       positivePercent: Math.round((positive / totalReviews) * 10000) / 100,
       negativePercent: Math.round((negative / totalReviews) * 10000) / 100,
+      sentimentMomentum,
+      anonymousRatio,
+      anonymousNegativeCount,
     },
     ratingOverTime,
     volumeOverTime,
@@ -477,7 +524,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       const { data: reviews, error } = await supabase
         .schema('app')
         .from('google_reviews')
-        .select('rating, comment, review_date, reply_status, replied_at')
+        .select('rating, comment, review_date, reply_status, replied_at, reviewer_name')
         .eq('location_id', locationParam)
         .gte('review_date', periodStart)
         .lte('review_date', periodEnd)
@@ -510,7 +557,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const { data: reviews, error } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('rating, comment, review_date, reply_status, replied_at, location_id')
+      .select('rating, comment, review_date, reply_status, replied_at, location_id, reviewer_name')
       .in('location_id', locationIds)
       .gte('review_date', periodStart)
       .lte('review_date', periodEnd)

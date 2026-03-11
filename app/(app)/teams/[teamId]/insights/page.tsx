@@ -21,6 +21,9 @@ interface KPIs {
   positivePercent: number
   negativePercent: number
   locationCount: number
+  sentimentMomentum: number | null
+  anonymousRatio: number
+  anonymousNegativeCount: number
 }
 
 interface TimePoint { month: string; averageRating: number | null; count: number }
@@ -332,7 +335,23 @@ export default function TeamInsightsPage() {
               <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
               <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" />
               <KPICard label="Positive" value={`${kpis!.positivePercent.toFixed(0)}%`} icon={<ThumbsUpIcon />} color="emerald" />
+              {kpis!.sentimentMomentum !== null && (
+                <KPICard
+                  label="Momentum"
+                  value={`${kpis!.sentimentMomentum > 0 ? '+' : ''}${kpis!.sentimentMomentum.toFixed(2)}`}
+                  icon={kpis!.sentimentMomentum > 0 ? <TrendUpIcon /> : kpis!.sentimentMomentum < 0 ? <TrendDownIcon /> : <TrendNeutralIcon />}
+                  color={kpis!.sentimentMomentum > 0 ? 'green' : kpis!.sentimentMomentum < 0 ? 'amber' : 'teal'}
+                />
+              )}
               {isTeamView && <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="amber" />}
+              {!isTeamView && kpis!.anonymousRatio > 5 && (
+                <KPICard
+                  label="Anonymous"
+                  value={`${kpis!.anonymousRatio.toFixed(0)}%`}
+                  icon={<AnonymousIcon />}
+                  color={kpis!.anonymousNegativeCount > 3 ? 'amber' : 'teal'}
+                />
+              )}
             </div>
 
             {/* Charts Grid */}
@@ -910,6 +929,34 @@ function LocationIcon() {
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  )
+}
+function TrendUpIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    </svg>
+  )
+}
+function TrendDownIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" />
+    </svg>
+  )
+}
+function TrendNeutralIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+    </svg>
+  )
+}
+function AnonymousIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   )
 }
