@@ -244,7 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <div className="text-[11px] text-gray-400 truncate">{user.email}</div>
                   </div>
                   <button
-                    onClick={() => { setProfileOpen(false); logout() }}
+                    onMouseDown={(e) => { e.stopPropagation(); setProfileOpen(false); logout() }}
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 cursor-pointer"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

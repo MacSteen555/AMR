@@ -247,6 +247,7 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [contactOpen, setContactOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/me', { credentials: 'include' })
@@ -964,6 +965,23 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ════════════════ CONTACT ════════════════ */}
+      <section id="contact" className="py-24 px-6 bg-white">
+        <div className="max-w-xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-3">Get in Touch</h2>
+          <p className="text-gray-500 mb-8">Questions, feedback, or just want to say hi? We&apos;d love to hear from you.</p>
+          <button
+            onClick={() => setContactOpen(true)}
+            className="inline-flex items-center gap-2 px-8 py-3.5 text-sm font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 transition shadow-sm cursor-pointer"
+          >
+            Contact Us
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
       {/* ════════════════ FOOTER ════════════════ */}
       <footer className="border-t border-gray-100 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-6 py-16">
@@ -1013,7 +1031,7 @@ export default function LandingPage() {
               <h4 className="font-semibold text-gray-900 text-sm mb-4">Support</h4>
               <ul className="space-y-3">
                 <li><button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">FAQ</button></li>
-                <li><a href="mailto:support@automyreply.com" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Contact Us</a></li>
+                <li><button onClick={() => setContactOpen(true)} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Contact Us</button></li>
               </ul>
             </div>
           </div>
@@ -1028,6 +1046,110 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {contactOpen && <LandingContactModal onClose={() => setContactOpen(false)} />}
     </div>
   )
 }
+
+function LandingContactModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ name: '', email: '', message: '' })
+  const [sending, setSending] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'sent' | 'error'>('idle')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/contact/public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), message: form.message.trim() }),
+      })
+      if (!res.ok) throw new Error()
+      setStatus('sent')
+    } catch {
+      setStatus('error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()} style={{ animation: 'fadeSlideUp 0.2s ease-out' }}>
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Contact Us</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition cursor-pointer">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-6">
+          {status === 'sent' ? (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-gray-900 mb-1">Message sent!</p>
+              <p className="text-xs text-gray-500">We&apos;ll get back to you within 24 hours.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                    required
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition"
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                    required
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition"
+                    placeholder="you@example.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea
+                  rows={4}
+                  value={form.message}
+                  onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
+                  required
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition resize-y"
+                  placeholder="How can we help?"
+                />
+              </div>
+              {status === 'error' && (
+                <p className="text-xs text-red-600">Failed to send. Please try again.</p>
+              )}
+              <button
+                type="submit"
+                disabled={sending}
+                className="w-full px-6 py-3 text-sm font-semibold rounded-xl bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 transition shadow-sm cursor-pointer"
+              >
+                {sending ? 'Sending...' : 'Send Message'}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+

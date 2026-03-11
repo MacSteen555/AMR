@@ -18,7 +18,11 @@ const QUICK_AI_PATTERNS = ['/generate', '/regenerate', '/stream']
 // Large AI: bulk/expensive operations (POST only)
 const LARGE_AI_PATTERNS = ['/bulk-generate', '/insights/run', '/competitive-runs']
 
+// Contact/feedback emails: very strict to prevent spam
+const CONTACT_PATTERNS = ['/api/contact', '/api/feature-request']
+
 function getTier(pathname: string, method: string) {
+  if (method === 'POST' && CONTACT_PATTERNS.some((p) => pathname.startsWith(p))) return 'contact'
   if (STRICT_PREFIX_PATTERNS.some((p) => pathname.startsWith(p))) return 'strict'
   if (SYNC_PATTERNS.some((p) => pathname.endsWith(p))) return 'sync'
   if (method === 'POST' && LARGE_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'large-ai'
@@ -28,6 +32,7 @@ function getTier(pathname: string, method: string) {
 }
 
 const TIER_CONFIGS = {
+  contact: { limit: 1, window: '60 s' as const, prefix: 'rl:contact' },
   strict: { limit: 5, window: '60 s' as const, prefix: 'rl:strict' },
   sync: { limit: 3, window: '60 s' as const, prefix: 'rl:sync' },
   'quick-ai': { limit: 40, window: '60 s' as const, prefix: 'rl:quick-ai' },
