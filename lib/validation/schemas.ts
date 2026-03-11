@@ -65,8 +65,21 @@ export const runInsightsSchema = z.object({})
 
 export const createCompetitiveRunSchema = z.object({
   name: z.string().optional(),
+  group_id: z.string().uuid().optional(),
   owned_location_ids: z.array(z.string().uuid()).min(1).max(3),
   competitor_ids: z.array(z.string().uuid()).min(1).max(3),
+})
+
+export const createCompetitiveGroupSchema = z.object({
+  name: z.string().min(1).max(100),
+  owned_location_ids: z.array(z.string().uuid()).max(3).default([]),
+  competitor_ids: z.array(z.string().uuid()).max(3).default([]),
+})
+
+export const updateCompetitiveGroupSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  owned_location_ids: z.array(z.string().uuid()).max(3).optional(),
+  competitor_ids: z.array(z.string().uuid()).max(3).optional(),
 })
 
 export const createCheckoutSchema = z.object({
