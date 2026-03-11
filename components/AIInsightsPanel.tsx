@@ -184,9 +184,19 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
   const sentiment = typeof d.overallSentiment === 'number' ? d.overallSentiment : null
   const momentum = typeof d.momentumScore === 'number' ? d.momentumScore : null
   const topAction = d.topActionItem || null
-  const responseStrategy = d.responseStrategy || null
-  const persona = typeof d.customerPersona === 'object' ? d.customerPersona :
-    typeof d.customerPersona === 'string' ? { description: d.customerPersona, demographics: '', motivations: [], painPoints: [] } : null
+  // Badge derivation for emerging topics
+  const getTopicBadge = (t: any) => {
+    if (t.previousMentions != null && t.currentMentions != null) {
+      if (t.previousMentions === 0 && t.currentMentions >= 1) return { label: 'NEW', cls: 'bg-purple-200 text-purple-800' }
+      if (t.currentMentions > t.previousMentions) return { label: 'RISING', cls: 'bg-green-200 text-green-800' }
+      if (t.currentMentions < t.previousMentions) return { label: 'FADING', cls: 'bg-red-200 text-red-800' }
+      return { label: 'STEADY', cls: 'bg-gray-200 text-gray-700' }
+    }
+    // Fallback for old data with trend field
+    if (t.trend === 'rising') return { label: 'RISING', cls: 'bg-green-200 text-green-800' }
+    if (t.trend === 'falling') return { label: 'FADING', cls: 'bg-red-200 text-red-800' }
+    return { label: 'STEADY', cls: 'bg-gray-200 text-gray-700' }
+  }
 
   // Sentiment gauge helpers
   const sentimentStroke = sentiment !== null
@@ -233,6 +243,64 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
       {/* Review Modal */}
       {activeReview && (
         <ReviewModal review={activeReview} onClose={() => setActiveReview(null)} />
+      )}
+
+      {/* ── Comparison Block ── */}
+      {d.comparison && (
+        <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl border border-gray-200 p-6">
+          <h4 className="text-sm font-bold text-gray-900 mb-4">vs Previous Period</h4>
+          <p className="text-base font-semibold text-gray-800 mb-4">{d.comparison.headline}</p>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{d.comparison.currentAvgRating?.toFixed(1)}</div>
+              <div className="text-xs text-gray-500">Avg Rating</div>
+              <div className={`text-xs font-medium mt-1 ${
+                d.comparison.currentAvgRating > d.comparison.previousAvgRating ? 'text-green-600' :
+                d.comparison.currentAvgRating < d.comparison.previousAvgRating ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                was {d.comparison.previousAvgRating?.toFixed(1)}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{d.comparison.currentReviewCount}</div>
+              <div className="text-xs text-gray-500">Reviews</div>
+              <div className={`text-xs font-medium mt-1 ${
+                d.comparison.currentReviewCount > d.comparison.previousReviewCount ? 'text-green-600' :
+                d.comparison.currentReviewCount < d.comparison.previousReviewCount ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                was {d.comparison.previousReviewCount}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{d.comparison.currentSentiment}</div>
+              <div className="text-xs text-gray-500">Sentiment</div>
+              <div className={`text-xs font-medium mt-1 ${
+                d.comparison.currentSentiment > d.comparison.previousSentiment ? 'text-green-600' :
+                d.comparison.currentSentiment < d.comparison.previousSentiment ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                was {d.comparison.previousSentiment}
+              </div>
+            </div>
+          </div>
+          {d.comparison.keyDeltas?.length > 0 && (
+            <div className="space-y-2">
+              {d.comparison.keyDeltas.map((delta: any, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    delta.direction === 'up' ? 'bg-green-100 text-green-600' :
+                    delta.direction === 'down' ? 'bg-red-100 text-red-600' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>
+                    <svg className={`w-3 h-3 ${delta.direction === 'down' ? 'rotate-180' : delta.direction === 'flat' ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-gray-700"><strong>{delta.metric}:</strong> {delta.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Hero Section: Sentiment Gauge + Momentum + Top Action ── */}
@@ -480,17 +548,21 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     t.sentiment === 'positive' ? 'text-green-800' :
                     t.sentiment === 'negative' ? 'text-red-800' : 'text-amber-800'
                   }`}>{t.topic}</span>
-                  {t.trend && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                      t.trend === 'rising' ? 'bg-green-200 text-green-800' :
-                      t.trend === 'falling' ? 'bg-red-200 text-red-800' :
-                      'bg-gray-200 text-gray-700'
-                    }`}>
-                      {t.trend === 'rising' ? '^ Rising' : t.trend === 'falling' ? 'v Falling' : '- Steady'}
-                    </span>
-                  )}
+                  {(() => {
+                    const badge = getTopicBadge(t)
+                    return (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    )
+                  })()}
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed">{rt(t.description)}</p>
+                {(t.previousMentions != null || t.currentMentions != null) && (
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    {t.currentMentions} mentions now{t.previousMentions != null ? ` vs ${t.previousMentions} last period` : ''}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -577,90 +649,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           </div>
         </div>
       )}
-
-      {/* ── Response Strategy + Customer Persona ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {responseStrategy && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-gray-900">Response Strategy</h4>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tone</span>
-                <p className="text-sm text-gray-700 mt-0.5">{rt(responseStrategy.tone)}</p>
-              </div>
-              {responseStrategy.priorities?.length > 0 && (
-                <div>
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Priorities</span>
-                  <ul className="mt-1 space-y-1">
-                    {responseStrategy.priorities.map((p: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {rt(p)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {responseStrategy.avoidTopics?.length > 0 && (
-                <div>
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Avoid</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {responseStrategy.avoidTopics.map((t: string, i: number) => (
-                      <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{rt(t)}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {persona && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-gray-900">Customer Persona</h4>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-3">{rt(persona.description)}</p>
-            {persona.demographics && (
-              <p className="text-xs text-gray-500 mb-3">{rt(persona.demographics)}</p>
-            )}
-            {persona.motivations?.length > 0 && (
-              <div className="mb-3">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Motivations</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {persona.motivations.map((m: string, i: number) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-100">{rt(m)}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {persona.painPoints?.length > 0 && (
-              <div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pain Points</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {persona.painPoints.map((p: string, i: number) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{rt(p)}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* ── Metadata Footer ── */}
       <div className="flex items-center gap-4 text-xs text-gray-400 pt-4 border-t border-gray-100">
