@@ -138,7 +138,7 @@ export default function TeamInsightsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const locationId = searchParams?.get('location') || null
-  const { teams } = useAuth()
+  const { teams, refresh: refreshAuth } = useAuth()
   const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([])
   const [period, setPeriod] = useState<PeriodKey>('6m')
   const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
@@ -219,6 +219,8 @@ export default function TeamInsightsPage() {
       const allLocParam = effectiveLocationId ? `location=${effectiveLocationId}` : 'scope=all'
       const allRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?${allLocParam}`)
       setAllReports(allRes.insights || [])
+      // Refresh auth to update credit balance in header
+      await refreshAuth()
     } catch (err: any) {
       setToast({ message: err.message || 'Failed to generate report', type: 'error' })
     } finally {
@@ -334,7 +336,7 @@ export default function TeamInsightsPage() {
             <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
               <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
               <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
-              <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" />
+              <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" tooltip="Percentage of reviews you've replied to in this period" />
               <KPICard label="Positive" value={`${kpis!.positivePercent.toFixed(0)}%`} icon={<ThumbsUpIcon />} color="emerald" />
               {kpis!.sentimentMomentum !== null && (
                 <KPICard
@@ -342,6 +344,7 @@ export default function TeamInsightsPage() {
                   value={`${kpis!.sentimentMomentum > 0 ? '+' : ''}${kpis!.sentimentMomentum.toFixed(2)}`}
                   icon={kpis!.sentimentMomentum > 0 ? <TrendUpIcon /> : kpis!.sentimentMomentum < 0 ? <TrendDownIcon /> : <TrendNeutralIcon />}
                   color={kpis!.sentimentMomentum > 0 ? 'green' : kpis!.sentimentMomentum < 0 ? 'amber' : 'teal'}
+                  tooltip="How your sentiment is trending compared to the previous period. Positive means improving, negative means declining."
                 />
               )}
               {isTeamView && <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="amber" />}
@@ -870,8 +873,8 @@ export default function TeamInsightsPage() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function KPICard({ label, value, suffix, icon, color }: {
-  label: string; value: string; suffix?: string; icon: React.ReactNode; color: string
+function KPICard({ label, value, suffix, icon, color, tooltip }: {
+  label: string; value: string; suffix?: string; icon: React.ReactNode; color: string; tooltip?: string
 }) {
   const bgMap: Record<string, string> = {
     teal: 'bg-teal-50', yellow: 'bg-yellow-50', green: 'bg-green-50',
@@ -889,7 +892,20 @@ function KPICard({ label, value, suffix, icon, color }: {
     <div className={`group relative bg-white rounded-2xl border border-gray-100 p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${hoverBorderMap[color] || ''} cursor-default`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-500 mb-3">{label}</p>
+          <div className="flex items-center gap-1.5 mb-3">
+            <p className="text-sm font-medium text-gray-500">{label}</p>
+            {tooltip && (
+              <div className="relative group/tip">
+                <svg className="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg w-52 text-center opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all duration-200 pointer-events-none z-10">
+                  {tooltip}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900" />
+                </div>
+              </div>
+            )}
+          </div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-3xl font-bold text-gray-900 tracking-tight">{value}</span>
             {suffix && <span className="text-lg text-gray-400 font-medium">{suffix}</span>}

@@ -87,7 +87,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         'location',
         locationId,
         idempotencyKey,
-        { feature: 'insights', period_window: periodWindow }
+        { feature: 'insights' }
       )
 
       // Get reviews for this location covering both current and previous periods
@@ -123,7 +123,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         scope: 'location',
         locationName: loc.name,
         periodWindow: periodWindow,
-      } as any)
+      })
 
       const { data: insertedInsight, error } = await serviceClient
         .schema('app')
@@ -158,7 +158,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       'team',
       params.teamId,
       idempotencyKey,
-      { feature: 'insights', period_window: periodWindow }
+      { feature: 'insights' }
     )
 
     // Get all locations for this team
@@ -204,7 +204,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       previousPeriodEnd: previousEndStr,
       scope: 'team',
       periodWindow: periodWindow,
-    } as any)
+    })
 
     const { data: insertedInsight, error } = await serviceClient
       .schema('app')
