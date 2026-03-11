@@ -158,7 +158,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         team_id: params.teamId,
         created_by_user_id: user.id,
         name: data.name || null,
-        group_id: data.group_id || null,
         period_start: null,
         period_end: null,
         owned_location_ids: data.owned_location_ids,
@@ -189,21 +188,13 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
   try {
     await requireTeamMember(params.teamId)
     const supabase = createSupabaseServerClient()
-    const { searchParams } = new URL(request.url)
-    const groupId = searchParams.get('group_id')
 
-    let query = supabase
+    const { data: runs } = await supabase
       .schema('app')
       .from('competitive_runs')
       .select('*')
       .eq('team_id', params.teamId)
       .order('created_at', { ascending: false })
-
-    if (groupId) {
-      query = query.eq('group_id', groupId)
-    }
-
-    const { data: runs } = await query
 
     return NextResponse.json({ runs: runs || [] })
   } catch (error: any) {
