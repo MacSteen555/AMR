@@ -36,16 +36,16 @@ const PLANS = [
     tier: 'PRO',
     name: 'Pro',
     price: '$15',
-    credits: 25,
-    features: ['25 credits/month', 'AI Insights', 'Priority support'],
+    credits: 50,
+    features: ['50 credits/month', 'AI Insights', 'Priority support'],
     popular: true,
   },
   {
     tier: 'BUSINESS',
     name: 'Business',
     price: '$35',
-    credits: 50,
-    features: ['50 credits/month', 'AI Insights', 'Competitive Intel', 'Team collaboration'],
+    credits: 200,
+    features: ['200 credits/month', 'AI Insights', 'Competitive Intel', 'Team collaboration'],
   },
   {
     tier: 'ENTERPRISE',
@@ -420,8 +420,8 @@ export default function BillingPage() {
                   <tr className="border-b">
                     <td className="py-3 px-4 text-gray-900">Monthly Credits</td>
                     <td className="text-center py-3 px-4">5</td>
-                    <td className="text-center py-3 px-4">25</td>
                     <td className="text-center py-3 px-4">50</td>
+                    <td className="text-center py-3 px-4">200</td>
                     <td className="text-center py-3 px-4">1,000</td>
                   </tr>
                   <tr className="border-b">
@@ -440,6 +440,13 @@ export default function BillingPage() {
                   </tr>
                   <tr className="border-b">
                     <td className="py-3 px-4 text-gray-900">Competitive Intel</td>
+                    <td className="text-center py-3 px-4 text-gray-300">—</td>
+                    <td className="text-center py-3 px-4 text-gray-300">—</td>
+                    <td className="text-center py-3 px-4 text-green-500">✓</td>
+                    <td className="text-center py-3 px-4 text-green-500">✓</td>
+                  </tr>
+                  <tr className="border-b">
+                    <td className="py-3 px-4 text-gray-900">Team Collaboration</td>
                     <td className="text-center py-3 px-4 text-gray-300">—</td>
                     <td className="text-center py-3 px-4 text-gray-300">—</td>
                     <td className="text-center py-3 px-4 text-green-500">✓</td>
