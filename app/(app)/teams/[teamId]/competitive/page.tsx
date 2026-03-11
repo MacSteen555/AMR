@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { apiGet, apiPost, apiDelete } from '@/lib/api'
 import { Toast } from '@/components/Toast'
 import { CompetitorStatsModal } from '@/components/CompetitorStatsModal'
@@ -46,7 +46,8 @@ interface Location {
     review_count?: number
 }
 
-// Rating ring SVG component
+// ─── Shared micro-components ───────────────────────────────────────────────
+
 function RatingRing({ rating, size = 48 }: { rating: number | undefined; size?: number }) {
     const r = (size - 6) / 2
     const circumference = 2 * Math.PI * r
@@ -74,6 +75,26 @@ function RatingRing({ rating, size = 48 }: { rating: number | undefined; size?: 
     )
 }
 
+function RelativeTime({ date }: { date: string }) {
+    const now = new Date()
+    const d = new Date(date)
+    const diffMs = now.getTime() - d.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    let label: string
+    if (diffMins < 1) label = 'Just now'
+    else if (diffMins < 60) label = `${diffMins}m ago`
+    else if (diffHours < 24) label = `${diffHours}h ago`
+    else if (diffDays < 7) label = `${diffDays}d ago`
+    else label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+    return <span title={d.toLocaleString()}>{label}</span>
+}
+
+// ─── Main component ────────────────────────────────────────────────────────
+
 export default function CompetitiveDashboard() {
     const { teamId } = useParams() as { teamId: string }
 
@@ -94,8 +115,8 @@ export default function CompetitiveDashboard() {
     const [selectedPlaceData, setSelectedPlaceData] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Report config (New Report flow)
-    const [showNewReportConfig, setShowNewReportConfig] = useState(false)
+    // Report config
+    const [showCustomConfig, setShowCustomConfig] = useState(false)
     const [selectedLocations, setSelectedLocations] = useState<string[]>([])
     const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([])
 
@@ -110,7 +131,33 @@ export default function CompetitiveDashboard() {
     // Stats modal
     const [selectedCompetitorStats, setSelectedCompetitorStats] = useState<Competitor | null>(null)
 
-    // Runs filtered by focused competitor (or all if none focused)
+    // ─── Derived state ───
+
+    // How many reports include each competitor
+    const reportCountByCompetitor = useMemo(() => {
+        const map: Record<string, number> = {}
+        for (const r of runs) {
+            for (const cid of r.competitor_ids) {
+                map[cid] = (map[cid] || 0) + 1
+            }
+        }
+        return map
+    }, [runs])
+
+    // Last report date per competitor
+    const lastReportByCompetitor = useMemo(() => {
+        const map: Record<string, string> = {}
+        for (const r of runs) {
+            for (const cid of r.competitor_ids) {
+                if (!map[cid] || r.created_at > map[cid]) {
+                    map[cid] = r.created_at
+                }
+            }
+        }
+        return map
+    }, [runs])
+
+    // Filtered runs based on focused competitor
     const filteredRuns = useMemo(() => {
         if (!focusedCompetitorId) return runs
         return runs.filter(r => r.competitor_ids.includes(focusedCompetitorId))
@@ -120,6 +167,8 @@ export default function CompetitiveDashboard() {
         if (selectedRunId) return filteredRuns.find(r => r.id === selectedRunId) || filteredRuns[0]
         return filteredRuns[0] || null
     }, [filteredRuns, selectedRunId])
+
+    // ─── Data loading ───
 
     useEffect(() => { loadData() }, [teamId])
 
@@ -162,6 +211,8 @@ export default function CompetitiveDashboard() {
         }
         performSearch()
     }, [debouncedSearch])
+
+    // ─── Handlers ───
 
     const handleAddCompetitor = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -207,25 +258,36 @@ export default function CompetitiveDashboard() {
         } catch (err: any) { setToast({ message: err.message || 'Failed to sync reviews', type: 'error' }); loadData() }
     }
 
-    const handleRunAnalysis = async () => {
-        if (selectedLocations.length === 0 || selectedCompetitors.length === 0) {
+    const handleRunAnalysis = async (locIds?: string[], compIds?: string[]) => {
+        const locs = locIds || selectedLocations
+        const comps = compIds || selectedCompetitors
+        if (locs.length === 0 || comps.length === 0) {
             setToast({ message: 'Select at least 1 location and 1 competitor', type: 'error' })
             return
         }
         setIsRefreshing(true)
         try {
             await apiPost(`/api/teams/${teamId}/competitive-runs`, {
-                owned_location_ids: selectedLocations,
-                competitor_ids: selectedCompetitors,
+                owned_location_ids: locs,
+                competitor_ids: comps,
             })
             setToast({ message: 'Competitive analysis complete!', type: 'success' })
-            setShowNewReportConfig(false)
+            setShowCustomConfig(false)
             setSelectedRunId(null)
             loadData()
         } catch (err: any) {
             setToast({ message: err.message || 'Failed to run analysis', type: 'error' })
         } finally { setIsRefreshing(false) }
     }
+
+    const handleNewReport = useCallback(() => {
+        setShowCustomConfig(true)
+    }, [])
+
+    const handleReRunReport = useCallback(() => {
+        if (!activeRun) return
+        handleRunAnalysis(activeRun.owned_location_ids, activeRun.competitor_ids)
+    }, [activeRun])
 
     const handleDeleteRun = async (id: string) => {
         if (!confirm('Are you sure you want to delete this report?')) return
@@ -237,9 +299,42 @@ export default function CompetitiveDashboard() {
         } catch (err: any) { setToast({ message: err.message || 'Failed to delete report', type: 'error' }) }
     }
 
+    const handleFocusCompetitor = useCallback((compId: string) => {
+        const isFocused = focusedCompetitorId === compId
+        setFocusedCompetitorId(isFocused ? null : compId)
+        setSelectedRunId(null)
+        setReportPeriod('30d')
+    }, [focusedCompetitorId])
+
+    // ─── Loading skeleton ───
+
     if (loading) {
-        return <div className="p-8"><div className="animate-pulse flex flex-col gap-4"><div className="h-8 bg-gray-200 rounded w-1/4"></div><div className="h-24 bg-gray-100 rounded-xl w-full"></div><div className="h-64 bg-gray-100 rounded-xl w-full"></div></div></div>
+        return (
+            <div className="p-8">
+                <div className="animate-pulse flex flex-col gap-6">
+                    <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                    <div className="flex gap-3">
+                        {[1, 2, 3].map(i => <div key={i} className="h-44 bg-gray-100 rounded-xl w-44 shrink-0"></div>)}
+                    </div>
+                    <div className="h-64 bg-gray-100 rounded-xl w-full"></div>
+                </div>
+            </div>
+        )
     }
+
+    // ─── Helpers for rendering ───
+
+    const getRunScore = (run: CompetitiveRun): number | undefined => {
+        return run.data?.['30d']?.competitivePositionScore ?? run.data?.['90d']?.competitivePositionScore
+    }
+
+    const getRunCompetitorNames = (run: CompetitiveRun): string[] => {
+        return run.competitor_ids
+            .map(id => competitors.find(c => c.id === id)?.name)
+            .filter(Boolean) as string[]
+    }
+
+    // ─── Render ───
 
     return (
         <>
@@ -251,81 +346,133 @@ export default function CompetitiveDashboard() {
                         <h1 className="text-3xl font-bold text-gray-900">Competitive Intelligence</h1>
                         <p className="text-gray-500 mt-0.5">Monitor competitors and understand your market position.</p>
                     </div>
+                    {/* Primary action */}
+                    <button
+                        onClick={handleNewReport}
+                        disabled={isRefreshing || competitors.length === 0 || locations.length === 0}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm"
+                    >
+                        {isRefreshing ? (
+                            <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Running...</>
+                        ) : (
+                            <>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                New Report
+                            </>
+                        )}
+                    </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-8 pb-20">
+                <div className="flex-1 overflow-y-auto space-y-6 pb-20">
 
-                    {/* ═══════════════════════════════════════════════
+                    {/* ═══════════════════════════════════════════════════════
                         SECTION 1: COMPETITOR RAIL
-                    ═══════════════════════════════════════════════ */}
+                    ═══════════════════════════════════════════════════════ */}
                     <div>
-                        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Competitors</h2>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Competitors</h2>
+                            {focusedCompetitorId && (
+                                <button
+                                    onClick={() => { setFocusedCompetitorId(null); setSelectedRunId(null) }}
+                                    className="text-xs text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1 transition-colors"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    Clear filter
+                                </button>
+                            )}
+                        </div>
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {competitors.map(comp => {
                                 const isFocused = focusedCompetitorId === comp.id
+                                const reportCount = reportCountByCompetitor[comp.id] || 0
+                                const lastReport = lastReportByCompetitor[comp.id]
+
                                 return (
-                                <div
-                                    key={comp.id}
-                                    onClick={() => { setFocusedCompetitorId(isFocused ? null : comp.id); setSelectedRunId(null); setReportPeriod('30d') }}
-                                    className={`bg-white rounded-xl p-4 shadow-sm flex flex-col items-center min-w-[160px] max-w-[180px] group/card relative cursor-pointer transition-all ${
-                                        isFocused ? 'border-2 border-teal-500 ring-2 ring-teal-100' : 'border border-gray-200 hover:border-gray-300'
-                                    }`}
-                                >
-                                    {/* Delete button */}
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteCompetitor(comp.id) }}
-                                        className="absolute top-2 right-2 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/card:opacity-100 transition-all"
-                                        title="Delete"
+                                    <div
+                                        key={comp.id}
+                                        onClick={() => handleFocusCompetitor(comp.id)}
+                                        className={`bg-white rounded-xl p-4 shadow-sm flex flex-col items-center min-w-[170px] max-w-[190px] group/card relative cursor-pointer transition-all duration-200 ${
+                                            isFocused
+                                                ? 'border-2 border-teal-500 ring-2 ring-teal-100 shadow-md scale-[1.02]'
+                                                : 'border border-gray-200 hover:border-teal-300 hover:shadow-md'
+                                        }`}
                                     >
-                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
+                                        {/* Report count badge */}
+                                        {reportCount > 0 && (
+                                            <div className="absolute -top-2 -right-2 bg-teal-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                                                {reportCount}
+                                            </div>
+                                        )}
 
-                                    {/* Rating ring */}
-                                    <RatingRing rating={comp.rating} size={52} />
-
-                                    {/* Name & address */}
-                                    <h3 className="text-sm font-bold text-gray-900 mt-2 text-center truncate w-full">{comp.name}</h3>
-                                    <p className="text-xs text-gray-400 truncate w-full text-center mt-0.5">
-                                        {comp.address || comp.place_id}
-                                    </p>
-
-                                    {/* Sync status */}
-                                    <div className="flex items-center gap-1.5 mt-2">
-                                        <span className={`w-2 h-2 rounded-full ${
-                                            comp.last_serp_sync_status === 'syncing' ? 'bg-blue-400 animate-pulse' :
-                                            comp.last_serp_sync_status === 'error' ? 'bg-red-400' :
-                                            comp.last_serp_sync_at ? 'bg-green-400' : 'bg-gray-300'
-                                        }`} />
-                                        <span className="text-xs text-gray-400">
-                                            {comp.last_serp_sync_status === 'syncing' ? 'Syncing' :
-                                             comp.last_serp_sync_at ? 'Synced' : 'Never synced'}
-                                        </span>
-                                    </div>
-
-                                    {/* Action buttons */}
-                                    <div className="flex gap-1.5 mt-3 w-full">
+                                        {/* Delete button */}
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); handleSyncReviews(comp.id) }}
-                                            disabled={comp.last_serp_sync_status === 'syncing'}
-                                            className="flex-1 px-2 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 disabled:opacity-50 transition-colors text-center"
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteCompetitor(comp.id) }}
+                                            className="absolute top-2 right-2 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/card:opacity-100 transition-all"
+                                            title="Delete"
                                         >
-                                            Sync
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setSelectedCompetitorStats(comp) }}
-                                            className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-center"
-                                        >
-                                            Stats
-                                        </button>
+
+                                        {/* Rating ring */}
+                                        <RatingRing rating={comp.rating} size={52} />
+
+                                        {/* Name & address */}
+                                        <h3 className="text-sm font-bold text-gray-900 mt-2 text-center truncate w-full">{comp.name}</h3>
+                                        <p className="text-xs text-gray-400 truncate w-full text-center mt-0.5">
+                                            {comp.address || comp.place_id}
+                                        </p>
+
+                                        {/* Sync status + last report */}
+                                        <div className="flex items-center gap-1.5 mt-2">
+                                            <span className={`w-2 h-2 rounded-full ${
+                                                comp.last_serp_sync_status === 'syncing' ? 'bg-blue-400 animate-pulse' :
+                                                comp.last_serp_sync_status === 'error' ? 'bg-red-400' :
+                                                comp.last_serp_sync_at ? 'bg-green-400' : 'bg-gray-300'
+                                            }`} />
+                                            <span className="text-xs text-gray-400">
+                                                {comp.last_serp_sync_status === 'syncing' ? 'Syncing' :
+                                                 comp.last_serp_sync_at ? 'Synced' : 'Never synced'}
+                                            </span>
+                                        </div>
+
+                                        {/* Last compared */}
+                                        {lastReport && (
+                                            <p className="text-[10px] text-gray-400 mt-1">
+                                                Last compared <RelativeTime date={lastReport} />
+                                            </p>
+                                        )}
+
+                                        {/* Action buttons */}
+                                        <div className="flex gap-1.5 mt-3 w-full">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleSyncReviews(comp.id) }}
+                                                disabled={comp.last_serp_sync_status === 'syncing'}
+                                                className="flex-1 px-2 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 disabled:opacity-50 transition-colors text-center"
+                                            >
+                                                Sync
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setSelectedCompetitorStats(comp) }}
+                                                className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-center"
+                                            >
+                                                Stats
+                                            </button>
+                                        </div>
+
+                                        {/* Focus hint */}
+                                        <p className={`text-[10px] mt-2 transition-all duration-200 ${
+                                            isFocused ? 'text-teal-600 font-medium' : 'text-gray-300 opacity-0 group-hover/card:opacity-100'
+                                        }`}>
+                                            {isFocused ? 'Filtering reports' : 'Click to filter reports'}
+                                        </p>
                                     </div>
-                                </div>
                                 )
                             })}
 
                             {/* Add competitor card */}
                             <button
                                 onClick={() => setShowAddForm(true)}
-                                className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center min-w-[160px] max-w-[180px] hover:border-teal-300 hover:bg-teal-50/30 transition-colors group/add"
+                                className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center min-w-[170px] max-w-[190px] hover:border-teal-300 hover:bg-teal-50/30 transition-colors group/add"
                             >
                                 <div className="w-12 h-12 rounded-full bg-white border border-gray-200 group-hover/add:border-teal-300 flex items-center justify-center transition-colors">
                                     <svg className="w-6 h-6 text-gray-400 group-hover/add:text-teal-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -335,9 +482,9 @@ export default function CompetitiveDashboard() {
                         </div>
                     </div>
 
-                    {/* ── Add Competitor Form (slides in below rail) ── */}
+                    {/* ── Add Competitor Form ── */}
                     {showAddForm && (
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm -mt-4">
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm -mt-2">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold text-gray-900">Add New Competitor</h3>
                                 <button onClick={() => { setShowAddForm(false); setNewPlaceId(''); setNewName(''); setSearchQuery(''); setSelectedPlaceData(null) }} className="text-gray-400 hover:text-gray-600">
@@ -380,183 +527,284 @@ export default function CompetitiveDashboard() {
                         </div>
                     )}
 
-                    {/* ═══════════════════════════════════════════════
-                        SECTION 2: REPORTS
-                    ═══════════════════════════════════════════════ */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-bold text-gray-900">Reports</h2>
-                                {focusedCompetitorId && (
-                                    <span className="text-xs text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200 flex items-center gap-1.5">
-                                        Showing: {competitors.find(c => c.id === focusedCompetitorId)?.name}
-                                        <button onClick={() => { setFocusedCompetitorId(null); setSelectedRunId(null) }} className="hover:text-teal-900">
-                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                        </button>
-                                    </span>
-                                )}
-                                {!focusedCompetitorId && activeRun && (
-                                    <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full">
-                                        Latest: {new Date(activeRun.created_at).toLocaleDateString()}
-                                    </span>
-                                )}
+                    {/* ═══════════════════════════════════════════════════════
+                        SECTION 2: REPORT HISTORY TIMELINE
+                    ═══════════════════════════════════════════════════════ */}
+                    {filteredRuns.length > 0 && (
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Report History</h2>
+                                    {focusedCompetitorId && (
+                                        <span className="text-[10px] text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                                            {competitors.find(c => c.id === focusedCompetitorId)?.name}
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="text-xs text-gray-400">{filteredRuns.length} report{filteredRuns.length !== 1 ? 's' : ''}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                {/* History selector */}
-                                {filteredRuns.length > 1 && (
-                                    <select
-                                        value={selectedRunId || ''}
-                                        onChange={(e) => setSelectedRunId(e.target.value || null)}
-                                        className="px-3 py-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                                    >
-                                        {filteredRuns.map((run, i) => (
-                                            <option key={run.id} value={run.id}>
-                                                {i === 0 ? 'Latest' : run.name || new Date(run.created_at).toLocaleDateString()}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
+                            <div className="flex gap-2.5 overflow-x-auto pb-2">
+                                {filteredRuns.map((run, i) => {
+                                    const isActive = activeRun?.id === run.id
+                                    const score = getRunScore(run)
+                                    const compNames = getRunCompetitorNames(run)
 
-                                {/* New Report button */}
+                                    return (
+                                        <button
+                                            key={run.id}
+                                            onClick={() => setSelectedRunId(run.id)}
+                                            className={`text-left rounded-xl p-3.5 min-w-[200px] max-w-[220px] shrink-0 transition-all duration-200 ${
+                                                isActive
+                                                    ? 'bg-teal-600 text-white shadow-md scale-[1.02]'
+                                                    : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-sm'
+                                            }`}
+                                        >
+                                            {/* Date + score */}
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className={`text-xs font-medium ${isActive ? 'text-teal-100' : 'text-gray-400'}`}>
+                                                    {i === 0 && !focusedCompetitorId ? 'Latest' : <RelativeTime date={run.created_at} />}
+                                                </span>
+                                                {score != null && (
+                                                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+                                                        isActive
+                                                            ? 'bg-white/20 text-white'
+                                                            : score >= 70 ? 'text-emerald-600 bg-emerald-50' : score >= 40 ? 'text-amber-600 bg-amber-50' : 'text-red-600 bg-red-50'
+                                                    }`}>
+                                                        {score}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Date full */}
+                                            <p className={`text-sm font-semibold mb-1.5 ${isActive ? 'text-white' : 'text-gray-900'}`}>
+                                                {new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+
+                                            {/* Competitor names */}
+                                            <div className="flex flex-wrap gap-1">
+                                                {compNames.slice(0, 3).map((name, j) => (
+                                                    <span key={j} className={`text-[10px] px-1.5 py-0.5 rounded-full truncate max-w-[90px] ${
+                                                        isActive ? 'bg-white/15 text-teal-100' : 'bg-gray-100 text-gray-500'
+                                                    }`}>
+                                                        {name}
+                                                    </span>
+                                                ))}
+                                            </div>
+
+                                            {/* Location count */}
+                                            <p className={`text-[10px] mt-1.5 ${isActive ? 'text-teal-200' : 'text-gray-400'}`}>
+                                                {run.owned_location_ids.length} location{run.owned_location_ids.length !== 1 ? 's' : ''} vs {run.competitor_ids.length} competitor{run.competitor_ids.length !== 1 ? 's' : ''}
+                                            </p>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ═══════════════════════════════════════════════════════
+                        SECTION 3: CUSTOM CONFIG PANEL (only when needed)
+                    ═══════════════════════════════════════════════════════ */}
+                    {showCustomConfig && (
+                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">Configure Report</h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">Select which locations and competitors to include.</p>
+                                </div>
+                                <button onClick={() => setShowCustomConfig(false)} className="text-gray-400 hover:text-gray-600">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                    <h4 className="font-medium text-gray-700 mb-3 flex items-center justify-between text-sm">
+                                        <span>Your Locations (Max 3)</span>
+                                        <span className="text-xs bg-white text-teal-600 px-2 py-0.5 rounded border border-teal-100">{selectedLocations.length}/3</span>
+                                    </h4>
+                                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                                        {locations.map(loc => (
+                                            <label key={loc.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:border-teal-200 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                                    checked={selectedLocations.includes(loc.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked && selectedLocations.length < 3) setSelectedLocations([...selectedLocations, loc.id])
+                                                        else if (!e.target.checked) setSelectedLocations(selectedLocations.filter(id => id !== loc.id))
+                                                    }}
+                                                    disabled={!selectedLocations.includes(loc.id) && selectedLocations.length >= 3}
+                                                />
+                                                <span className="text-sm text-gray-800">{loc.name}</span>
+                                            </label>
+                                        ))}
+                                        {locations.length === 0 && <p className="text-sm text-gray-500 italic">No locations available.</p>}
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                    <h4 className="font-medium text-gray-700 mb-3 flex items-center justify-between text-sm">
+                                        <span>Competitors (Max 3)</span>
+                                        <span className="text-xs bg-white text-rose-600 px-2 py-0.5 rounded border border-rose-100">{selectedCompetitors.length}/3</span>
+                                    </h4>
+                                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                                        {competitors.map(comp => (
+                                            <label key={comp.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:border-rose-200 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
+                                                    checked={selectedCompetitors.includes(comp.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked && selectedCompetitors.length < 3) setSelectedCompetitors([...selectedCompetitors, comp.id])
+                                                        else if (!e.target.checked) setSelectedCompetitors(selectedCompetitors.filter(id => id !== comp.id))
+                                                    }}
+                                                    disabled={!selectedCompetitors.includes(comp.id) && selectedCompetitors.length >= 3}
+                                                />
+                                                <span className="text-sm text-gray-800">{comp.name}</span>
+                                            </label>
+                                        ))}
+                                        {competitors.length === 0 && <p className="text-sm text-gray-500 italic">Add competitors above first.</p>}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end mt-5">
                                 <button
-                                    onClick={() => setShowNewReportConfig(!showNewReportConfig)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors shadow-sm"
+                                    onClick={() => handleRunAnalysis()}
+                                    disabled={isRefreshing || selectedLocations.length === 0 || selectedCompetitors.length === 0}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                    New Report
+                                    {isRefreshing ? (
+                                        <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Running Analysis...</>
+                                    ) : (
+                                        <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Run Analysis (3 credits)</>
+                                    )}
                                 </button>
                             </div>
                         </div>
+                    )}
 
-                        {/* New Report config panel */}
-                        {showNewReportConfig && (
-                            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-semibold text-gray-900">Configure Report</h3>
-                                    <button onClick={() => setShowNewReportConfig(false)} className="text-gray-400 hover:text-gray-600">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
-                                </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                        <h4 className="font-medium text-gray-700 mb-3 flex items-center justify-between text-sm">
-                                            <span>Your Locations (Max 3)</span>
-                                            <span className="text-xs bg-white text-teal-600 px-2 py-0.5 rounded border border-teal-100">{selectedLocations.length}/3</span>
-                                        </h4>
-                                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                                            {locations.map(loc => (
-                                                <label key={loc.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:border-teal-200 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                                                        checked={selectedLocations.includes(loc.id)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked && selectedLocations.length < 3) setSelectedLocations([...selectedLocations, loc.id])
-                                                            else if (!e.target.checked) setSelectedLocations(selectedLocations.filter(id => id !== loc.id))
-                                                        }}
-                                                        disabled={!selectedLocations.includes(loc.id) && selectedLocations.length >= 3}
-                                                    />
-                                                    <span className="text-sm text-gray-800">{loc.name}</span>
-                                                </label>
-                                            ))}
-                                            {locations.length === 0 && <p className="text-sm text-gray-500 italic">No locations available.</p>}
+                    {/* ═══════════════════════════════════════════════════════
+                        SECTION 4: ACTIVE REPORT
+                    ═══════════════════════════════════════════════════════ */}
+                    {activeRun && activeRun.data ? (
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            {/* Report header: participants + timeframe + actions */}
+                            <div className="px-6 py-4 border-b border-gray-100">
+                                {/* Top row: participants info + actions */}
+                                <div className="flex items-start justify-between mb-3">
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {/* Locations */}
+                                            <div className="flex items-center gap-1.5">
+                                                <svg className="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                {activeRun.owned_location_ids.map(id => {
+                                                    const loc = locations.find(l => l.id === id)
+                                                    return loc ? (
+                                                        <span key={id} className="text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full border border-teal-200">{loc.name}</span>
+                                                    ) : null
+                                                })}
+                                            </div>
+
+                                            <span className="text-gray-300 text-xs font-bold">vs</span>
+
+                                            {/* Competitors */}
+                                            <div className="flex items-center gap-1.5">
+                                                <svg className="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                                {activeRun.competitor_ids.map(id => {
+                                                    const comp = competitors.find(c => c.id === id)
+                                                    return comp ? (
+                                                        <span key={id} className="text-xs bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-200">{comp.name}</span>
+                                                    ) : null
+                                                })}
+                                            </div>
                                         </div>
+                                        <span className="text-[11px] text-gray-400">
+                                            Generated {new Date(activeRun.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {new Date(activeRun.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                        </span>
                                     </div>
-                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                        <h4 className="font-medium text-gray-700 mb-3 flex items-center justify-between text-sm">
-                                            <span>Competitors (Max 3)</span>
-                                            <span className="text-xs bg-white text-rose-600 px-2 py-0.5 rounded border border-rose-100">{selectedCompetitors.length}/3</span>
-                                        </h4>
-                                        <div className="space-y-2 max-h-40 overflow-y-auto">
-                                            {competitors.map(comp => (
-                                                <label key={comp.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:border-rose-200 transition-colors">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
-                                                        checked={selectedCompetitors.includes(comp.id)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked && selectedCompetitors.length < 3) setSelectedCompetitors([...selectedCompetitors, comp.id])
-                                                            else if (!e.target.checked) setSelectedCompetitors(selectedCompetitors.filter(id => id !== comp.id))
-                                                        }}
-                                                        disabled={!selectedCompetitors.includes(comp.id) && selectedCompetitors.length >= 3}
-                                                    />
-                                                    <span className="text-sm text-gray-800">{comp.name}</span>
-                                                </label>
-                                            ))}
-                                            {competitors.length === 0 && <p className="text-sm text-gray-500 italic">Add competitors above first.</p>}
-                                        </div>
+
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-1.5 shrink-0 ml-4">
+                                        <button
+                                            onClick={handleReRunReport}
+                                            disabled={isRefreshing}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 disabled:opacity-50 transition-colors border border-teal-200"
+                                            title="Re-run with same configuration"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                            Re-run
+                                        </button>
+                                        <button
+                                            onClick={() => setShowCustomConfig(true)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                            title="Customize and run new report"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                                            Customize
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteRun(activeRun.id)}
+                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Delete this report"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className="flex justify-end mt-5">
-                                    <button
-                                        onClick={handleRunAnalysis}
-                                        disabled={isRefreshing || selectedLocations.length === 0 || selectedCompetitors.length === 0}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm"
-                                    >
-                                        {isRefreshing ? (
-                                            <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Running Analysis...</>
-                                        ) : (
-                                            <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Run Analysis (3 credits)</>
-                                        )}
-                                    </button>
+
+                                {/* Bottom row: timeframe toggle */}
+                                <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl w-fit">
+                                    {[
+                                        { id: '30d', label: '30 Days' },
+                                        { id: '90d', label: '90 Days' },
+                                        { id: '6m', label: '6 Months' },
+                                        { id: '1y', label: '1 Year' }
+                                    ].map(period => (
+                                        <button key={period.id} type="button" onClick={() => setReportPeriod(period.id)}
+                                            className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${reportPeriod === period.id ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
+                                        >
+                                            {period.label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
-                        )}
 
-                        {/* Report content */}
-                        {activeRun && activeRun.data ? (
-                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                {/* Timeframe toggle + delete */}
-                                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                                    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl w-fit">
-                                        {[
-                                            { id: '30d', label: '30 Days' },
-                                            { id: '90d', label: '90 Days' },
-                                            { id: '6m', label: '6 Months' },
-                                            { id: '1y', label: '1 Year' }
-                                        ].map(period => (
-                                            <button key={period.id} type="button" onClick={() => setReportPeriod(period.id)}
-                                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${reportPeriod === period.id ? 'bg-teal-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
-                                            >
-                                                {period.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <button onClick={() => handleDeleteRun(activeRun.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5" title="Delete this report">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
+                            {activeRun.data[reportPeriod] ? (
+                                <div className="p-6">
+                                    <CompetitiveReportPanel data={activeRun.data[reportPeriod]} periodWindow={reportPeriod} />
                                 </div>
-
-                                {activeRun.data[reportPeriod] ? (
-                                    <div className="p-6">
-                                        <CompetitiveReportPanel data={activeRun.data[reportPeriod]} periodWindow={reportPeriod} />
-                                    </div>
-                                ) : (
-                                    <div className="p-8 text-center">
-                                        <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        <h4 className="text-lg font-bold text-gray-900 mb-2">Not enough data</h4>
-                                        <p className="text-gray-500 max-w-md mx-auto">Not enough reviews in the {reportPeriod} window to generate analysis. Try a longer timeframe.</p>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            !showNewReportConfig && (
-                                <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                                    <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100">
-                                        <svg className="w-7 h-7 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                    </div>
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2">No reports yet</h3>
-                                    <p className="text-gray-500 mb-6 max-w-md mx-auto">Run your first AI-powered competitive analysis to see how you stack up against competitors.</p>
+                            ) : (
+                                <div className="p-8 text-center">
+                                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <h4 className="text-lg font-bold text-gray-900 mb-2">Not enough data</h4>
+                                    <p className="text-gray-500 max-w-md mx-auto">Not enough reviews in the {reportPeriod} window to generate analysis. Try a longer timeframe.</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        !showCustomConfig && (
+                            <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100">
+                                    <svg className="w-7 h-7 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                                    {competitors.length === 0 ? 'Add competitors to get started' : 'No reports yet'}
+                                </h3>
+                                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                                    {competitors.length === 0
+                                        ? 'Add at least one competitor above, then run your first AI-powered competitive analysis.'
+                                        : 'Run your first AI-powered competitive analysis to see how you stack up against competitors.'}
+                                </p>
+                                {competitors.length > 0 && locations.length > 0 && (
                                     <button
-                                        onClick={() => setShowNewReportConfig(true)}
+                                        onClick={handleNewReport}
                                         className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors shadow-md shadow-teal-100"
                                     >
                                         Create First Report
                                     </button>
-                                </div>
-                            )
-                        )}
-                    </div>
+                                )}
+                            </div>
+                        )
+                    )}
                 </div>
 
                 {/* Stats Modal */}
