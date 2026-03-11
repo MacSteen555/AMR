@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { apiGet, apiPost, apiDelete } from '@/lib/api'
 import { Toast } from '@/components/Toast'
 import { CompetitorStatsModal } from '@/components/CompetitorStatsModal'
+import { CompetitiveReportPanel } from '@/components/CompetitiveReportPanel'
 
 // Utility hook for debouncing search
 function useDebounce<T>(value: T, delay: number): T {
@@ -563,105 +564,8 @@ export default function CompetitiveDashboard() {
                                                         ))}
                                                     </div>
 
-                                                    {/* Copy Button */}
-                                                    <div className="flex justify-between items-center mb-8">
-                                                        <h4 className="text-sm font-bold text-teal-600 uppercase tracking-wider">Executive Summary</h4>
-                                                        <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    await navigator.clipboard.writeText(run.data[reportPeriod].summary);
-                                                                    setToast({ message: 'Summary copied to clipboard', type: 'success' });
-                                                                } catch (err) {
-                                                                    setToast({ message: 'Failed to copy summary', type: 'error' });
-                                                                }
-                                                            }}
-                                                            className="text-xs flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors font-medium border border-gray-200"
-                                                        >
-                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                                            Copy Text
-                                                        </button>
-                                                    </div>
-                                                    <div className="mb-8">
-                                                        <p className="text-gray-800 text-lg leading-relaxed">{run.data[reportPeriod].summary}</p>
-                                                    </div>
-
-                                                    {/* Stats Comparison */}
-                                                    <div className="flex flex-col md:flex-row gap-6 mb-8">
-                                                        <div className="flex-1 bg-white p-5 rounded-xl border border-teal-100 shadow-sm flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center font-bold text-xl">★</div>
-                                                            <div>
-                                                                <div className="text-3xl font-black text-gray-900">{run.data[reportPeriod].ownedAverageRating?.toFixed(1) || 'N/A'}</div>
-                                                                <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Your Average</div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex-1 bg-white p-5 rounded-xl border border-rose-100 shadow-sm flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center font-bold text-xl">★</div>
-                                                            <div>
-                                                                <div className="text-3xl font-black text-gray-900">{run.data[reportPeriod].competitorAverageRating?.toFixed(1) || 'N/A'}</div>
-                                                                <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Competitor Avg</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* SWOT Grid */}
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <div className="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
-                                                            <h4 className="flex items-center gap-2 text-lg font-bold text-green-700 mb-4">
-                                                                <span className="bg-green-100 p-1.5 rounded-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg></span>
-                                                                Your Strengths
-                                                            </h4>
-                                                            <ul className="space-y-3">
-                                                                {run.data[reportPeriod].strengths?.map((s: string, i: number) => (
-                                                                    <li key={i} className="flex gap-3 text-gray-700">
-                                                                        <span className="text-green-500 flex-shrink-0 mt-0.5">•</span>
-                                                                        <span>{s}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                        <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm">
-                                                            <h4 className="flex items-center gap-2 text-lg font-bold text-red-700 mb-4">
-                                                                <span className="bg-red-100 p-1.5 rounded-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg></span>
-                                                                Your Weaknesses
-                                                            </h4>
-                                                            <ul className="space-y-3">
-                                                                {run.data[reportPeriod].weaknesses?.map((w: string, i: number) => (
-                                                                    <li key={i} className="flex gap-3 text-gray-700">
-                                                                        <span className="text-red-500 flex-shrink-0 mt-0.5">•</span>
-                                                                        <span>{w}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                        <div className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm">
-                                                            <h4 className="flex items-center gap-2 text-lg font-bold text-blue-700 mb-4">
-                                                                <span className="bg-blue-100 p-1.5 rounded-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg></span>
-                                                                Opportunities
-                                                            </h4>
-                                                            <ul className="space-y-3">
-                                                                {run.data[reportPeriod].opportunities?.map((o: string, i: number) => (
-                                                                    <li key={i} className="flex gap-3 text-gray-700">
-                                                                        <span className="text-blue-500 flex-shrink-0 mt-0.5">•</span>
-                                                                        <span>{o}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                        <div className="bg-white p-6 rounded-xl border border-amber-100 shadow-sm">
-                                                            <h4 className="flex items-center gap-2 text-lg font-bold text-amber-700 mb-4">
-                                                                <span className="bg-amber-100 p-1.5 rounded-lg"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>
-                                                                Recommendations
-                                                            </h4>
-                                                            <ul className="space-y-3">
-                                                                {run.data[reportPeriod].recommendations?.map((r: string, i: number) => (
-                                                                    <li key={i} className="flex gap-3 text-gray-700">
-                                                                        <span className="text-amber-500 flex-shrink-0 mt-0.5">•</span>
-                                                                        <span>{r}</span>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    </div>
+                                                    {/* Rich Competitive Report */}
+                                                    <CompetitiveReportPanel data={run.data[reportPeriod]} periodWindow={reportPeriod} />
                                                 </div>
                                             )}
 
