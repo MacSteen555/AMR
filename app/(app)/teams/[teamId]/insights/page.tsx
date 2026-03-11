@@ -150,6 +150,10 @@ export default function TeamInsightsPage() {
   const [allReports, setAllReports] = useState<AIInsight[]>([])
   const [reportFilter, setReportFilter] = useState<string>('all')
   const [selectedReport, setSelectedReport] = useState<AIInsight | null>(null)
+  const [showPeriodPicker, setShowPeriodPicker] = useState(false)
+
+  const REPORT_CREDITS: Record<string, number> = { '30d': 3, '90d': 4, '6m': 7, '1y': 10 }
+  const REPORT_LABELS: Record<string, string> = { '30d': 'Last 30 Days', '90d': 'Last 90 Days', '6m': 'Last 6 Months', '1y': 'Year in Review' }
 
   const currentTeam = teams.find(t => t.id === teamId)
   const tier = currentTeam?.subscription?.tier || 'FREE'
@@ -205,21 +209,18 @@ export default function TeamInsightsPage() {
     setSelectedReport(null)
   }, [effectiveLocationId])
 
-  const handleGenerateInsights = async () => {
+  const handleGenerateInsights = async (periodWindow: string) => {
     setGenerating(true)
     try {
       const locParam = effectiveLocationId ? `?location=${effectiveLocationId}` : ''
-      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, {})
-      setToast({ message: 'AI insights generated!', type: 'success' })
-      const locQp = effectiveLocationId ? `&location=${effectiveLocationId}` : ''
-      const insightsRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}${locQp}`)
-      setAiInsights(insightsRes.insights || [])
-      // Also refresh the report library
+      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, { period_window: periodWindow })
+      setToast({ message: 'Report generated!', type: 'success' })
+      // Refresh report library
       const allLocParam = effectiveLocationId ? `location=${effectiveLocationId}` : 'scope=all'
       const allRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?${allLocParam}`)
       setAllReports(allRes.insights || [])
     } catch (err: any) {
-      setToast({ message: err.message || 'Failed to generate insights', type: 'error' })
+      setToast({ message: err.message || 'Failed to generate report', type: 'error' })
     } finally {
       setGenerating(false)
     }
@@ -692,23 +693,42 @@ export default function TeamInsightsPage() {
                       <SparklesIcon /> Upgrade to Generate
                     </button>
                   ) : (
-                    <button
-                      onClick={handleGenerateInsights}
-                      disabled={generating}
-                      className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                    >
-                      {generating ? (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowPeriodPicker(!showPeriodPicker)}
+                        disabled={generating}
+                        className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all duration-200 active:scale-[0.98] cursor-pointer"
+                      >
+                        {generating ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <SparklesIcon />
+                            Generate Report
+                          </>
+                        )}
+                      </button>
+                      {showPeriodPicker && !generating && (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <SparklesIcon />
-                          Generate Report (3 credits)
+                          <div className="fixed inset-0 z-[9]" onClick={() => setShowPeriodPicker(false)} />
+                          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl z-10 overflow-hidden">
+                            {(['30d', '90d', '6m', '1y'] as const).map(pw => (
+                              <button
+                                key={pw}
+                                onClick={() => { setShowPeriodPicker(false); handleGenerateInsights(pw) }}
+                                className="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors cursor-pointer flex items-center justify-between"
+                              >
+                                <span className="text-sm font-medium text-gray-900">{REPORT_LABELS[pw]}</span>
+                                <span className="text-xs text-gray-500">{REPORT_CREDITS[pw]} credits</span>
+                              </button>
+                            ))}
+                          </div>
                         </>
                       )}
-                    </button>
+                    </div>
                   )}
                 </div>
 
@@ -742,8 +762,10 @@ export default function TeamInsightsPage() {
                       Back to reports
                     </button>
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="text-xs px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 font-medium">
-                        {selectedReport.period_window || 'custom'}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        selectedReport.period_window === '1y' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'
+                      }`}>
+                        {REPORT_LABELS[selectedReport.period_window || ''] || selectedReport.period_window || 'custom'}
                       </span>
                       <span className="text-sm text-gray-500">
                         {selectedReport.period_start} — {selectedReport.period_end}
@@ -785,7 +807,7 @@ export default function TeamInsightsPage() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">No reports yet</h3>
                         <p className="text-gray-500 text-sm mb-4">Generate your first AI-powered report to uncover hidden patterns in your reviews.</p>
                         <button
-                          onClick={handleGenerateInsights}
+                          onClick={() => setShowPeriodPicker(true)}
                           disabled={generating}
                           className="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer"
                         >
@@ -804,8 +826,10 @@ export default function TeamInsightsPage() {
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <span className="text-xs px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 font-medium">
-                                    {report.period_window || 'custom'}
+                                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                                    report.period_window === '1y' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'
+                                  }`}>
+                                    {REPORT_LABELS[report.period_window || ''] || report.period_window || 'custom'}
                                   </span>
                                   <span className="text-sm font-medium text-gray-900">
                                     {report.period_start} — {report.period_end}
