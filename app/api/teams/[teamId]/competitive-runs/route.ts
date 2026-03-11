@@ -23,11 +23,11 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       params.teamId,
       user.id,
       'competitive_run',
-      5,
+      3,
       'team',
       params.teamId,
       idempotencyKey,
-      { requiredTier: 'BUSINESS' }
+      { requiredTier: 'PRO' }
     )
 
     const supabase = createSupabaseServerClient()
