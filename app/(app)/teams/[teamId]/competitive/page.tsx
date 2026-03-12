@@ -339,7 +339,7 @@ export default function CompetitiveDashboard() {
     return (
         <>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            <div className="p-8 h-screen flex flex-col">
+            <div className="p-8 max-w-[1400px] mx-auto w-full">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-6">
                     <div>
@@ -363,7 +363,7 @@ export default function CompetitiveDashboard() {
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-6 pb-20">
+                <div className="space-y-6">
 
                     {/* ═══════════════════════════════════════════════════════
                         SECTION 1: COMPETITOR RAIL
@@ -381,7 +381,7 @@ export default function CompetitiveDashboard() {
                                 </button>
                             )}
                         </div>
-                        <div className="flex gap-3 overflow-x-auto pb-2">
+                        <div className="flex gap-3 overflow-x-auto pb-3 pt-3 -mt-3 px-1 -mx-1">
                             {competitors.map(comp => {
                                 const isFocused = focusedCompetitorId === comp.id
                                 const reportCount = reportCountByCompetitor[comp.id] || 0
@@ -543,7 +543,7 @@ export default function CompetitiveDashboard() {
                                 </div>
                                 <span className="text-xs text-gray-400">{filteredRuns.length} report{filteredRuns.length !== 1 ? 's' : ''}</span>
                             </div>
-                            <div className="flex gap-2.5 overflow-x-auto pb-2">
+                            <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 -mx-1">
                                 {filteredRuns.map((run, i) => {
                                     const isActive = activeRun?.id === run.id
                                     const score = getRunScore(run)
