@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useState, useEffect, useRef } from 'react'
 import { apiGet, apiPost, apiDelete, apiPatch } from '@/lib/api'
 import { Toast } from '@/components/Toast'
+import { GbpPermissionsModal } from '@/components/GbpPermissionsModal'
 
 interface Location {
   id: string
@@ -75,6 +76,7 @@ export default function TeamsPage() {
 
   // Modals state
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [isGbpHelpOpen, setIsGbpHelpOpen] = useState(false)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [sendingInvite, setSendingInvite] = useState(false)
@@ -949,21 +951,30 @@ export default function TeamsPage() {
                   )}
                 </div>
 
-                <div className="p-6 border-t border-gray-200 flex justify-end gap-3 rounded-b-2xl bg-gray-50">
+                <div className="p-6 border-t border-gray-200 flex justify-between items-center rounded-b-2xl bg-gray-50">
                   <button
-                    onClick={() => setIsLocationModalOpen(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                    disabled={importing}
+                    onClick={() => setIsGbpHelpOpen(true)}
+                    className="text-sm text-gray-500 hover:text-teal-600 font-medium transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    Cancel
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Not seeing your business?
                   </button>
-                  <button
-                    onClick={handleImport}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                    disabled={importing || selectedGoogleIds.length === 0}
-                  >
-                    {importing ? 'Importing...' : 'Import Selected'}
-                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIsLocationModalOpen(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                      disabled={importing}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleImport}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                      disabled={importing || selectedGoogleIds.length === 0}
+                    >
+                      {importing ? 'Importing...' : 'Import Selected'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1043,6 +1054,7 @@ export default function TeamsPage() {
         )}
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <GbpPermissionsModal isOpen={isGbpHelpOpen} onClose={() => setIsGbpHelpOpen(false)} />
     </>
   )
 }
