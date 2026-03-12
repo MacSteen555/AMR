@@ -459,12 +459,12 @@ export default function CompetitiveDashboard() {
                                             </button>
                                         </div>
 
-                                        {/* Focus hint */}
-                                        <p className={`text-[10px] mt-2 transition-all duration-200 ${
-                                            isFocused ? 'text-teal-600 font-medium' : 'text-gray-300 opacity-0 group-hover/card:opacity-100'
-                                        }`}>
-                                            {isFocused ? 'Filtering reports' : 'Click to filter reports'}
-                                        </p>
+                                        {/* Focus hint — only show when active */}
+                                        {isFocused && (
+                                            <p className="text-[10px] mt-2 text-teal-600 font-medium">
+                                                Filtering reports
+                                            </p>
+                                        )}
                                     </div>
                                 )
                             })}
@@ -484,7 +484,7 @@ export default function CompetitiveDashboard() {
 
                     {/* ── Add Competitor Form ── */}
                     {showAddForm && (
-                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm -mt-2">
+                        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold text-gray-900">Add New Competitor</h3>
                                 <button onClick={() => { setShowAddForm(false); setNewPlaceId(''); setNewName(''); setSearchQuery(''); setSelectedPlaceData(null) }} className="text-gray-400 hover:text-gray-600">
@@ -584,7 +584,7 @@ export default function CompetitiveDashboard() {
                                             <div className="flex flex-wrap gap-1">
                                                 {compNames.slice(0, 3).map((name, j) => (
                                                     <span key={j} className={`text-[10px] px-1.5 py-0.5 rounded-full truncate max-w-[90px] ${
-                                                        isActive ? 'bg-white/15 text-teal-100' : 'bg-gray-100 text-gray-500'
+                                                        isActive ? 'bg-white/20 text-teal-100' : 'bg-gray-100 text-gray-500'
                                                     }`}>
                                                         {name}
                                                     </span>
@@ -607,73 +607,147 @@ export default function CompetitiveDashboard() {
                     ═══════════════════════════════════════════════════════ */}
                     {showCustomConfig && (
                         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="flex justify-between items-center mb-5">
                                 <div>
                                     <h3 className="font-semibold text-gray-900">Configure Report</h3>
-                                    <p className="text-xs text-gray-400 mt-0.5">Select which locations and competitors to include.</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Pick up to 3 locations and 3 competitors to compare.</p>
                                 </div>
-                                <button onClick={() => setShowCustomConfig(false)} className="text-gray-400 hover:text-gray-600">
+                                <button onClick={() => setShowCustomConfig(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                    <h4 className="font-medium text-gray-700 mb-3 flex items-center justify-between text-sm">
-                                        <span>Your Locations (Max 3)</span>
-                                        <span className="text-xs bg-white text-teal-600 px-2 py-0.5 rounded border border-teal-100">{selectedLocations.length}/3</span>
-                                    </h4>
-                                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                                        {locations.map(loc => (
-                                            <label key={loc.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:border-teal-200 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
-                                                    checked={selectedLocations.includes(loc.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked && selectedLocations.length < 3) setSelectedLocations([...selectedLocations, loc.id])
-                                                        else if (!e.target.checked) setSelectedLocations(selectedLocations.filter(id => id !== loc.id))
+                                {/* Locations column */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="font-medium text-gray-700 text-sm">Your Locations</h4>
+                                        <div className="flex items-center gap-2">
+                                            {locations.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (selectedLocations.length === Math.min(locations.length, 3)) setSelectedLocations([])
+                                                        else setSelectedLocations(locations.slice(0, 3).map(l => l.id))
                                                     }}
-                                                    disabled={!selectedLocations.includes(loc.id) && selectedLocations.length >= 3}
-                                                />
-                                                <span className="text-sm text-gray-800">{loc.name}</span>
-                                            </label>
-                                        ))}
-                                        {locations.length === 0 && <p className="text-sm text-gray-500 italic">No locations available.</p>}
+                                                    className="text-[11px] text-teal-600 hover:text-teal-800 font-medium transition-colors"
+                                                >
+                                                    {selectedLocations.length === Math.min(locations.length, 3) ? 'Clear' : 'Select all'}
+                                                </button>
+                                            )}
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                selectedLocations.length > 0 ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-400'
+                                            }`}>{selectedLocations.length}/3</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                                        {locations.map(loc => {
+                                            const isSelected = selectedLocations.includes(loc.id)
+                                            const isDisabled = !isSelected && selectedLocations.length >= 3
+                                            return (
+                                                <label key={loc.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                                                    isSelected
+                                                        ? 'bg-teal-50 border border-teal-200'
+                                                        : isDisabled
+                                                            ? 'bg-gray-50 border border-gray-100 opacity-50 cursor-not-allowed'
+                                                            : 'bg-white border border-gray-150 hover:border-teal-200 hover:bg-teal-50/30'
+                                                }`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 text-teal-600 rounded border-gray-300 focus:ring-teal-500"
+                                                        checked={isSelected}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked && selectedLocations.length < 3) setSelectedLocations([...selectedLocations, loc.id])
+                                                            else if (!e.target.checked) setSelectedLocations(selectedLocations.filter(id => id !== loc.id))
+                                                        }}
+                                                        disabled={isDisabled}
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className={`text-sm block truncate ${isSelected ? 'text-teal-900 font-medium' : 'text-gray-800'}`}>{loc.name}</span>
+                                                        {(loc.average_rating || loc.review_count) && (
+                                                            <span className="text-[11px] text-gray-400">
+                                                                {loc.average_rating ? `${loc.average_rating.toFixed(1)} stars` : ''}{loc.average_rating && loc.review_count ? ' · ' : ''}{loc.review_count ? `${loc.review_count} reviews` : ''}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </label>
+                                            )
+                                        })}
+                                        {locations.length === 0 && <p className="text-sm text-gray-500 italic p-3">No locations available.</p>}
                                     </div>
                                 </div>
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                    <h4 className="font-medium text-gray-700 mb-3 flex items-center justify-between text-sm">
-                                        <span>Competitors (Max 3)</span>
-                                        <span className="text-xs bg-white text-rose-600 px-2 py-0.5 rounded border border-rose-100">{selectedCompetitors.length}/3</span>
-                                    </h4>
-                                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                                        {competitors.map(comp => (
-                                            <label key={comp.id} className="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-gray-100 cursor-pointer hover:border-rose-200 transition-colors">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
-                                                    checked={selectedCompetitors.includes(comp.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked && selectedCompetitors.length < 3) setSelectedCompetitors([...selectedCompetitors, comp.id])
-                                                        else if (!e.target.checked) setSelectedCompetitors(selectedCompetitors.filter(id => id !== comp.id))
+
+                                {/* Competitors column */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="font-medium text-gray-700 text-sm">Competitors</h4>
+                                        <div className="flex items-center gap-2">
+                                            {competitors.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (selectedCompetitors.length === Math.min(competitors.length, 3)) setSelectedCompetitors([])
+                                                        else setSelectedCompetitors(competitors.slice(0, 3).map(c => c.id))
                                                     }}
-                                                    disabled={!selectedCompetitors.includes(comp.id) && selectedCompetitors.length >= 3}
-                                                />
-                                                <span className="text-sm text-gray-800">{comp.name}</span>
-                                            </label>
-                                        ))}
-                                        {competitors.length === 0 && <p className="text-sm text-gray-500 italic">Add competitors above first.</p>}
+                                                    className="text-[11px] text-rose-600 hover:text-rose-800 font-medium transition-colors"
+                                                >
+                                                    {selectedCompetitors.length === Math.min(competitors.length, 3) ? 'Clear' : 'Select all'}
+                                                </button>
+                                            )}
+                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                                selectedCompetitors.length > 0 ? 'bg-rose-100 text-rose-700' : 'bg-gray-100 text-gray-400'
+                                            }`}>{selectedCompetitors.length}/3</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5 max-h-52 overflow-y-auto">
+                                        {competitors.map(comp => {
+                                            const isSelected = selectedCompetitors.includes(comp.id)
+                                            const isDisabled = !isSelected && selectedCompetitors.length >= 3
+                                            return (
+                                                <label key={comp.id} className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                                                    isSelected
+                                                        ? 'bg-rose-50 border border-rose-200'
+                                                        : isDisabled
+                                                            ? 'bg-gray-50 border border-gray-100 opacity-50 cursor-not-allowed'
+                                                            : 'bg-white border border-gray-150 hover:border-rose-200 hover:bg-rose-50/30'
+                                                }`}>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-4 h-4 text-rose-600 rounded border-gray-300 focus:ring-rose-500"
+                                                        checked={isSelected}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked && selectedCompetitors.length < 3) setSelectedCompetitors([...selectedCompetitors, comp.id])
+                                                            else if (!e.target.checked) setSelectedCompetitors(selectedCompetitors.filter(id => id !== comp.id))
+                                                        }}
+                                                        disabled={isDisabled}
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className={`text-sm block truncate ${isSelected ? 'text-rose-900 font-medium' : 'text-gray-800'}`}>{comp.name}</span>
+                                                        <span className="text-[11px] text-gray-400">
+                                                            {comp.rating ? `${comp.rating.toFixed(1)} stars` : 'No rating'}{comp.review_count ? ` · ${comp.review_count} reviews` : ''}
+                                                        </span>
+                                                    </div>
+                                                </label>
+                                            )
+                                        })}
+                                        {competitors.length === 0 && <p className="text-sm text-gray-500 italic p-3">Add competitors above first.</p>}
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex justify-end mt-5">
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                                <p className="text-xs text-gray-400">
+                                    {selectedLocations.length > 0 && selectedCompetitors.length > 0
+                                        ? `${selectedLocations.length} location${selectedLocations.length !== 1 ? 's' : ''} vs ${selectedCompetitors.length} competitor${selectedCompetitors.length !== 1 ? 's' : ''}`
+                                        : 'Select at least 1 of each to continue'}
+                                </p>
                                 <button
                                     onClick={() => handleRunAnalysis()}
                                     disabled={isRefreshing || selectedLocations.length === 0 || selectedCompetitors.length === 0}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-sm"
                                 >
                                     {isRefreshing ? (
-                                        <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Running Analysis...</>
+                                        <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> Running...</>
                                     ) : (
                                         <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Run Analysis (3 credits)</>
                                     )}
