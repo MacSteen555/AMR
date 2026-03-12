@@ -75,10 +75,6 @@ interface CompetitiveData {
     analysis: string
   }
 
-  // Legacy fallback fields
-  summary?: string
-  strengths?: string[]
-  weaknesses?: string[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any
 }
@@ -89,13 +85,6 @@ interface CompetitiveReportPanelProps {
 }
 
 export function CompetitiveReportPanel({ data: d, periodWindow }: CompetitiveReportPanelProps) {
-  // Detect if this is legacy (old SWOT format) vs new rich format
-  const isLegacy = d.competitivePositionScore == null && !d.headToHead
-
-  if (isLegacy) {
-    return <LegacyReport data={d} />
-  }
-
   const posScore = d.competitivePositionScore ?? 50
   const momentum = d.marketMomentum ?? 0
   const ratingGap = d.ratingGap ?? 0
@@ -676,64 +665,6 @@ export function CompetitiveReportPanel({ data: d, periodWindow }: CompetitiveRep
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Legacy report renderer (for old SWOT-style data) ──
-
-function LegacyReport({ data: d }: { data: CompetitiveData }) {
-  return (
-    <div className="space-y-8">
-      {/* Stats Comparison */}
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1 bg-white p-5 rounded-xl border border-teal-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center font-bold text-xl">★</div>
-          <div>
-            <div className="text-3xl font-black text-gray-900">{d.ownedAverageRating?.toFixed(1) || 'N/A'}</div>
-            <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Your Average</div>
-          </div>
-        </div>
-        <div className="flex-1 bg-white p-5 rounded-xl border border-rose-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center font-bold text-xl">★</div>
-          <div>
-            <div className="text-3xl font-black text-gray-900">{d.competitorAverageRating?.toFixed(1) || 'N/A'}</div>
-            <div className="text-sm font-medium text-gray-500 uppercase tracking-wider">Competitor Avg</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary */}
-      {(d.summary || d.executiveSummary) && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h4 className="text-sm font-bold text-teal-600 uppercase tracking-wider mb-3">Summary</h4>
-          <p className="text-gray-800 text-lg leading-relaxed">{d.summary || d.executiveSummary}</p>
-        </div>
-      )}
-
-      {/* SWOT Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {d.strengths && d.strengths.length > 0 && (
-          <div className="bg-white p-6 rounded-xl border border-green-100 shadow-sm">
-            <h4 className="flex items-center gap-2 text-lg font-bold text-green-700 mb-4">Strengths</h4>
-            <ul className="space-y-3">
-              {d.strengths.map((s: string, i: number) => (
-                <li key={i} className="flex gap-3 text-gray-700"><span className="text-green-500 flex-shrink-0 mt-0.5">&bull;</span><span>{s}</span></li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {d.weaknesses && d.weaknesses.length > 0 && (
-          <div className="bg-white p-6 rounded-xl border border-red-100 shadow-sm">
-            <h4 className="flex items-center gap-2 text-lg font-bold text-red-700 mb-4">Weaknesses</h4>
-            <ul className="space-y-3">
-              {d.weaknesses.map((w: string, i: number) => (
-                <li key={i} className="flex gap-3 text-gray-700"><span className="text-red-500 flex-shrink-0 mt-0.5">&bull;</span><span>{w}</span></li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
     </div>
   )
 }
