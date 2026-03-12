@@ -1,21 +1,36 @@
 'use client'
 
+import { useEffect } from 'react'
+
 interface GbpPermissionsModalProps {
     isOpen: boolean
     onClose: () => void
 }
 
 export function GbpPermissionsModal({ isOpen, onClose }: GbpPermissionsModalProps) {
+    useEffect(() => {
+        if (!isOpen) return
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+        document.addEventListener('keydown', handler)
+        return () => document.removeEventListener('keydown', handler)
+    }, [isOpen, onClose])
+
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm"
+            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gbp-help-title"
+        >
+            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-900">Can&apos;t see your business?</h2>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors">
+                    <h2 id="gbp-help-title" className="text-xl font-bold text-gray-900">Can&apos;t see your business?</h2>
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>

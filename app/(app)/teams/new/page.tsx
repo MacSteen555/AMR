@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiPost, apiGet, apiPatch } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 
 type GoogleLocation = {
   account_id: string
@@ -121,6 +122,7 @@ function VoicePill({ voice, selected, onClick, color }: {
    ═══════════════════════════════════════════════════════════════ */
 export default function NewTeamPage() {
   const router = useRouter()
+  const { refresh } = useAuth()
   const [step, setStep] = useState(1)
 
   const [teamName, setTeamName] = useState('')
@@ -161,6 +163,7 @@ export default function NewTeamPage() {
       setCreatingTeam(true); setError(null)
       const result = await apiPost<{ team: { id: string } }>('/api/teams', { name: teamName })
       setTeamId(result.team.id)
+      refresh().catch(() => { /* AppShell will update on next navigation */ })
       setStep(2)
       loadGoogleLocations()
     } catch (err: any) { setError(err.message || 'Failed to create team') }

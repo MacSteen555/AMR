@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiGet } from '@/lib/api'
 
@@ -30,18 +30,28 @@ interface AuthData {
   teams: Team[]
 }
 
-export function useAuth() {
+interface AuthContextValue {
+  user: User | null
+  teams: Team[]
+  loading: boolean
+  error: string | null
+  refresh: () => Promise<void>
+  logout: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
+  const routerRef = useRef(router)
+  routerRef.current = router
+
   const [user, setUser] = useState<User | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const data: AuthData = await apiGet('/api/me')
       setUser(data.user)
@@ -50,36 +60,41 @@ export function useAuth() {
     } catch (err: any) {
       setError(err.message)
       if (err.message === 'Unauthorized' || err.message.includes('401')) {
-        router.push('/login')
+        routerRef.current.push('/login')
       }
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const logout = async () => {
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
+
+  const logout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     } catch { /* best-effort */ }
     setUser(null)
     setTeams([])
-    router.push('/login')
-  }
+    routerRef.current.push('/login')
+  }, [])
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     await checkAuth()
-  }
+  }, [checkAuth])
 
-  return {
-    user,
-    teams,
-    loading,
-    error,
-    checkAuth,
-    refresh,
-    logout,
-  }
+  return (
+    <AuthContext.Provider value={{ user, teams, loading, error, refresh, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
-
-
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return ctx
+}
