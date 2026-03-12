@@ -90,7 +90,7 @@ interface CompetitiveReportPanelProps {
 
 export function CompetitiveReportPanel({ data: d, periodWindow }: CompetitiveReportPanelProps) {
   // Detect if this is legacy (old SWOT format) vs new rich format
-  const isLegacy = !d.competitivePositionScore && !d.headToHead
+  const isLegacy = d.competitivePositionScore == null && !d.headToHead
 
   if (isLegacy) {
     return <LegacyReport data={d} />

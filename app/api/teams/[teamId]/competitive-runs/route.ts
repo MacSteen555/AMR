@@ -18,18 +18,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const body = await request.json()
     const data = createCompetitiveRunSchema.parse(body)
 
-    // Spend credits (requires BUSINESS or higher)
-    await spendCredits(
-      params.teamId,
-      user.id,
-      'competitive_run',
-      3,
-      'team',
-      params.teamId,
-      idempotencyKey,
-      { requiredTier: 'PRO' }
-    )
-
     const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
 
@@ -148,6 +136,18 @@ export async function POST(request: Request, { params }: { params: { teamId: str
           periodWindow: tf.id as '30d' | '90d' | '6m' | '1y',
         })
       })
+    )
+
+    // Spend credits only after AI calls succeed (no charge on failure)
+    await spendCredits(
+      params.teamId,
+      user.id,
+      'competitive_run',
+      3,
+      'team',
+      params.teamId,
+      idempotencyKey,
+      { requiredTier: 'PRO' }
     )
 
     // Save competitive run
