@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -29,6 +30,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     return NextResponse.json({ members })
   } catch (error: any) {
     console.error('Members route error:', error.message, error.stack)
+    captureRouteError(error, { route: '/api/teams/[teamId]/members', teamId: params.teamId })
     return NextResponse.json({ error: error.message }, { status: 403 })
   }
 }

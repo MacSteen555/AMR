@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,6 +45,7 @@ export async function GET(request: Request, { params }: { params: { locationId: 
       canPostReplies: canManage
     })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/reviews', extra: { locationId: params.locationId } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

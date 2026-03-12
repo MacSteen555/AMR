@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireLocationAccess, requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function DELETE(
     request: Request,
@@ -28,6 +29,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/locations/[locationId]', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
@@ -76,6 +78,7 @@ export async function PATCH(
 
         return NextResponse.json({ location: data })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/locations/[locationId]', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

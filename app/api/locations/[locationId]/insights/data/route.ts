@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export const dynamic = 'force-dynamic'
 
@@ -176,6 +177,7 @@ export async function GET(request: Request, { params }: { params: { locationId: 
 
     return NextResponse.json({ analytics, tier, teamId })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/insights/data', extra: { locationId: params.locationId } })
     if (error.message === 'Not a team member' || error.message === 'No access to location') {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }

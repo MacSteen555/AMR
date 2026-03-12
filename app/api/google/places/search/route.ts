@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
+import { captureRouteError } from "@/lib/sentry";
 
 export async function POST(req: NextRequest) {
     try {
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ places });
     } catch (error) {
         console.error("Error searching places:", error);
+        captureRouteError(error, { route: '/api/google/places/search' })
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }

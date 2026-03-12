@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export const dynamic = 'force-dynamic'
 
@@ -231,6 +232,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     if (error.message === 'Not a team member') {
       return NextResponse.json({ error: error.message }, { status: 403 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/insights/data', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

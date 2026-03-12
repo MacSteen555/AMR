@@ -5,12 +5,14 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 import { createCheckoutSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
+  const teamId = params.teamId
   try {
-    await requireTeamAdmin(params.teamId)
+    await requireTeamAdmin(teamId)
     // Validate user session
     await requireUser()
 
@@ -23,7 +25,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const { data: subscription } = await serviceClient
       .schema('app').from('team_subscriptions')
       .select('stripe_subscription_id, tier, current_period_end')
-      .eq('team_id', params.teamId)
+      .eq('team_id', teamId)
       .single()
 
     if (!subscription) {
@@ -95,6 +97,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         })
       } catch (err: any) {
         console.error('Error calculating proration:', err)
+        captureRouteError(err, { route: '/api/teams/[teamId]/billing/preview', teamId })
         return NextResponse.json({ error: 'Could not calculate proration' }, { status: 500 })
       }
     }
@@ -103,6 +106,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/billing/preview', teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

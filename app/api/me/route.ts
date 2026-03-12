@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function GET() {
   try {
@@ -55,6 +56,7 @@ export async function GET() {
       teams: teamsWithBilling,
     })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/me' })
     return NextResponse.json({ error: error.message }, { status: 401 })
   }
 }

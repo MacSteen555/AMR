@@ -3,6 +3,7 @@ import { googleOAuthCallback } from '@/lib/auth/google'
 import { createServerClient } from '@supabase/ssr'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
+import { captureRouteError } from '@/lib/sentry'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,6 +102,7 @@ export async function GET(request: Request) {
     return response
   } catch (error: any) {
     // Handle errors
+    captureRouteError(error, { route: '/api/auth/google/callback' })
     return NextResponse.redirect(`${redirectUrl}/login?error=${encodeURIComponent(error.message)}`)
   }
 }

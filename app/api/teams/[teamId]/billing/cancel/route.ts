@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { stripe } from '@/lib/stripe'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -39,6 +40,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('[API] Error canceling subscription:', error)
+    captureRouteError(error, { route: '/api/teams/[teamId]/billing/cancel', teamId: params.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

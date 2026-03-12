@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { getSupabaseUser } from '@/lib/auth/session'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -74,6 +75,7 @@ export async function GET(request: Request) {
         })
     } catch (error: any) {
         console.error('Validate invite error:', error)
+        captureRouteError(error, { route: '/api/invites/validate' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

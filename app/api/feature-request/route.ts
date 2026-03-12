@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { sendEmail } from '@/lib/email/send'
 import { buildFeatureRequestEmail } from '@/lib/email/templates/feature-request'
+import { captureRouteError } from '@/lib/sentry'
 import { z } from 'zod'
 
 const featureRequestSchema = z.object({
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
         if (error.name === 'ZodError') {
             return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
         }
+        captureRouteError(error, { route: '/api/feature-request' })
         return NextResponse.json({ error: 'Failed to send request' }, { status: 500 })
     }
 }

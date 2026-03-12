@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 // DELETE /api/teams/[teamId] - Delete a team
 export async function DELETE(
@@ -29,6 +30,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
@@ -64,6 +66,7 @@ export async function PATCH(
 
         return NextResponse.json({ team: data })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

@@ -6,6 +6,7 @@ import { draftReply } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
 import { spendCredits } from '@/lib/billing/credits'
 import { updateDraftSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
@@ -94,6 +95,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     if (error.message.includes('Insufficient credits') || error.message.includes('Requires')) {
       return NextResponse.json({ error: error.message }, { status: 402 })
     }
+    captureRouteError(error, { route: '/api/reviews/[reviewId]/draft' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -134,6 +136,7 @@ export async function PATCH(request: Request, { params }: { params: { reviewId: 
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/reviews/[reviewId]/draft' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

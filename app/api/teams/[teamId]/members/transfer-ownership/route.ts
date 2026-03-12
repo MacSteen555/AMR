@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 // POST /api/teams/[teamId]/members/transfer-ownership
 export async function POST(
@@ -74,6 +75,7 @@ export async function POST(
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/members/transfer-ownership', teamId: params.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

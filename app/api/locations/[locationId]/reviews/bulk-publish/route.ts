@@ -3,6 +3,7 @@ import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
 import { updateReply } from '@/lib/google/gbp'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
     try {
@@ -75,6 +76,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
         return NextResponse.json({ published: publishedCount })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/locations/[locationId]/reviews/bulk-publish', extra: { locationId: params.locationId } })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

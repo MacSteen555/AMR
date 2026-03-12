@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { listAccounts, listLocations } from '@/lib/google/gbp'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function GET() {
   try {
@@ -61,6 +62,7 @@ export async function GET() {
 
     return NextResponse.json({ locations: allLocations })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/google/entitlements/locations' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

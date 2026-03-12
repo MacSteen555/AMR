@@ -3,6 +3,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReplyStream } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
 import { spendCredits } from '@/lib/billing/credits'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
@@ -143,6 +144,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         headers: { 'Content-Type': 'application/json' },
       })
     }
+    captureRouteError(error, { route: '/api/reviews/[reviewId]/stream' })
     return new Response(JSON.stringify({ error: error.message }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

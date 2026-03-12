@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireTeamMember } from '@/lib/rbac'
+import { captureRouteError } from '@/lib/sentry'
 import { z } from 'zod'
 
 const updateCompetitorSchema = z.object({
@@ -40,6 +41,7 @@ export async function GET(request: Request, { params }: { params: { competitorId
 
         return NextResponse.json({ competitor: competitorData })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/competitors/[competitorId]' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
@@ -87,6 +89,7 @@ export async function PATCH(request: Request, { params }: { params: { competitor
         if (error.name === 'ZodError') {
             return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
         }
+        captureRouteError(error, { route: '/api/competitors/[competitorId]' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
@@ -124,6 +127,7 @@ export async function DELETE(request: Request, { params }: { params: { competito
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/competitors/[competitorId]' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

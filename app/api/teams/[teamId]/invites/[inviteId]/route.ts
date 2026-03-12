@@ -1,6 +1,7 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireTeamMember } from '@/lib/rbac'
 import { NextResponse } from 'next/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function DELETE(
     request: Request,
@@ -34,6 +35,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/invites/[inviteId]', teamId: params.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

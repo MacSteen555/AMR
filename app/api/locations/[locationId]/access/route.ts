@@ -3,6 +3,7 @@ import { requireLocationAccess } from '@/lib/rbac'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createLocationAccessSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
   try {
@@ -32,6 +33,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/access', extra: { locationId: params.locationId } })
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }

@@ -4,6 +4,7 @@ import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { fetchCompetitorReviews } from '@/lib/serp/competitorReviews'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { competitorId: string } }) {
   try {
@@ -85,6 +86,7 @@ export async function POST(request: Request, { params }: { params: { competitorI
 
 
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/competitors/[competitorId]/reviews/sync' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

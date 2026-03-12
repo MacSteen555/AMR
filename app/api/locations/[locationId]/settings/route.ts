@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { updateLocationSettingsSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function PATCH(request: Request, { params }: { params: { locationId: string } }) {
   try {
@@ -28,6 +29,7 @@ export async function PATCH(request: Request, { params }: { params: { locationId
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/settings', extra: { locationId: params.locationId } })
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }

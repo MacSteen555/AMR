@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { sendEmail } from '@/lib/email/send'
 import { buildContactEmail } from '@/lib/email/templates/contact-us'
+import { captureRouteError } from '@/lib/sentry'
 import { z } from 'zod'
 
 const contactSchema = z.object({
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
         if (error.name === 'ZodError') {
             return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
         }
+        captureRouteError(error, { route: '/api/contact' })
         return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
     }
 }

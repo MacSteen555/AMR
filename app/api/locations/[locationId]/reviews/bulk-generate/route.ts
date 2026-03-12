@@ -4,6 +4,7 @@ import { requireLocationAccess } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
     try {
@@ -100,6 +101,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
         return NextResponse.json({ generated: generatedCount })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/locations/[locationId]/reviews/bulk-generate', extra: { locationId: params.locationId } })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

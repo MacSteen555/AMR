@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { googleOAuthStart } from '@/lib/auth/google'
 import { cookies } from 'next/headers'
+import { captureRouteError } from '@/lib/sentry'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ export async function GET() {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
-      maxAge: 600, // 10 minutes
+      maxAge: 7200, // 2 hours
     }
 
     cookieStore.set('oauth_code_verifier', codeVerifier, cookieOptions)
@@ -26,6 +27,7 @@ export async function GET() {
 
     return NextResponse.json({ url })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/auth/google/start' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

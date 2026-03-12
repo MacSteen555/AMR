@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { captureRouteError } from "@/lib/sentry";
 
 export async function GET(
     req: NextRequest,
@@ -101,6 +102,7 @@ export async function GET(
 
     } catch (error: any) {
         console.error('Error in competitor stats route:', error);
+        captureRouteError(error, { route: '/api/competitors/[competitorId]/stats' })
         return NextResponse.json(
             { error: error.message || "Internal server error" },
             { status: 500 }

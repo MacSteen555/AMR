@@ -1,6 +1,7 @@
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireTeamMember } from '@/lib/rbac'
 import { NextResponse } from 'next/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
     try {
@@ -53,6 +54,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/leave', teamId: params.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { searchPlaces } from '@/lib/google/places'
 import { placesSearchSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/google/places/searchText' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

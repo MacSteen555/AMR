@@ -6,6 +6,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { insightsRun } from '@/lib/openai/insights'
 import { spendCredits } from '@/lib/billing/credits'
 import { runInsightsSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
@@ -126,6 +127,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     return NextResponse.json({ insights: insertedInsights }, { status: 201 })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/insights/run', extra: { locationId: params.locationId } })
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
@@ -159,6 +161,7 @@ export async function GET(request: Request, { params }: { params: { locationId: 
 
     return NextResponse.json({ insights: insights || [] })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/insights/run', extra: { locationId: params.locationId } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

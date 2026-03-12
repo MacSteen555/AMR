@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { updateReply } from '@/lib/google/gbp'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
     try {
@@ -55,6 +56,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
         return NextResponse.json({ review: updated })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/reviews/[reviewId]/publish' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
