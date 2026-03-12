@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       FREE: 0,
       PRO: 1,
       BUSINESS: 5,
-      ENTERPRISE: 10
+      ENTERPRISE: 20
     }
     const maxCompetitors = limits[tierInfo.tier] || 0
 

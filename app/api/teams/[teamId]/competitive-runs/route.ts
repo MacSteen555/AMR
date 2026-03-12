@@ -18,18 +18,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const body = await request.json()
     const data = createCompetitiveRunSchema.parse(body)
 
-    // Spend credits (requires BUSINESS or higher)
-    await spendCredits(
-      params.teamId,
-      user.id,
-      'competitive_run',
-      5,
-      'team',
-      params.teamId,
-      idempotencyKey,
-      { requiredTier: 'BUSINESS' }
-    )
-
     const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
 
@@ -45,7 +33,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
     const maxStartStr = oneYearAgo.toISOString().split('T')[0]
 
-    // Get owned location reviews
+    // Get owned location reviews (with reviewer name and reply status for response rate)
     const { data: ownedLocations } = await supabase
       .schema('app')
       .from('locations')
@@ -58,7 +46,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const { data: reviews } = await supabase
           .schema('app')
           .from('google_reviews')
-          .select('rating, comment, review_date')
+          .select('rating, comment, review_date, reviewer_name, reply_status')
           .eq('location_id', loc.id)
           .gte('review_date', maxStartStr)
           .lte('review_date', endStr)
@@ -67,12 +55,18 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
         return {
           name: loc.name,
-          reviews: (reviews || []).map((r) => ({ rating: r.rating, comment: r.comment, date: r.review_date })),
+          reviews: (reviews || []).map((r) => ({
+            rating: r.rating,
+            comment: r.comment,
+            date: r.review_date,
+            reviewer_name: r.reviewer_name || null,
+            owner_response: r.reply_status === 'posted' || r.reply_status === 'synced_external',
+          })),
         }
       })
     )
 
-    // Get competitor reviews
+    // Get competitor reviews (with reviewer name and owner response)
     const { data: competitors } = await supabase
       .schema('app')
       .from('competitors')
@@ -85,7 +79,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const { data: reviews } = await supabase
           .schema('app')
           .from('competitor_reviews')
-          .select('rating, comment, review_date')
+          .select('rating, comment, review_date, reviewer_name, owner_response')
           .eq('competitor_id', comp.id)
           .gte('review_date', maxStartStr)
           .lte('review_date', endStr)
@@ -94,7 +88,13 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
         return {
           name: comp.name,
-          reviews: (reviews || []).map((r) => ({ rating: r.rating, comment: r.comment, date: r.review_date })),
+          reviews: (reviews || []).map((r) => ({
+            rating: r.rating,
+            comment: r.comment,
+            date: r.review_date,
+            reviewer_name: r.reviewer_name || null,
+            owner_response: !!(r.owner_response),
+          })),
         }
       })
     )
@@ -110,12 +110,11 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         if (tf.years) start.setFullYear(start.getFullYear() - tf.years)
         const startStr = start.toISOString().split('T')[0]
 
-        // Filter out reviews before the specific timeframe
+        // Filter reviews to this specific timeframe, keeping all fields for the AI
         const filterReviews = (rawReviews: any[]) => {
           return rawReviews
             .filter(r => r.date >= startStr)
-            .slice(0, 100)
-            .map(r => ({ rating: r.rating, comment: r.comment }))
+            .slice(0, 200)
         }
 
         const filteredOwned = ownedLocationReviews.map(loc => ({
@@ -128,14 +127,27 @@ export async function POST(request: Request, { params }: { params: { teamId: str
           reviews: filterReviews(comp.reviews)
         }))
 
-        // Run analysis for this duration
+        // Run analysis for this duration with period-specific prompts
         analysisData[tf.id] = await competitiveRun({
           ownedLocations: filteredOwned,
           competitors: filteredComp,
           periodStart: startStr,
           periodEnd: endStr,
+          periodWindow: tf.id as '30d' | '90d' | '6m' | '1y',
         })
       })
+    )
+
+    // Spend credits only after AI calls succeed (no charge on failure)
+    await spendCredits(
+      params.teamId,
+      user.id,
+      'competitive_run',
+      3,
+      'team',
+      params.teamId,
+      idempotencyKey,
+      { requiredTier: 'PRO' }
     )
 
     // Save competitive run

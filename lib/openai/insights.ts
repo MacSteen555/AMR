@@ -374,37 +374,182 @@ Rules:
   return prompt
 }
 
-/**
- * Generates competitive analysis comparing owned locations and competitors.
- */
-export async function competitiveRun(input: {
+// ─── Competitive Analysis ────────────────────────────────────────────────────
+
+export interface CompetitiveInput {
   ownedLocations: Array<{
     name: string
-    reviews: Array<{ rating: number; comment: string | null }>
+    reviews: Array<{ rating: number; comment: string | null; date: string; reviewer_name?: string | null; owner_response?: boolean }>
   }>
   competitors: Array<{
     name: string
-    reviews: Array<{ rating: number; comment: string | null }>
+    reviews: Array<{ rating: number; comment: string | null; date: string; reviewer_name?: string | null; owner_response?: boolean }>
   }>
   periodStart: string
   periodEnd: string
-}): Promise<any> {
+  periodWindow: PeriodWindow
+}
+
+export interface CompetitiveResult {
+  // Hero metrics
+  competitivePositionScore: number // 0-100: where you stand in the local market
+  marketMomentum: number // -10 to +10: are you gaining or losing ground?
+
+  // Executive summary
+  executiveSummary: string
+  ownedAverageRating: number
+  competitorAverageRating: number
+  ownedReviewCount: number
+  competitorReviewCount: number
+  ratingGap: number // owned - competitor avg (positive = you're ahead)
+
+  // Top action
+  topActionItem: { title: string; description: string }
+
+  // Head-to-head breakdown per competitor
+  headToHead: Array<{
+    competitorName: string
+    yourRating: number
+    theirRating: number
+    yourVolume: number
+    theirVolume: number
+    youWinOn: string[] // themes where you outperform
+    theyWinOn: string[] // themes where they outperform
+    verdict: string // one-line summary
+  }>
+
+  // Thematic gap analysis
+  thematicGaps: Array<{
+    theme: string
+    yourSentiment: 'positive' | 'negative' | 'mixed' | 'absent'
+    competitorSentiment: 'positive' | 'negative' | 'mixed' | 'absent'
+    description: string
+    gapType: 'advantage' | 'disadvantage' | 'opportunity' | 'threat'
+  }>
+
+  // Competitive strengths & weaknesses (structured)
+  competitiveStrengths: Array<{
+    theme: string
+    description: string
+    mentionCount: number
+    exampleQuote?: string
+  }>
+  competitiveWeaknesses: Array<{
+    theme: string
+    description: string
+    mentionCount: number
+    severity: 'low' | 'medium' | 'high'
+    exampleQuote?: string
+  }>
+
+  // Threat alerts
+  threatAlerts: Array<{
+    title: string
+    description: string
+    urgency: 'low' | 'medium' | 'high'
+  }>
+
+  // Opportunities
+  opportunities: Array<{
+    title: string
+    description: string
+    impact: 'low' | 'medium' | 'high'
+    effort: 'low' | 'medium' | 'high'
+  }>
+
+  // Recommendations
+  recommendations: Array<{
+    title: string
+    description: string
+    impact: 'low' | 'medium' | 'high'
+    effort: 'low' | 'medium' | 'high'
+    category: 'service' | 'staff' | 'operations' | 'marketing' | 'product'
+  }>
+
+  // Competitor intel: what their customers love (learn from them)
+  stealWorthy: Array<{
+    competitorName: string
+    theme: string
+    quote: string
+    takeaway: string
+  }>
+
+  // Review response comparison
+  responseComparison: {
+    yourResponseRate: number // 0-100
+    competitorAvgResponseRate: number // 0-100
+    analysis: string
+  }
+
+  // Customer sentiment comparison
+  sentimentComparison: {
+    yourSentiment: number // 0-100
+    competitorSentiment: number // 0-100
+    analysis: string
+  }
+}
+
+// ─── Competitive System Prompts ──────────────────────────────────────────────
+
+const COMPETITIVE_SYSTEM_PROMPTS: Record<PeriodWindow, string> = {
+  '30d': `You are a competitive intelligence analyst delivering a 30-day competitive pulse check. Your job is to surface what is happening RIGHT NOW in the local competitive landscape: who is gaining or losing ground, what customers are saying about each business this month, and where immediate action is needed. Think like a field strategist giving a weekly war-room briefing. Be tactical, specific, and urgent. Every claim must be grounded in the actual review data provided. Never use em dashes. Write in a confident, direct tone.`,
+
+  '90d': `You are a competitive strategy analyst delivering a 90-day competitive trend report. Your job is to identify forming patterns across the competitive landscape: are gaps widening or closing? Which competitor is improving fastest? What themes are shifting in customer sentiment? Think like a market research director presenting quarterly competitive findings to the leadership team. Be pattern-focused, comparative, and data-driven. Every claim must be grounded in the actual review data provided. Never use em dashes. Write in a confident, direct tone.`,
+
+  '6m': `You are a senior competitive strategist delivering a 6-month market position assessment. Your job is to evaluate how competitive positioning has evolved over the half-year: who has gained meaningful ground, what structural advantages or disadvantages have emerged, and where the biggest strategic opportunities lie for the next quarter. Compare early months vs recent months to detect trajectory shifts. Think like a management consultant presenting competitive intelligence to the executive team. Be strategic, evidence-based, and forward-looking. Every claim must be grounded in the actual review data provided. Never use em dashes. Write in a confident, direct tone.`,
+
+  '1y': `You are an executive competitive intelligence advisor delivering an annual market landscape review. Your job is to tell the story of this competitive market over the past year: how have positions shifted, which businesses emerged as leaders or fell behind, what macro trends shaped customer expectations, and what defines the competitive strategy for next year. Think like a $500/hour strategy consultant presenting to the board. Be narrative, high-level, and visionary while staying grounded in actual review data. Every claim must be grounded in the actual review data provided. Never use em dashes. Write in a confident, direct tone.`,
+}
+
+const COMPETITIVE_PERIOD_FOCUS: Record<PeriodWindow, string> = {
+  '30d': `ANALYSIS FOCUS (30-Day Competitive Pulse):
+- Focus on WHAT'S HAPPENING NOW: which competitor is having a hot streak or a bad month?
+- topActionItem should be something that can be acted on THIS WEEK to gain competitive ground.
+- headToHead should reflect this month's performance, not historical reputation.
+- threatAlerts should flag competitors making sudden improvements or your sudden dips.
+- recommendations should be quick tactical moves: response strategy changes, service tweaks, marketing pivots.
+- stealWorthy should highlight things competitors did well THIS MONTH that you can learn from immediately.`,
+
+  '90d': `ANALYSIS FOCUS (90-Day Competitive Trends):
+- Focus on FORMING PATTERNS: are competitive gaps widening or narrowing?
+- Compare the first 45 days to the last 45 days for each business to detect trajectory.
+- topActionItem should address the most impactful competitive trend.
+- thematicGaps should identify themes where the gap is growing or shrinking.
+- recommendations should be operational improvements that can show competitive results in 30-60 days.
+- stealWorthy should highlight consistent competitor strengths worth studying.`,
+
+  '6m': `ANALYSIS FOCUS (6-Month Market Position):
+- Focus on STRUCTURAL SHIFTS: have competitive positions changed meaningfully?
+- Compare months 1-3 vs months 4-6 for each business to assess trajectory.
+- topActionItem should be the highest-leverage competitive move for next quarter.
+- headToHead should capture whether each competitor is becoming a bigger or smaller threat.
+- opportunities should focus on gaps that have persisted long enough to exploit.
+- recommendations should be strategic investments: staff training, process changes, marketing campaigns.`,
+
+  '1y': `ANALYSIS FOCUS (Annual Competitive Landscape):
+- Focus on THE BIG PICTURE: how has the competitive landscape shifted over the year?
+- Identify turning points: months where competitive dynamics changed and why.
+- topActionItem should be the single most transformative competitive move for next year.
+- thematicGaps should capture enduring structural advantages/disadvantages.
+- recommendations should be annual strategic priorities, not quick fixes.
+- executiveSummary should read like an annual competitive intelligence brief.`,
+}
+
+/**
+ * Generates rich competitive analysis comparing owned locations and competitors.
+ * Each call handles one timeframe; the API route runs 4 concurrently.
+ */
+export async function competitiveRun(input: CompetitiveInput): Promise<CompetitiveResult> {
+  const systemPrompt = COMPETITIVE_SYSTEM_PROMPTS[input.periodWindow]
   const prompt = buildCompetitivePrompt(input)
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-5.2',
     messages: [
-      {
-        role: 'system',
-        content:
-          'You are a competitive intelligence analyst. Compare business performance across owned locations and competitors based on review data.',
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt },
     ],
-    max_completion_tokens: 30000,
+    max_completion_tokens: 16000,
     response_format: { type: 'json_object' },
   })
 
@@ -421,43 +566,176 @@ export async function competitiveRun(input: {
   }
 }
 
-function buildCompetitivePrompt(input: {
-  ownedLocations: Array<{ name: string; reviews: Array<{ rating: number; comment: string | null }> }>
-  competitors: Array<{ name: string; reviews: Array<{ rating: number; comment: string | null }> }>
-  periodStart: string
-  periodEnd: string
-}): string {
-  let prompt = `Perform a competitive analysis comparing owned locations and competitors:\n\n`
+// ─── Competitive Prompt Builder ──────────────────────────────────────────────
+
+function computeBusinessStats(reviews: Array<{ rating: number; comment: string | null; date: string; owner_response?: boolean }>) {
+  if (reviews.length === 0) return { avg: 0, count: 0, dist: '', firstHalfAvg: 'N/A', secondHalfAvg: 'N/A', withComments: 0, responseRate: '0' }
+
+  const ratings = reviews.map(r => r.rating)
+  const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length
+  const dist = [5, 4, 3, 2, 1].map(r => `${r}★:${ratings.filter(x => x === r).length}`).join(' ')
+
+  const sorted = [...reviews].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const mid = Math.floor(sorted.length / 2)
+  const first = sorted.slice(0, mid)
+  const second = sorted.slice(mid)
+  const firstHalfAvg = first.length > 0 ? (first.reduce((s, r) => s + r.rating, 0) / first.length).toFixed(2) : 'N/A'
+  const secondHalfAvg = second.length > 0 ? (second.reduce((s, r) => s + r.rating, 0) / second.length).toFixed(2) : 'N/A'
+
+  const withComments = reviews.filter(r => r.comment && r.comment.trim().length > 0).length
+  const responded = reviews.filter(r => r.owner_response).length
+  const responseRate = ((responded / reviews.length) * 100).toFixed(0)
+
+  return { avg, count: reviews.length, dist, firstHalfAvg, secondHalfAvg, withComments, responseRate }
+}
+
+function formatReviewsBlock(name: string, reviews: Array<{ rating: number; comment: string | null; date: string; reviewer_name?: string | null }>, limit: number): string {
+  let block = ''
+  const withComments = reviews.filter(r => r.comment && r.comment.trim().length > 0)
+  const ratingOnly = reviews.filter(r => !r.comment || r.comment.trim().length === 0)
+
+  // Prioritize reviews with comments, then pad with rating-only
+  const selected = [...withComments.slice(0, limit)]
+  if (selected.length < limit) {
+    selected.push(...ratingOnly.slice(0, limit - selected.length))
+  }
+
+  selected.forEach((r, i) => {
+    const dateStr = new Date(r.date).toISOString().split('T')[0]
+    const nameTag = r.reviewer_name ? ` by ${r.reviewer_name}` : ''
+    block += `  ${i + 1}. [${r.rating}/5] [${dateStr}]${nameTag} ${r.comment || '(No comment)'}\n`
+  })
+
+  if (reviews.length > limit) {
+    block += `  ... and ${reviews.length - limit} more reviews\n`
+  }
+
+  return block
+}
+
+function buildCompetitivePrompt(input: CompetitiveInput): string {
+  const periodLabel = input.periodWindow === '30d' ? 'Last 30 Days' : input.periodWindow === '90d' ? 'Last 90 Days' : input.periodWindow === '6m' ? 'Last 6 Months' : 'Last Year'
+
+  let prompt = `${COMPETITIVE_PERIOD_FOCUS[input.periodWindow]}\n\n`
+  prompt += `─── COMPETITIVE DATA ───\n`
+  prompt += `Report: ${periodLabel} Competitive Analysis\n`
   prompt += `Period: ${input.periodStart} to ${input.periodEnd}\n\n`
 
-  prompt += `Owned Locations:\n`
-  input.ownedLocations.forEach((loc) => {
-    const avgRating =
-      loc.reviews.length > 0
-        ? loc.reviews.reduce((sum, r) => sum + r.rating, 0) / loc.reviews.length
-        : 0
-    prompt += `- ${loc.name}: ${loc.reviews.length} reviews, avg ${avgRating.toFixed(2)}/5\n`
+  // Per-business reviews limit: split token budget across all businesses
+  const totalBusinesses = input.ownedLocations.length + input.competitors.length
+  const reviewsPerBusiness = Math.min(75, Math.floor(200 / totalBusinesses))
+
+  // Owned locations with stats + reviews
+  prompt += `═══ YOUR LOCATIONS ═══\n`
+  input.ownedLocations.forEach(loc => {
+    const stats = computeBusinessStats(loc.reviews)
+    prompt += `\n▸ ${loc.name}\n`
+    prompt += `  Reviews: ${stats.count} | Avg: ${stats.avg.toFixed(2)} | Distribution: ${stats.dist}\n`
+    prompt += `  First-half avg: ${stats.firstHalfAvg} | Second-half avg: ${stats.secondHalfAvg}\n`
+    prompt += `  Reviews with comments: ${stats.withComments} | Response rate: ${stats.responseRate}%\n`
+    if (loc.reviews.length > 0) {
+      prompt += `  Reviews:\n`
+      prompt += formatReviewsBlock(loc.name, loc.reviews, reviewsPerBusiness)
+    }
   })
 
-  prompt += `\nCompetitors:\n`
-  input.competitors.forEach((comp) => {
-    const avgRating =
-      comp.reviews.length > 0
-        ? comp.reviews.reduce((sum, r) => sum + r.rating, 0) / comp.reviews.length
-        : 0
-    prompt += `- ${comp.name}: ${comp.reviews.length} reviews, avg ${avgRating.toFixed(2)}/5\n`
+  // Competitor locations with stats + reviews
+  prompt += `\n═══ COMPETITORS ═══\n`
+  input.competitors.forEach(comp => {
+    const stats = computeBusinessStats(comp.reviews)
+    prompt += `\n▸ ${comp.name}\n`
+    prompt += `  Reviews: ${stats.count} | Avg: ${stats.avg.toFixed(2)} | Distribution: ${stats.dist}\n`
+    prompt += `  First-half avg: ${stats.firstHalfAvg} | Second-half avg: ${stats.secondHalfAvg}\n`
+    prompt += `  Reviews with comments: ${stats.withComments} | Response rate: ${stats.responseRate}%\n`
+    if (comp.reviews.length > 0) {
+      prompt += `  Reviews:\n`
+      prompt += formatReviewsBlock(comp.name, comp.reviews, reviewsPerBusiness)
+    }
   })
 
-  prompt += `\nProvide a JSON object with:\n`
-  prompt += `{\n`
-  prompt += `  "summary": "Overall competitive positioning",\n`
-  prompt += `  "ownedAverageRating": 0.0,\n`
-  prompt += `  "competitorAverageRating": 0.0,\n`
-  prompt += `  "strengths": ["strength1", "strength2"],\n`
-  prompt += `  "weaknesses": ["weakness1", "weakness2"],\n`
-  prompt += `  "opportunities": ["opportunity1", "opportunity2"],\n`
-  prompt += `  "recommendations": ["recommendation1", "recommendation2"]\n`
-  prompt += `}\n`
+  prompt += `\n─── OUTPUT ───\n`
+  prompt += `Return a JSON object with this EXACT structure:
+{
+  "competitivePositionScore": <number 0-100, where 50 = on par, 80+ = market leader, below 30 = significantly behind>,
+  "marketMomentum": <number -10 to +10, based on whether you are gaining or losing ground vs competitors>,
+  "executiveSummary": "<2-4 sentence competitive positioning summary>",
+  "ownedAverageRating": <float>,
+  "competitorAverageRating": <float>,
+  "ownedReviewCount": <int>,
+  "competitorReviewCount": <int>,
+  "ratingGap": <float, owned avg minus competitor avg>,
+  "topActionItem": { "title": "...", "description": "..." },
+
+  "headToHead": [
+    {
+      "competitorName": "...",
+      "yourRating": <float>,
+      "theirRating": <float>,
+      "yourVolume": <int>,
+      "theirVolume": <int>,
+      "youWinOn": ["theme1", "theme2"],
+      "theyWinOn": ["theme1", "theme2"],
+      "verdict": "<one sentence: who is winning and why>"
+    }
+  ],
+
+  "thematicGaps": [
+    {
+      "theme": "...",
+      "yourSentiment": "positive|negative|mixed|absent",
+      "competitorSentiment": "positive|negative|mixed|absent",
+      "description": "...",
+      "gapType": "advantage|disadvantage|opportunity|threat"
+    }
+  ],
+
+  "competitiveStrengths": [{ "theme": "...", "description": "...", "mentionCount": <int>, "exampleQuote": "..." }],
+  "competitiveWeaknesses": [{ "theme": "...", "description": "...", "mentionCount": <int>, "severity": "low|medium|high", "exampleQuote": "..." }],
+
+  "threatAlerts": [{ "title": "...", "description": "...", "urgency": "low|medium|high" }],
+
+  "opportunities": [{ "title": "...", "description": "...", "impact": "low|medium|high", "effort": "low|medium|high" }],
+
+  "recommendations": [{ "title": "...", "description": "...", "impact": "low|medium|high", "effort": "low|medium|high", "category": "service|staff|operations|marketing|product" }],
+
+  "stealWorthy": [
+    {
+      "competitorName": "...",
+      "theme": "...",
+      "quote": "<actual quote from competitor's review>",
+      "takeaway": "<what you can learn from this>"
+    }
+  ],
+
+  "responseComparison": {
+    "yourResponseRate": <int 0-100>,
+    "competitorAvgResponseRate": <int 0-100>,
+    "analysis": "..."
+  },
+
+  "sentimentComparison": {
+    "yourSentiment": <int 0-100>,
+    "competitorSentiment": <int 0-100>,
+    "analysis": "..."
+  }
+}
+
+Rules:
+- competitivePositionScore: 0-100 relative to the competitors in this analysis. 50 = dead even. 75+ = clearly ahead. Below 30 = significantly behind.
+- marketMomentum: compare first-half vs second-half performance across all businesses. Positive = you're gaining ground.
+- headToHead: one entry per competitor. youWinOn/theyWinOn should be specific themes from actual reviews (e.g., "food quality", "wait times"), not generic labels.
+- thematicGaps: 3-6 items. Focus on themes where there's a meaningful difference in customer sentiment between you and competitors. "absent" means the theme doesn't appear in that business's reviews.
+- competitiveStrengths: 3-5 areas where YOUR reviews outshine competitor reviews. Each MUST include an exampleQuote from your actual reviews.
+- competitiveWeaknesses: 2-4 areas where competitors outperform you. Each MUST include an exampleQuote from your reviews showing the problem.
+- threatAlerts: 0-3 items. Only genuine competitive threats (competitor improving in your weak area, competitor gaining review velocity, etc). Do not fabricate.
+- opportunities: 2-4 items. Things competitors get criticized for that you could exploit, or areas where no one is excelling.
+- recommendations: 3-5 items. Sorted by impact. Quick wins first. Grounded in the competitive data.
+- stealWorthy: 2-4 items. Actual quotes from competitor reviews that reveal what their customers love. Learn from the best.
+- responseComparison: compare how actively each business responds to reviews. If response data isn't available, estimate 0.
+- sentimentComparison: overall customer sentiment (0=terrible, 100=excellent) for each side, based on review content and ratings.
+- Every field must be grounded in the actual review data. No generic advice. No filler. No hallucinating themes not present in the reviews.
+- Do NOT use em dashes. Use commas, periods, or semicolons instead.
+`
 
   return prompt
 }
