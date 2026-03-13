@@ -2,12 +2,11 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { apiGet, apiPost } from '@/lib/api'
+import { apiGet } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
-import { AIInsightsPanel } from '@/components/AIInsightsPanel'
 import {
-  LineChart, Line, BarChart, Bar, AreaChart, Area, ComposedChart,
+  AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 
@@ -21,13 +20,17 @@ interface KPIs {
   positivePercent: number
   negativePercent: number
   locationCount: number
-  sentimentMomentum: number | null
-  anonymousRatio: number
-  anonymousNegativeCount: number
 }
 
+interface Comparison {
+  totalReviews: { current: number; previous: number; deltaPercent: number | null }
+  averageRating: { current: number; previous: number; delta: number }
+  responseRate: { current: number; previous: number; deltaPercent: number | null }
+  averageResponseTimeHours: { current: number | null; previous: number | null; deltaPercent: number | null }
+}
+
+interface ThemeMention { label: string; count: number }
 interface TimePoint { month: string; averageRating: number | null; count: number }
-interface VolumePoint { month: string; total: number; positive: number; neutral: number; negative: number }
 interface ResponseRatePoint { month: string; rate: number | null; replied: number; total: number }
 interface RatingBucket { rating: number; count: number }
 interface LocationStat {
@@ -41,10 +44,8 @@ interface LocationStat {
 interface TeamAnalytics {
   kpis: KPIs
   ratingOverTime: TimePoint[]
-  volumeOverTime: VolumePoint[]
   responseRateOverTime: ResponseRatePoint[]
   ratingDistribution: RatingBucket[]
-  sentimentBreakdown: { positive: number; neutral: number; negative: number }
   perLocation: LocationStat[]
   replyGap?: Array<{
     reviewDate: string
@@ -54,956 +55,359 @@ interface TeamAnalytics {
     locationId: string | null
     locationName: string | null
   }>
-  reviewVelocity?: {
-    heatmap: number[][]
-    peakDay: string
-    peakHour: number
-  }
-  keywordThemes?: Array<{
-    theme: string
-    count: number
-    avgRating: number
-    trend: 'up' | 'down' | 'stable'
-  }>
 }
-
-interface AIInsight {
-  id: string
-  period_start: string
-  period_end: string
-  period_window: string | null
-  data: {
-    executiveSummary?: string
-    ratingTrend?: string
-    ratingTrendDescription?: string
-    keyStrengths?: Array<{ theme: string; description: string; mentionCount: number }>
-    keyWeaknesses?: Array<{ theme: string; description: string; mentionCount: number; severity: string }>
-    emergingTopics?: Array<{ topic: string; sentiment: string; description: string }>
-    riskAlerts?: Array<{ title: string; description: string; urgency: string }>
-    recommendations?: Array<{ title: string; description: string; impact: string; effort: string }>
-    customerPersona?: string
-    notableQuotes?: Array<{ quote: string; rating: number; sentiment: string }>
-    overallSentiment?: number
-    summary?: string
-    topThemes?: string[]
-  }
-  generated_at: string
-  model: string
-}
-
-type InsightsTab = 'insights' | 'reports'
 
 // ─── Period Helpers ──────────────────────────────────────────────────────────
 
 type PeriodKey = '30d' | '90d' | '6m' | '1y' | 'all'
 
-function getPeriodDates(key: PeriodKey): { start: string; end: string } {
+function getPeriodDates(key: PeriodKey): { start: string; end: string; previousStart: string; previousEnd: string } {
   const end = new Date()
   const endStr = end.toISOString().split('T')[0]
-  const start = new Date()
+
+  let daysBack: number
   switch (key) {
-    case '30d': start.setDate(start.getDate() - 30); break
-    case '90d': start.setDate(start.getDate() - 90); break
-    case '6m': start.setMonth(start.getMonth() - 6); break
-    case '1y': start.setFullYear(start.getFullYear() - 1); break
-    case 'all': start.setFullYear(start.getFullYear() - 5); break
+    case '30d': daysBack = 30; break
+    case '90d': daysBack = 90; break
+    case '6m':  daysBack = 183; break
+    case '1y':  daysBack = 365; break
+    case 'all': daysBack = 730; break
   }
-  return { start: start.toISOString().split('T')[0], end: endStr }
+
+  const start = new Date(end)
+  start.setDate(start.getDate() - daysBack)
+  const startStr = start.toISOString().split('T')[0]
+
+  const previousEnd = new Date(start)
+  previousEnd.setDate(previousEnd.getDate() - 1)
+  const previousEndStr = previousEnd.toISOString().split('T')[0]
+
+  const previousStart = new Date(previousEnd)
+  previousStart.setDate(previousStart.getDate() - daysBack)
+  const previousStartStr = previousStart.toISOString().split('T')[0]
+
+  return { start: startStr, end: endStr, previousStart: previousStartStr, previousEnd: previousEndStr }
 }
 
 const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
-  { key: '30d', label: 'Last 30 days' },
-  { key: '90d', label: 'Last 90 days' },
-  { key: '6m', label: 'Last 6 months' },
-  { key: '1y', label: 'Last year' },
+  { key: '30d', label: '30 days' },
+  { key: '90d', label: '90 days' },
+  { key: '6m',  label: '6 months' },
+  { key: '1y',  label: '1 year' },
 ]
 
-function formatMonth(month: any): string {
-  if (typeof month !== 'string') return String(month)
-  const [y, m] = month.split('-')
-  const date = new Date(parseInt(y), parseInt(m) - 1)
-  return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+function formatMonth(str: string) {
+  const d = new Date(str + '-01')
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
 }
 
-const RATING_COLORS: Record<number, string> = {
-  5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f97316', 1: '#ef4444',
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function formatResponseTime(hours: number | null): string {
+  if (hours == null) return '—'
+  if (hours < 1) return `${Math.round(hours * 60)}m`
+  if (hours < 24) return `${hours.toFixed(1)}h`
+  return `${(hours / 24).toFixed(1)}d`
 }
 
-const SENTIMENT_COLORS = { positive: '#22c55e', neutral: '#eab308', negative: '#ef4444' }
+// ─── MetricCard ──────────────────────────────────────────────────────────────
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function MetricCard({ label, value, suffix, delta, deltaLabel, invertColor }: {
+  label: string
+  value: string
+  suffix?: string
+  delta?: number | null
+  deltaLabel?: string
+  invertColor?: boolean
+}) {
+  const isPositive = invertColor ? (delta ?? 0) < 0 : (delta ?? 0) > 0
+  const isNegative = invertColor ? (delta ?? 0) > 0 : (delta ?? 0) < 0
+  return (
+    <div className="bg-[#F3F4F6] rounded-2xl p-5">
+      <p className="text-sm font-medium text-[#4B5563] mb-1">{label}</p>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold text-[#111827] tracking-tight">{value}</span>
+        {suffix && <span className="text-lg text-[#9CA3AF] font-medium">{suffix}</span>}
+      </div>
+      {delta != null && delta !== 0 && (
+        <div className="mt-2">
+          <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
+            isPositive ? 'bg-[#ECFDF5] text-[#059669]' : isNegative ? 'bg-[#FEF2F2] text-[#DC2626]' : 'bg-[#F3F4F6] text-[#9CA3AF]'
+          }`}>
+            {delta > 0 ? '+' : ''}{deltaLabel === 'pts' ? `${delta.toFixed(2)} pts` : `${delta.toFixed(0)}%`}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
 
-export default function TeamInsightsPage() {
-  const { teamId } = useParams() as { teamId: string }
+// ─── Page Component ──────────────────────────────────────────────────────────
+
+export default function InsightsPage() {
+  const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const locationId = searchParams?.get('location') || null
-  const { teams, refresh: refreshAuth } = useAuth()
-  const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([])
-  const [period, setPeriod] = useState<PeriodKey>('6m')
+  const teamId = params.teamId as string
+  const locationId = searchParams.get('location')
+  const { teams } = useAuth()
+
+  const team = teams?.find((t: any) => t.team_id === teamId)
+
+  const [locations, setLocations] = useState<any[]>([])
+  const [period, setPeriod] = useState<PeriodKey>('90d')
   const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
-  const [aiInsights, setAiInsights] = useState<AIInsight[]>([])
+  const [comparison, setComparison] = useState<Comparison | null>(null)
+  const [themeMentions, setThemeMentions] = useState<ThemeMention[]>([])
   const [loading, setLoading] = useState(true)
-  const [generating, setGenerating] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-  const [activeTab, setActiveTab] = useState<InsightsTab>('insights')
-  const [allReports, setAllReports] = useState<AIInsight[]>([])
-  const [reportFilter, setReportFilter] = useState<string>('all')
-  const [selectedReport, setSelectedReport] = useState<AIInsight | null>(null)
-  const [showPeriodPicker, setShowPeriodPicker] = useState(false)
 
-  const REPORT_CREDITS: Record<string, number> = { '30d': 3, '90d': 4, '6m': 7, '1y': 10 }
-  const REPORT_LABELS: Record<string, string> = { '30d': 'Last 30 Days', '90d': 'Last 90 Days', '6m': 'Last 6 Months', '1y': 'Year in Review' }
+  const effectiveLocationId = locationId || ''
 
-  const currentTeam = teams.find(t => t.id === teamId)
-  const tier = currentTeam?.subscription?.tier || 'FREE'
-  const insightsEnabled = tier !== 'FREE'
-
-  const { start, end } = useMemo(() => getPeriodDates(period), [period])
-
+  // Load locations
   useEffect(() => {
-    apiGet<{ locations: Array<{ id: string; name: string }> }>(`/api/teams/${teamId}/locations`)
-      .then(res => setLocations(res.locations || []))
-      .catch(() => {})
+    if (!teamId) return
+    apiGet<any>(`/api/teams/${teamId}/locations`).then((data) => {
+      setLocations(data.locations || data || [])
+    }).catch(() => {})
   }, [teamId])
 
-  const effectiveLocationId = useMemo(() => {
-    if (locationId) return locationId
-    if (locations.length === 1) return locations[0].id
-    return null
-  }, [locationId, locations])
-
-  const isTeamView = !effectiveLocationId
+  const { start, end, previousStart, previousEnd } = useMemo(() => getPeriodDates(period), [period])
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const locParam = effectiveLocationId ? `&location=${effectiveLocationId}` : ''
-      const [analyticsRes, insightsRes] = await Promise.all([
-        apiGet<any>(`/api/teams/${teamId}/insights/data?period_start=${start}&period_end=${end}${locParam}`),
-        apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?period_window=${period}${locParam}`),
-      ])
-      setAnalytics(analyticsRes.analytics)
-      setAiInsights(insightsRes.insights || [])
+      const res = await apiGet<any>(
+        `/api/teams/${teamId}/insights/data?period_start=${start}&period_end=${end}&previous_start=${previousStart}&previous_end=${previousEnd}${locParam}`
+      )
+      setAnalytics(res.analytics)
+      setComparison(res.comparison || null)
+      setThemeMentions(res.themeMentions || [])
     } catch (err: any) {
       setToast({ message: err.message || 'Failed to load insights', type: 'error' })
     } finally {
       setLoading(false)
     }
-  }, [teamId, effectiveLocationId, start, end, period])
+  }, [teamId, effectiveLocationId, start, end, previousStart, previousEnd])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  useEffect(() => { loadData() }, [loadData])
 
-  useEffect(() => {
-    if (activeTab === 'reports') {
-      const locParam = effectiveLocationId ? `&location=${effectiveLocationId}` : '&scope=all'
-      apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?${locParam.slice(1)}`)
-        .then(res => setAllReports(res.insights || []))
-        .catch(() => {})
-    }
-  }, [activeTab, teamId, effectiveLocationId])
+  const isTeamView = !effectiveLocationId
 
-  useEffect(() => {
-    setSelectedReport(null)
-  }, [effectiveLocationId])
-
-  const handleGenerateInsights = async (periodWindow: string) => {
-    setGenerating(true)
-    try {
-      const locParam = effectiveLocationId ? `?location=${effectiveLocationId}` : ''
-      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, { period_window: periodWindow })
-      setToast({ message: 'Report generated!', type: 'success' })
-      // Refresh report library
-      const allLocParam = effectiveLocationId ? `location=${effectiveLocationId}` : 'scope=all'
-      const allRes = await apiGet<{ insights: AIInsight[] }>(`/api/teams/${teamId}/insights/run?${allLocParam}`)
-      setAllReports(allRes.insights || [])
-      // Refresh auth to update credit balance in header
-      await refreshAuth()
-    } catch (err: any) {
-      setToast({ message: err.message || 'Failed to generate report', type: 'error' })
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  // removed full page gate
-
-  const kpis = analytics?.kpis
-  const latestAI = aiInsights[0] || null
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className="p-8">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{isTeamView ? 'Team Insights' : 'Insights'}</h1>
-            <p className="text-gray-500 mt-1">{isTeamView ? 'Review analytics across all your locations.' : 'Review analytics and AI-powered insights for this location.'}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              {PERIOD_OPTIONS.map(opt => (
-                <button
-                  key={opt.key}
-                  onClick={() => setPeriod(opt.key)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-all duration-200 active:scale-[0.98] ${period === opt.key ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                  {opt.label}
-                </button>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-[#111827]">Insights</h1>
+          <p className="text-sm text-[#9CA3AF] mt-1">
+            {isTeamView
+              ? `Performance across ${locations.length} location${locations.length !== 1 ? 's' : ''}`
+              : locations.find((l: any) => l.id === effectiveLocationId)?.name || 'Location'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Location filter */}
+          {locations.length > 1 && (
+            <select
+              className="text-sm border border-[#E5E7EB] rounded-lg px-3 py-2 text-[#111827] bg-white"
+              value={effectiveLocationId}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val) {
+                  router.push(`/teams/${teamId}/insights?location=${val}`)
+                } else {
+                  router.push(`/teams/${teamId}/insights`)
+                }
+              }}
+            >
+              <option value="">All locations</option>
+              {locations.map((loc: any) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
               ))}
-            </div>
+            </select>
+          )}
+
+          {/* Period picker */}
+          <div className="flex bg-[#F3F4F6] rounded-lg p-1">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setPeriod(opt.key)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  period === opt.key
+                    ? 'bg-white text-[#111827] shadow-sm'
+                    : 'text-[#4B5563] hover:text-[#111827]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Tab Bar */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg mb-8 w-fit">
-          <button
-            onClick={() => { setActiveTab('insights'); setSelectedReport(null) }}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer ${
-              activeTab === 'insights'
-                ? 'bg-white shadow text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Insights
-          </button>
-          <button
-            onClick={() => { setActiveTab('reports'); setSelectedReport(null) }}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-all cursor-pointer ${
-              activeTab === 'reports'
-                ? 'bg-white shadow text-gray-900'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Reports
-            {!insightsEnabled && (
-              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">PRO</span>
-            )}
-          </button>
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-[#F3F4F6] rounded-2xl p-5 animate-pulse">
+                <div className="h-4 w-24 bg-[#E5E7EB] rounded mb-3" />
+                <div className="h-8 w-20 bg-[#E5E7EB] rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl p-5 animate-pulse">
+            <div className="h-4 w-32 bg-[#E5E7EB] rounded mb-4" />
+            <div className="h-64 bg-[#F3F4F6] rounded-xl" />
+          </div>
         </div>
+      )}
 
-        {loading ? (
-          <div className="space-y-6 animate-pulse">
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
-              {Array.from({ length: isTeamView ? 5 : 4 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gray-200 rounded-lg" />
-                    <div className="h-4 w-20 bg-gray-200 rounded" />
+      {/* Empty state */}
+      {!loading && !analytics && (
+        <div className="text-center py-20">
+          <p className="text-[#9CA3AF] text-lg">No review data yet.</p>
+          <p className="text-[#9CA3AF] text-sm mt-1">Sync your Google Business reviews to see insights.</p>
+        </div>
+      )}
+
+      {/* Content */}
+      {!loading && analytics && (
+        <>
+          {/* Metric Cards */}
+          {comparison && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <MetricCard label="Total Reviews" value={comparison.totalReviews.current.toLocaleString()} delta={comparison.totalReviews.deltaPercent} />
+              <MetricCard label="Average Rating" value={comparison.averageRating.current.toFixed(1)} suffix="/ 5" delta={comparison.averageRating.delta} deltaLabel="pts" />
+              <MetricCard label="Response Rate" value={`${comparison.responseRate.current.toFixed(0)}%`} delta={comparison.responseRate.deltaPercent} />
+              <MetricCard label="Avg. Response Time" value={formatResponseTime(comparison.averageResponseTimeHours.current)} delta={comparison.averageResponseTimeHours.deltaPercent} invertColor />
+            </div>
+          )}
+
+          {/* Rating Over Time */}
+          {analytics.ratingOverTime && analytics.ratingOverTime.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 mb-8">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-[#111827]">Rating Over Time</h3>
+                <p className="text-xs text-[#9CA3AF]">Average rating by month</p>
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={analytics.ratingOverTime} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <defs>
+                    <linearGradient id="ratingGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#CCFBF1" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#CCFBF1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={formatMonth}
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    axisLine={{ stroke: '#E5E7EB' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    domain={[1, 5]}
+                    ticks={[1, 2, 3, 4, 5]}
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '13px' }}
+                    labelFormatter={formatMonth}
+                    formatter={(value: any) => [value != null ? Number(value).toFixed(2) : '—', 'Avg Rating']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="averageRating"
+                    stroke="#14B8A6"
+                    strokeWidth={2}
+                    fill="url(#ratingGradient)"
+                    connectNulls
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Theme Mentions */}
+          {themeMentions.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 mb-8">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
+                <p className="text-xs text-[#9CA3AF]">{themeMentions.length} themes detected across reviews</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {themeMentions.map((t, i) => (
+                  <div key={i} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F3F4F6]">
+                    <span className="text-sm font-medium text-[#111827]">{t.label}</span>
+                    <span className="text-xs font-medium text-[#4B5563] bg-white px-2 py-0.5 rounded-full">{t.count}</span>
                   </div>
-                  <div className="h-8 w-24 bg-gray-200 rounded" />
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
-                  <div className="h-4 w-40 bg-gray-200 rounded mb-2" />
-                  <div className="h-3 w-56 bg-gray-100 rounded mb-4" />
-                  <div className="h-[260px] bg-gray-50 rounded-lg" />
-                </div>
-              ))}
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className="h-4 w-44 bg-gray-200 rounded mb-2" />
-              <div className="h-3 w-64 bg-gray-100 rounded mb-4" />
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-10 bg-gray-50 rounded-lg" />
                 ))}
               </div>
             </div>
-          </div>
-        ) : !analytics || kpis?.totalReviews === 0 ? (
-          <div className="text-center py-32 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-            <div className="w-14 h-14 mx-auto mb-4 text-gray-400">
-              <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 13h2v8H3zM9 8h2v13H9zM15 11h2v10h-2zM21 4h2v17h-2z" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">No review data yet</h2>
-            <p className="text-gray-500">Sync your reviews first to see analytics here.</p>
-          </div>
-        ) : (
-          <>
-            {activeTab === 'insights' && (
-              <>
-            {/* KPI Cards */}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
-              <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
-              <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
-              <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" tooltip="Percentage of reviews you've replied to in this period" />
-              <KPICard label="Positive" value={`${kpis!.positivePercent.toFixed(0)}%`} icon={<ThumbsUpIcon />} color="emerald" />
-              {kpis!.sentimentMomentum !== null && (
-                <KPICard
-                  label="Momentum"
-                  value={`${kpis!.sentimentMomentum > 0 ? '+' : ''}${kpis!.sentimentMomentum.toFixed(2)}`}
-                  icon={kpis!.sentimentMomentum > 0 ? <TrendUpIcon /> : kpis!.sentimentMomentum < 0 ? <TrendDownIcon /> : <TrendNeutralIcon />}
-                  color={kpis!.sentimentMomentum > 0 ? 'green' : kpis!.sentimentMomentum < 0 ? 'amber' : 'teal'}
-                  tooltip="How your sentiment is trending compared to the previous period. Positive means improving, negative means declining."
-                />
-              )}
-              {isTeamView && <KPICard label="Locations" value={String(kpis!.locationCount)} icon={<LocationIcon />} color="amber" />}
-              {!isTeamView && kpis!.anonymousRatio > 5 && (
-                <KPICard
-                  label="Anonymous"
-                  value={`${kpis!.anonymousRatio.toFixed(0)}%`}
-                  icon={<AnonymousIcon />}
-                  color={kpis!.anonymousNegativeCount > 3 ? 'amber' : 'teal'}
-                />
-              )}
-            </div>
+          )}
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Rating Over Time */}
-              <ChartCard title="Average Rating Over Time" subtitle={isTeamView ? "Monthly trend across all locations" : "Monthly rating trend"}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={analytics.ratingOverTime.filter(d => d.averageRating !== null)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                    <YAxis domain={[1, 5]} ticks={[1, 2, 3, 4, 5]} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                    <Tooltip
-                      formatter={(value: any, name: any) => [Number(value).toFixed(2), name === 'averageRating' ? (isTeamView ? 'Team Avg' : 'Avg Rating') : name]}
-                      labelFormatter={(label: any) => formatMonth(label)}
-                      contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
-                    />
-                    <Line type="monotone" dataKey="averageRating" name={isTeamView ? 'Team Avg' : 'Avg Rating'} stroke="#0d9488" strokeWidth={3} dot={{ fill: '#0d9488', r: 4 }} activeDot={{ r: 6 }} />
-                    {isTeamView && analytics.perLocation?.map((loc, i) => (
-                      <Line
-                        key={loc.locationId}
-                        type="monotone"
-                        dataKey={loc.locationName}
-                        name={loc.locationName}
-                        stroke={`hsl(${i * 137.5 % 360}, 70%, 50%)`}
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              {/* Review Volume */}
-              <ChartCard title="Review Volume" subtitle="Monthly breakdown by sentiment">
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={analytics.volumeOverTime}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                    <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" allowDecimals={false} />
-                    <Tooltip labelFormatter={(label: any) => formatMonth(label)} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                    <Bar dataKey="positive" stackId="a" fill="#22c55e" name="Positive (4-5)" />
-                    <Bar dataKey="neutral" stackId="a" fill="#eab308" name="Neutral (3)" />
-                    <Bar dataKey="negative" stackId="a" fill="#ef4444" name="Negative (1-2)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartCard>
-
-              {/* Response Rate Over Time */}
-              {isTeamView ? (
-                <ChartCard title="Response Rate Over Time" subtitle="Percentage of reviews replied to">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <ComposedChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={v => `${v}%`} />
-                      <Tooltip
-                        formatter={(value: any, name: any) => [`${Number(value).toFixed(1)}%`, name === 'rate' ? 'Team Avg' : name]}
-                        labelFormatter={(label: any) => formatMonth(label)}
-                        contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
-                      />
-                      <defs>
-                        <linearGradient id="teamResponseGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area type="monotone" dataKey="rate" name="Team Avg" stroke="#0d9488" strokeWidth={3} fill="url(#teamResponseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
-                      {analytics.perLocation?.map((loc, i) => (
-                        <Line
-                          key={loc.locationId}
-                          type="monotone"
-                          dataKey={loc.locationName}
-                          name={loc.locationName}
-                          stroke={`hsl(${i * 137.5 % 360}, 70%, 50%)`}
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                      ))}
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-              ) : (
-                <ChartCard title="Response Rate Over Time" subtitle="Percentage of reviews replied to">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart data={analytics.responseRateOverTime.filter(d => d.rate !== null)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="month" tickFormatter={formatMonth} tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                      <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={v => `${v}%`} />
-                      <Tooltip formatter={(value: any) => [`${Number(value).toFixed(1)}%`, 'Response Rate']} labelFormatter={(label: any) => formatMonth(label)} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
-                      <defs>
-                        <linearGradient id="responseGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area type="monotone" dataKey="rate" stroke="#0d9488" strokeWidth={2.5} fill="url(#responseGradient)" dot={{ fill: '#0d9488', r: 3 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartCard>
-              )}
-
-              {/* Rating Distribution */}
-              <ChartCard title="Rating Distribution" subtitle="Breakdown by star rating">
-                <div className="px-4 pt-2">
-                  {analytics.ratingDistribution.map(bucket => {
-                    const pct = kpis!.totalReviews > 0 ? (bucket.count / kpis!.totalReviews) * 100 : 0
-                    return (
-                      <div key={bucket.rating} className="flex items-center gap-3 mb-3">
-                        <div className="flex items-center gap-1 w-16 text-sm font-medium text-gray-700">
-                          {bucket.rating} <span className="text-yellow-400">★</span>
-                        </div>
-                        <div className="flex-1 h-7 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${Math.max(pct, 1)}%`, backgroundColor: RATING_COLORS[bucket.rating] }}
-                          />
-                        </div>
-                        <div className="w-20 text-right text-sm text-gray-600">
-                          {bucket.count} <span className="text-gray-400">({pct.toFixed(0)}%)</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="flex items-center justify-center gap-6 pt-2 pb-1 border-t border-gray-100 mt-2">
-                  {Object.entries(analytics.sentimentBreakdown).map(([key, val]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: SENTIMENT_COLORS[key as keyof typeof SENTIMENT_COLORS] }} />
-                      <span className="text-sm text-gray-600 capitalize">{key}</span>
-                      <span className="text-sm font-semibold text-gray-900">{val}</span>
-                    </div>
-                  ))}
-                </div>
-              </ChartCard>
-
-              {/* Review Velocity Heatmap */}
-              {analytics.reviewVelocity && (
-                <ChartCard
-                  title="Review Velocity"
-                  subtitle={`Peak: ${analytics.reviewVelocity.peakDay}s around ${analytics.reviewVelocity.peakHour}:00`}
-                >
-                  <div className="px-2">
-                    <div className="grid gap-[3px]" style={{ gridTemplateColumns: 'auto repeat(24, 1fr)' }}>
-                      {/* Hour labels row */}
-                      <div />
-                      {Array.from({ length: 24 }, (_, h) => (
-                        <div key={h} className="text-center text-[9px] text-gray-400 leading-none">
-                          {h % 6 === 0 ? `${h}` : ''}
-                        </div>
-                      ))}
-                      {/* Day rows */}
-                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, d) => {
-                        const max = Math.max(...analytics.reviewVelocity!.heatmap.flat(), 1)
-                        return (
-                          <React.Fragment key={d}>
-                            <div className="text-[10px] text-gray-500 pr-1.5 text-right leading-none flex items-center justify-end">{day}</div>
-                            {analytics.reviewVelocity!.heatmap[d].map((count, h) => {
-                              const intensity = count / max
-                              return (
-                                <div
-                                  key={h}
-                                  className="aspect-square rounded-[2px]"
-                                  style={{ backgroundColor: count === 0 ? '#f3f4f6' : `rgba(13, 148, 136, ${Math.max(intensity, 0.15)})` }}
-                                  title={`${day} ${h}:00 — ${count} reviews`}
-                                />
-                              )
-                            })}
-                          </React.Fragment>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </ChartCard>
-              )}
-            </div>
-
-            {/* Per-Location Breakdown */}
-            {isTeamView && analytics.perLocation?.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
-                <div className="p-5 border-b border-gray-100">
-                  <h3 className="text-base font-semibold text-gray-900">Location Breakdown</h3>
-                  <p className="text-xs text-gray-400">Performance comparison across locations</p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Location</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reviews</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Avg Rating</th>
-                        <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Response Rate</th>
-                        <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-48">Rating</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {analytics.perLocation?.map((loc, i) => (
-                        <tr
-                          key={loc.locationId}
-                          className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${i % 2 === 0 ? '' : 'bg-gray-25'}`}
-                          onClick={() => {
-                            const searchQuery = new URLSearchParams(searchParams?.toString() || '')
-                            searchQuery.set('location', loc.locationId)
-                            router.replace(`/teams/${teamId}/insights?${searchQuery.toString()}`)
-                          }}
-                        >
-                          <td className="px-5 py-3.5">
-                            <span className="text-sm font-medium text-gray-900 hover:text-teal-600">{loc.locationName}</span>
-                          </td>
-                          <td className="px-5 py-3.5 text-right text-sm text-gray-600">{loc.totalReviews}</td>
-                          <td className="px-5 py-3.5 text-right">
-                            <span className="text-sm font-semibold text-gray-900">{loc.averageRating.toFixed(1)}</span>
-                            <span className="text-yellow-400 ml-1 text-xs">★</span>
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <span className={`text-sm font-semibold ${loc.responseRate >= 80 ? 'text-green-600' : loc.responseRate >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
-                              {loc.responseRate.toFixed(0)}%
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+          {/* Per-Location Breakdown */}
+          {isTeamView && analytics.perLocation && analytics.perLocation.length > 0 && (
+            <div className="bg-white rounded-2xl p-5">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-[#111827]">Per-Location Breakdown</h3>
+                <p className="text-xs text-[#9CA3AF]">{analytics.perLocation.length} locations</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#E5E7EB]">
+                      <th className="text-left py-3 px-2 font-medium text-[#4B5563]">Location</th>
+                      <th className="text-right py-3 px-2 font-medium text-[#4B5563]">Reviews</th>
+                      <th className="text-right py-3 px-2 font-medium text-[#4B5563]">Avg Rating</th>
+                      <th className="text-right py-3 px-2 font-medium text-[#4B5563]">Response Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.perLocation.map((loc) => (
+                      <tr key={loc.locationId} className="border-b border-[#E5E7EB] last:border-0">
+                        <td className="py-3 px-2 text-[#111827] font-medium">{loc.locationName}</td>
+                        <td className="py-3 px-2 text-right text-[#111827]">{loc.totalReviews}</td>
+                        <td className="py-3 px-2 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 h-2 bg-[#F3F4F6] rounded-full overflow-hidden">
                               <div
-                                className="h-full rounded-full transition-all"
+                                className="h-full rounded-full"
                                 style={{
                                   width: `${(loc.averageRating / 5) * 100}%`,
-                                  backgroundColor: loc.averageRating >= 4 ? '#22c55e' : loc.averageRating >= 3 ? '#eab308' : '#ef4444',
+                                  backgroundColor: loc.averageRating >= 4 ? '#059669' : loc.averageRating >= 3 ? '#D97706' : '#DC2626',
                                 }}
                               />
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Keyword Themes */}
-            {analytics.keywordThemes && analytics.keywordThemes.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
-                <div className="p-5 border-b border-gray-100">
-                  <h3 className="text-base font-semibold text-gray-900">Trending Themes</h3>
-                  <p className="text-xs text-gray-400">Common topics mentioned in reviews</p>
-                </div>
-                <div className="p-5">
-                  <div className="flex flex-wrap gap-2">
-                    {analytics.keywordThemes.map((t, i) => (
-                      <div
-                        key={i}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-100 bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        <span className="text-sm font-medium text-gray-800">{t.theme}</span>
-                        <span className="text-xs text-gray-400">&times;{t.count}</span>
-                        <span className={`text-xs font-medium ${
-                          t.avgRating >= 4 ? 'text-green-600' :
-                          t.avgRating >= 3 ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {t.avgRating}&#9733;
-                        </span>
-                        {t.trend !== 'stable' && (
-                          <span className={`text-xs ${t.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                            {t.trend === 'up' ? '\u2191' : '\u2193'}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Reply Gap */}
-            {analytics.replyGap && analytics.replyGap.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 mb-8 overflow-hidden">
-                <div className="p-5 border-b border-gray-100">
-                  <h3 className="text-base font-semibold text-gray-900">Reply Gap</h3>
-                  <p className="text-xs text-gray-400">Unanswered negative reviews needing attention</p>
-                </div>
-                <div className="divide-y divide-gray-50">
-                  {analytics.replyGap.slice(0, 10).map((item, i) => (
-                    <div key={i} className="px-5 py-3 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded shrink-0 ${
-                          item.rating <= 1 ? 'bg-red-100 text-red-700' :
-                          item.rating === 2 ? 'bg-orange-100 text-orange-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {item.rating}★
-                        </span>
-                        <span className="text-sm text-gray-700 truncate">{item.comment || 'No comment'}</span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        {isTeamView && item.locationName && (
-                          <span className="text-xs text-gray-400">{item.locationName}</span>
-                        )}
-                        <span className={`text-xs font-medium ${item.daysSince > 7 ? 'text-red-600' : 'text-gray-500'}`}>
-                          {item.daysSince}d ago
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Report CTA at bottom */}
-            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-xl border border-teal-100 p-6 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900">Want deeper analysis?</h3>
-                <p className="text-sm text-gray-500 mt-1">Generate an AI-powered report with sentiment analysis, recommendations, and more.</p>
-              </div>
-              <button
-                onClick={() => setActiveTab('reports')}
-                className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium shrink-0 cursor-pointer transition-colors"
-              >
-                View Reports
-              </button>
-            </div>
-              </>
-            )}
-
-            {activeTab === 'reports' && (
-              <div className="mb-8">
-                {/* Header with generate button */}
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">AI Reports</h2>
-                    <p className="text-sm text-gray-500">
-                      {isTeamView ? 'AI-generated analysis across all locations' : 'AI-generated analysis for this location'}
-                    </p>
-                  </div>
-                  {!insightsEnabled ? (
-                    <button
-                      onClick={() => router.push(`/teams/${teamId}/billing`)}
-                      className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-medium text-sm flex items-center gap-2 shadow hover:shadow-md transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                    >
-                      <SparklesIcon /> Upgrade to Generate
-                    </button>
-                  ) : (
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowPeriodPicker(!showPeriodPicker)}
-                        disabled={generating}
-                        className="px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                      >
-                        {generating ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <SparklesIcon />
-                            Generate Report
-                          </>
-                        )}
-                      </button>
-                      {showPeriodPicker && !generating && (
-                        <>
-                          <div className="fixed inset-0 z-[9]" onClick={() => setShowPeriodPicker(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl z-10 overflow-hidden">
-                            {(['30d', '90d', '6m', '1y'] as const).map(pw => (
-                              <button
-                                key={pw}
-                                onClick={() => { setShowPeriodPicker(false); handleGenerateInsights(pw) }}
-                                className="w-full text-left px-4 py-3 hover:bg-teal-50 transition-colors cursor-pointer flex items-center justify-between"
-                              >
-                                <span className="text-sm font-medium text-gray-900">{REPORT_LABELS[pw]}</span>
-                                <span className="text-xs text-gray-500">{REPORT_CREDITS[pw]} credits</span>
-                              </button>
-                            ))}
+                            <span className="text-[#111827] tabular-nums">{loc.averageRating.toFixed(1)}</span>
                           </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Upsell for free tier */}
-                {!insightsEnabled ? (
-                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-12 text-center shadow-inner">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm text-amber-500">
-                      <SparklesIcon />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">PRO Subscription Required</h3>
-                    <p className="text-gray-600 text-sm mb-6 max-w-md mx-auto">
-                      Upgrade to the PRO plan to generate AI-powered reports with sentiment analysis, recommendations, and actionable insights.
-                    </p>
-                    <button
-                      onClick={() => router.push(`/teams/${teamId}/billing`)}
-                      className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 font-bold shadow transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                    >
-                      Upgrade Now
-                    </button>
-                  </div>
-                ) : selectedReport ? (
-                  /* Detail view */
-                  <div>
-                    <button
-                      onClick={() => setSelectedReport(null)}
-                      className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4 cursor-pointer transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Back to reports
-                    </button>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                        selectedReport.period_window === '1y' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'
-                      }`}>
-                        {REPORT_LABELS[selectedReport.period_window || ''] || selectedReport.period_window || 'custom'}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        {selectedReport.period_start} — {selectedReport.period_end}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        Generated {new Date(selectedReport.generated_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <AIInsightsPanel insight={selectedReport} />
-                  </div>
-                ) : (
-                  /* List view */
-                  <div>
-                    {/* Period filter */}
-                    <div className="flex gap-2 mb-4">
-                      {['all', '30d', '90d', '6m', '1y'].map(f => (
-                        <button
-                          key={f}
-                          onClick={() => setReportFilter(f)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                            reportFilter === f
-                              ? 'bg-teal-600 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {f === 'all' ? 'All Periods' : f}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Report list */}
-                    {allReports.filter(r => reportFilter === 'all' || r.period_window === reportFilter).length === 0 ? (
-                      <div className="bg-teal-50 rounded-xl border border-teal-100 p-12 text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 text-teal-400">
-                          <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">No reports yet</h3>
-                        <p className="text-gray-500 text-sm mb-4">Generate your first AI-powered report to uncover hidden patterns in your reviews.</p>
-                        <button
-                          onClick={() => setShowPeriodPicker(true)}
-                          disabled={generating}
-                          className="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                        >
-                          Generate First Report
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {allReports
-                          .filter(r => reportFilter === 'all' || r.period_window === reportFilter)
-                          .map(report => (
-                            <button
-                              key={report.id}
-                              onClick={() => setSelectedReport(report)}
-                              className="w-full text-left bg-white border border-gray-100 rounded-xl p-4 hover:border-teal-200 hover:shadow-sm transition-all cursor-pointer"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                                    report.period_window === '1y' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'
-                                  }`}>
-                                    {REPORT_LABELS[report.period_window || ''] || report.period_window || 'custom'}
-                                  </span>
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {report.period_start} — {report.period_end}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  {report.data?.overallSentiment != null && (
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                      report.data.overallSentiment >= 70 ? 'bg-green-50 text-green-700' :
-                                      report.data.overallSentiment >= 40 ? 'bg-yellow-50 text-yellow-700' :
-                                      'bg-red-50 text-red-700'
-                                    }`}>
-                                      {report.data.overallSentiment}/100
-                                    </span>
-                                  )}
-                                  <span className="text-xs text-gray-400">
-                                    {new Date(report.generated_at).toLocaleDateString()}
-                                  </span>
-                                  <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                        </td>
+                        <td className={`py-3 px-2 text-right font-medium ${
+                          loc.responseRate >= 80 ? 'text-[#059669]' : loc.responseRate >= 50 ? 'text-[#D97706]' : 'text-[#DC2626]'
+                        }`}>
+                          {loc.responseRate.toFixed(0)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </>
-        )}
-      </div>
-    </>
-  )
-}
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function KPICard({ label, value, suffix, icon, color, tooltip }: {
-  label: string; value: string; suffix?: string; icon: React.ReactNode; color: string; tooltip?: string
-}) {
-  const bgMap: Record<string, string> = {
-    teal: 'bg-teal-50', yellow: 'bg-yellow-50', green: 'bg-green-50',
-    emerald: 'bg-emerald-50', amber: 'bg-amber-50',
-  }
-  const iconColorMap: Record<string, string> = {
-    teal: 'text-teal-600', yellow: 'text-yellow-600', green: 'text-green-600',
-    emerald: 'text-emerald-600', amber: 'text-amber-600',
-  }
-  const hoverBorderMap: Record<string, string> = {
-    teal: 'hover:border-teal-200', yellow: 'hover:border-yellow-200', green: 'hover:border-green-200',
-    emerald: 'hover:border-emerald-200', amber: 'hover:border-amber-200',
-  }
-  return (
-    <div className={`group relative bg-white rounded-2xl border border-gray-100 p-5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${hoverBorderMap[color] || ''} cursor-default`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-1.5 mb-3">
-            <p className="text-sm font-medium text-gray-500">{label}</p>
-            {tooltip && (
-              <div className="relative group/tip">
-                <svg className="w-3.5 h-3.5 text-gray-300 hover:text-gray-500 transition-colors cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg w-52 text-center opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all duration-200 pointer-events-none z-10">
-                  {tooltip}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900" />
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold text-gray-900 tracking-tight">{value}</span>
-            {suffix && <span className="text-lg text-gray-400 font-medium">{suffix}</span>}
-          </div>
-        </div>
-        <div className={`${bgMap[color]} ${iconColorMap[color]} p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-110`}>
-          {icon}
-        </div>
-      </div>
-      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{ background: `radial-gradient(circle at 80% 20%, ${color === 'teal' ? 'rgba(13,148,136,0.04)' : color === 'amber' ? 'rgba(217,119,6,0.04)' : color === 'yellow' ? 'rgba(234,179,8,0.04)' : color === 'green' ? 'rgba(34,197,94,0.04)' : 'rgba(16,185,129,0.04)'}, transparent 70%)` }}
-      />
+            </div>
+          )}
+        </>
+      )}
     </div>
-  )
-}
-
-function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg transition-all duration-300">
-      <div className="mb-4">
-        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        <p className="text-xs text-gray-400">{subtitle}</p>
-      </div>
-      {children}
-    </div>
-  )
-}
-
-// ─── Icons ───────────────────────────────────────────────────────────────────
-
-function ChatIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-    </svg>
-  )
-}
-function StarIcon() {
-  return (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  )
-}
-function ReplyIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-    </svg>
-  )
-}
-function ThumbsUpIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-    </svg>
-  )
-}
-function LocationIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  )
-}
-function TrendUpIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-    </svg>
-  )
-}
-function TrendDownIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6" />
-    </svg>
-  )
-}
-function TrendNeutralIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
-    </svg>
-  )
-}
-function AnonymousIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-  )
-}
-function SparklesIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-    </svg>
   )
 }
