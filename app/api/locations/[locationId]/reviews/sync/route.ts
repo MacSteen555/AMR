@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { syncReviewsSchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
+import { extractThemesForLocation } from '@/lib/openai/themes'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
   try {
@@ -96,6 +97,10 @@ export async function POST(request: Request, { params }: { params: { locationId:
           image_urls: [], // Fix mapping if specific format
           reply_status: newStatus,
           reply_text: review.reviewReply?.comment || null,
+          // Rating-only reviews (no comment) get empty themes array so they're
+          // never picked up for LLM classification. Reviews with comments stay
+          // null until the theme extraction pass processes them.
+          ...(!review.comment ? { themes: [] } : {}),
         }
       })
 
@@ -137,6 +142,11 @@ export async function POST(request: Request, { params }: { params: { locationId:
         last_google_sync_status: 'success',
       })
       .eq('id', params.locationId)
+
+    // Fire-and-forget: extract themes for any newly synced reviews
+    extractThemesForLocation(params.locationId).catch(err =>
+      console.error('Theme extraction failed:', err.message)
+    )
 
     return NextResponse.json({ synced: totalSynced })
   } catch (error: any) {

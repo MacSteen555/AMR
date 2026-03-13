@@ -4,6 +4,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { captureRouteError } from '@/lib/sentry'
+import { extractThemesForLocation } from '@/lib/openai/themes'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
     try {
@@ -87,7 +88,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                                 comment: review.comment || null,
                                 review_date: review.createTime || null,
                                 reply_status: newStatus,
-                                reply_text: review.reviewReply?.comment || null
+                                reply_text: review.reviewReply?.comment || null,
+                                ...(!review.comment ? { themes: [] } : {}),
                             }
                         })
 
@@ -129,6 +131,13 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         // Execute
         const results = await Promise.all(locations.map(syncLocation))
         const successCount = results.filter(Boolean).length
+
+        // Fire-and-forget: extract themes for all synced locations
+        for (const loc of locations) {
+            extractThemesForLocation(loc.id).catch(err =>
+                console.error(`Theme extraction failed for ${loc.id}:`, err.message)
+            )
+        }
 
         return NextResponse.json({
             locationsSynced: successCount,
