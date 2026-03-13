@@ -579,12 +579,10 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
         try {
             if (mode === 'team') {
                 const data = await apiGet<{ reviews: Review[]; manageableLocationIds: string[] }>(`/api/teams/${entityId}/reviews?limit=1000`)
-                console.log('Reviews data (team):', data)
                 setReviews(data.reviews)
                 setManageableLocationIds(new Set(data.manageableLocationIds || []))
             } else {
                 const data = await apiGet<{ reviews: Review[]; canPostReplies: boolean }>(`/api/locations/${entityId}/reviews?limit=1000`)
-                console.log('Reviews data (location):', data)
                 setReviews(data.reviews)
                 setCanPostReplies(data.canPostReplies)
             }
