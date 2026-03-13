@@ -3,7 +3,6 @@
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { apiGet } from '@/lib/api'
-import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
 import {
   AreaChart, Area,
@@ -150,10 +149,6 @@ export default function InsightsPage() {
   const searchParams = useSearchParams()
   const teamId = params.teamId as string
   const locationId = searchParams.get('location')
-  const { teams } = useAuth()
-
-  const team = teams?.find((t: any) => t.team_id === teamId)
-
   const [locations, setLocations] = useState<any[]>([])
   const [period, setPeriod] = useState<PeriodKey>('90d')
   const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
@@ -162,7 +157,11 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
-  const effectiveLocationId = locationId || ''
+  const effectiveLocationId = useMemo(() => {
+    if (locationId) return locationId
+    if (locations.length === 1) return locations[0].id
+    return null
+  }, [locationId, locations])
 
   // Load locations
   useEffect(() => {
