@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
+import { captureRouteError } from '@/lib/sentry'
 
 /**
  * POST /api/reviews/[reviewId]/regenerate
@@ -78,6 +79,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
         return NextResponse.json({ review: updated })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/reviews/[reviewId]/regenerate' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

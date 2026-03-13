@@ -1,7 +1,12 @@
 'use client'
 
+import { AuthProvider } from '@/hooks/useAuth'
 import { AppShell } from '@/components/AppShell'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-    return <AppShell>{children}</AppShell>
+    return (
+        <AuthProvider>
+            <AppShell>{children}</AppShell>
+        </AuthProvider>
+    )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiPost, apiGet, apiPatch } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 
 type GoogleLocation = {
   account_id: string
@@ -121,6 +122,7 @@ function VoicePill({ voice, selected, onClick, color }: {
    ═══════════════════════════════════════════════════════════════ */
 export default function NewTeamPage() {
   const router = useRouter()
+  const { refresh } = useAuth()
   const [step, setStep] = useState(1)
 
   const [teamName, setTeamName] = useState('')
@@ -161,6 +163,7 @@ export default function NewTeamPage() {
       setCreatingTeam(true); setError(null)
       const result = await apiPost<{ team: { id: string } }>('/api/teams', { name: teamName })
       setTeamId(result.team.id)
+      refresh().catch(() => { /* AppShell will update on next navigation */ })
       setStep(2)
       loadGoogleLocations()
     } catch (err: any) { setError(err.message || 'Failed to create team') }
@@ -507,6 +510,33 @@ export default function NewTeamPage() {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* GBP Permissions Help */}
+            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-4.5 h-4.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900 mb-1">Not seeing your business?</h4>
+                  <p className="text-sm text-amber-800 leading-relaxed mb-2">
+                    When signing in to AutoMyReply, you must click <strong>Allow</strong> on the Google consent screen to grant access to your Business Profile. If you skipped this step, sign out and sign back in.
+                  </p>
+                  <p className="text-sm text-amber-800 leading-relaxed mb-2">
+                    You also need <strong>Owner</strong> or <strong>Manager</strong> access on the Google Business Profile. If you don&apos;t have it, ask the profile owner to add you:
+                  </p>
+                </div>
+              </div>
+              <ol className="ml-11 space-y-1.5 text-sm text-amber-800">
+                <li>1. Sign in at <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" className="text-teal-700 underline hover:text-teal-900 font-medium">business.google.com</a> with the Google account that owns the profile.</li>
+                <li>2. Search for the business name in the Google search bar.</li>
+                <li>3. Click the 3 vertical dots next to the business name and go to <strong>Business Profile Settings</strong>.</li>
+                <li>4. Click <strong>People and access</strong>, then hit the blue <strong>Add</strong> button.</li>
+                <li>5. Enter the email and choose <strong>Owner</strong> or <strong>Manager</strong>, then click <strong>Invite</strong>.</li>
+              </ol>
             </div>
           </div>
         )}

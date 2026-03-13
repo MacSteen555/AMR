@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import { createTeamSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 type Team = {
@@ -34,6 +35,7 @@ export async function GET() {
 
     return NextResponse.json({ teams })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/teams' })
     return NextResponse.json({ error: error.message }, { status: 401 })
   }
 }
@@ -154,6 +156,7 @@ export async function POST(request: Request) {
     if (error?.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/teams' })
     return NextResponse.json({ error: error?.message ?? 'Unknown error' }, { status: 500 })
   }
 }

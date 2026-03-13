@@ -4,6 +4,11 @@ const { withSentryConfig } = require('@sentry/nextjs')
 const isDev = process.env.NODE_ENV === 'development'
 
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+    ],
+  },
   async headers() {
     return [
       {

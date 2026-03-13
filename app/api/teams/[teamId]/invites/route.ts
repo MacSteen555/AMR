@@ -5,6 +5,7 @@ import { createTeamInviteSchema } from '@/lib/validation/schemas'
 import { sendEmail } from '@/lib/email/send'
 import { buildTeamInviteEmail } from '@/lib/email/templates/team-invite'
 import crypto from 'crypto'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -41,6 +42,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       }))
     })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/teams/[teamId]/invites', teamId: params.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -131,6 +133,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
     console.error('Invite error:', error)
+    captureRouteError(error, { route: '/api/teams/[teamId]/invites', teamId: params.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

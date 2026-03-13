@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { updateTeamMemberSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function PATCH(
   request: Request,
@@ -30,6 +31,7 @@ export async function PATCH(
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/members/[userId]', teamId: params.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

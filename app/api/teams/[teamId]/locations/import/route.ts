@@ -5,6 +5,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { importLocationsSchema } from '@/lib/validation/schemas'
 import { listLocations } from '@/lib/google/gbp'
 import { requireUser } from '@/lib/auth/session'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -113,6 +114,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/locations/import', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

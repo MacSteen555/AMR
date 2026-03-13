@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireTeamMember } from '@/lib/rbac'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
 
         return NextResponse.json({ reviews: enrichedReviews, manageableLocationIds })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/reviews', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

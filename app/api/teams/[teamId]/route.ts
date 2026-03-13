@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireTeamAdmin } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 // DELETE /api/teams/[teamId] - Delete a team
 export async function DELETE(
@@ -29,6 +30,43 @@ export async function DELETE(
 
         return NextResponse.json({ success: true })
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]', teamId: params?.teamId })
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+}
+
+// PATCH /api/teams/[teamId] - Update team details
+export async function PATCH(
+    request: Request,
+    { params }: { params: { teamId: string } }
+) {
+    try {
+        await requireTeamAdmin(params.teamId)
+
+        const body = await request.json()
+        const { name } = body
+
+        if (!name || typeof name !== 'string' || name.trim().length === 0) {
+            return NextResponse.json({ error: 'Team name is required' }, { status: 400 })
+        }
+
+        const serviceClient = createSupabaseServiceRoleClient()
+
+        const { data, error } = await serviceClient
+            .schema('app')
+            .from('teams')
+            .update({ name: name.trim() })
+            .eq('id', params.teamId)
+            .select()
+            .single()
+
+        if (error) {
+            throw new Error(`Failed to update team: ${error.message}`)
+        }
+
+        return NextResponse.json({ team: data })
+    } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

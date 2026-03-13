@@ -193,7 +193,7 @@ Look for `[Stripe Webhook]` and `[Credits]` prefixed logs:
 ```
 [Stripe Webhook] Processing event: checkout.session.completed (evt_xxx)
 [Stripe Webhook] Checkout completed - teamId: xxx, tier: PRO
-[Credits] Granting 25 credits for period xxx to xxx
+[Credits] Granting 50 credits for period xxx to xxx
 ```
 
 ### Common Issues

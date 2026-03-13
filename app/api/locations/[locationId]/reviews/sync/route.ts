@@ -5,6 +5,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { syncReviewsSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
   try {
@@ -139,6 +140,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
 
     return NextResponse.json({ synced: totalSynced })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/locations/[locationId]/reviews/sync', extra: { locationId: params.locationId } })
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }

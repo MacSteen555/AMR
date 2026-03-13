@@ -1,11 +1,19 @@
 import Link from "next/link";
+import Image from "next/image";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
+import { getSupabaseUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: { error?: string };
 }) {
+  const user = await getSupabaseUser()
+  if (user) {
+    redirect('/dashboard')
+  }
+
   return (
     <div className="min-h-screen flex">
       {/* ── Left Panel: Branding & Feature Highlights ── */}
@@ -29,9 +37,11 @@ export default function LoginPage({
               href="/"
               className="inline-flex items-center gap-3 group"
             >
-              <img
+              <Image
                 src="/images/amber_teal-logo.png"
                 alt="AutoMyReply"
+                width={40}
+                height={40}
                 className="h-10 w-auto"
               />
               <span className="text-xl font-bold text-white tracking-tight">
@@ -166,9 +176,11 @@ export default function LoginPage({
             href="/"
             className="inline-flex items-center gap-2.5"
           >
-            <img
+            <Image
               src="/images/amber_teal-logo.png"
               alt="AutoMyReply"
+              width={32}
+              height={32}
               className="h-8 w-auto"
             />
             <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
@@ -187,9 +199,11 @@ export default function LoginPage({
             {/* Heading */}
             <div className="mb-12">
               <div className="hidden lg:block mb-8">
-                <img
+                <Image
                   src="/images/amber_teal-logo.png"
                   alt="AutoMyReply"
+                  width={44}
+                  height={44}
                   className="h-11 w-auto"
                 />
               </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import OpenAI from 'openai'
+import { captureRouteError } from '@/lib/sentry'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -69,6 +70,7 @@ Return JSON with exactly these keys:
     return NextResponse.json(result)
   } catch (error: any) {
     console.error('Extract brand voice error:', error)
+    captureRouteError(error, { route: '/api/onboarding/extract-brand-voice' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

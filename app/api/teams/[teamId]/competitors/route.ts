@@ -3,6 +3,7 @@ import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createCompetitorSchema } from '@/lib/validation/schemas'
 import { getTeamTier } from '@/lib/billing/credits'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -19,6 +20,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
 
     return NextResponse.json({ competitors: competitors || [] })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/teams/[teamId]/competitors', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 403 })
   }
 }
@@ -37,7 +39,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       FREE: 0,
       PRO: 1,
       BUSINESS: 5,
-      ENTERPRISE: 10
+      ENTERPRISE: 20
     }
     const maxCompetitors = limits[tierInfo.tier] || 0
 
@@ -136,6 +138,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/competitors', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

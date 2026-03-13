@@ -236,7 +236,7 @@ export default function TeamInsightsPage() {
   return (
     <>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      <div className="p-8 max-w-[1400px] mx-auto">
+      <div className="p-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -288,7 +288,7 @@ export default function TeamInsightsPage() {
 
         {loading ? (
           <div className="space-y-6 animate-pulse">
-            <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
               {Array.from({ length: isTeamView ? 5 : 4 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
                   <div className="flex items-center gap-3 mb-3">
@@ -333,7 +333,7 @@ export default function TeamInsightsPage() {
             {activeTab === 'insights' && (
               <>
             {/* KPI Cards */}
-            <div className={`grid grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isTeamView ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4 mb-8`}>
               <KPICard label="Total Reviews" value={kpis!.totalReviews.toLocaleString()} icon={<ChatIcon />} color="teal" />
               <KPICard label="Average Rating" value={kpis!.averageRating.toFixed(1)} suffix="/ 5" icon={<StarIcon />} color="yellow" />
               <KPICard label="Response Rate" value={`${kpis!.responseRate.toFixed(0)}%`} icon={<ReplyIcon />} color="green" tooltip="Percentage of reviews you've replied to in this period" />

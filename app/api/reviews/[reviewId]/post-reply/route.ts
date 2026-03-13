@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { updateReply } from '@/lib/google/gbp'
 import { postReplySchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
@@ -83,6 +84,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       errorCode = error.code || 'UNKNOWN'
       errorMessage = error.message
 
+      captureRouteError(error, { route: '/api/reviews/[reviewId]/post-reply', userId: user?.id })
+
       // Update review status (keep draft)
       await serviceClient
         .schema('app')
@@ -116,6 +119,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/reviews/[reviewId]/post-reply' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

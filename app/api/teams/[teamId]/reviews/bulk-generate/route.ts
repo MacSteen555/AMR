@@ -4,6 +4,7 @@ import { requireTeamMember } from '@/lib/rbac'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
+import { captureRouteError } from '@/lib/sentry'
 
 // POST /api/teams/[teamId]/reviews/bulk-generate
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
@@ -100,6 +101,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         return NextResponse.json({ generated: updates.filter(Boolean).length })
 
     } catch (error: any) {
+        captureRouteError(error, { route: '/api/teams/[teamId]/reviews/bulk-generate', teamId: params?.teamId })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

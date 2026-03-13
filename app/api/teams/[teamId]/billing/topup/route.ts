@@ -3,6 +3,7 @@ import { requireTeamAdmin } from '@/lib/rbac'
 import { requireUser } from '@/lib/auth/session'
 import { createTopupCheckoutSession } from '@/lib/stripe/checkout'
 import { createTopupSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
   try {
@@ -21,6 +22,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/billing/topup', teamId: params.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

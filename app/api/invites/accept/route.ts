@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 export async function POST(request: Request) {
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
         })
     } catch (error: any) {
         console.error('Accept invite error:', error)
+        captureRouteError(error, { route: '/api/invites/accept' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

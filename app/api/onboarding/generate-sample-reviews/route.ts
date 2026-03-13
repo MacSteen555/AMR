@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth/session'
 import OpenAI from 'openai'
+import { captureRouteError } from '@/lib/sentry'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -74,6 +75,7 @@ Make the reviews feel authentic and the replies 2-4 sentences each. DO NOT use e
     return NextResponse.json(samples)
   } catch (error: any) {
     console.error('Generate sample reviews error:', error)
+    captureRouteError(error, { route: '/api/onboarding/generate-sample-reviews' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

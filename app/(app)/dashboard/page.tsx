@@ -19,27 +19,26 @@ function getFirstName(displayName: string | null): string | null {
 export default function DashboardPage() {
   const { user, teams, loading } = useAuth()
   const router = useRouter()
-
   const greeting = useMemo(() => getGreeting(), [])
   const firstName = user ? getFirstName(user.display_name) : null
 
   useEffect(() => {
     if (!loading && teams.length > 0) {
-      // Redirect to teams page if user has teams
-      router.push('/teams')
+      router.replace(`/teams/${teams[0].id}`)
     }
   }, [loading, teams, router])
 
   if (loading) {
     return (
-      <div className="animate-pulse space-y-6 max-w-2xl mx-auto mt-20">
-        <div className="h-8 w-48 bg-gray-200 rounded-lg" />
-        <div className="h-4 w-72 bg-gray-200 rounded" />
-        <div className="h-12 w-40 bg-gray-200 rounded-lg" />
+      <div className="flex items-center justify-center h-[60vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
       </div>
     )
   }
 
+  if (!user) return null
+
+  // No teams — onboarding
   return (
     <div className="p-8">
       <div className="max-w-2xl mx-auto text-center py-16">

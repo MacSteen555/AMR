@@ -31,7 +31,7 @@ export function buildTeamInviteEmail({
           
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:32px 40px;text-align:center;">
+            <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px 40px;text-align:center;">
               <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
                 AutoMyReply
               </h1>
@@ -44,7 +44,7 @@ export function buildTeamInviteEmail({
               
               <!-- Icon -->
               <div style="text-align:center;margin-bottom:24px;">
-                <div style="display:inline-block;width:64px;height:64px;background-color:#eef2ff;border-radius:50%;line-height:64px;font-size:28px;">
+                <div style="display:inline-block;width:64px;height:64px;background-color:#f0fdfa;border-radius:50%;line-height:64px;font-size:28px;">
                   ✉️
                 </div>
               </div>
@@ -69,8 +69,8 @@ export function buildTeamInviteEmail({
 
               <!-- CTA Button -->
               <div style="text-align:center;margin-bottom:32px;">
-                <a href="${inviteUrl}" 
-                   style="display:inline-block;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 40px;border-radius:8px;letter-spacing:0.2px;">
+                <a href="${inviteUrl}"
+                   style="display:inline-block;background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 40px;border-radius:8px;letter-spacing:0.2px;">
                   Accept Invitation
                 </a>
               </div>
@@ -101,7 +101,7 @@ export function buildTeamInviteEmail({
         <!-- Sub-footer Link -->
         <p style="margin:20px 0 0 0;color:#9ca3af;font-size:11px;text-align:center;">
           If the button above doesn't work, copy and paste this link into your browser:<br/>
-          <a href="${inviteUrl}" style="color:#6366f1;word-break:break-all;">${inviteUrl}</a>
+          <a href="${inviteUrl}" style="color:#0d9488;word-break:break-all;">${inviteUrl}</a>
         </p>
       </td>
     </tr>

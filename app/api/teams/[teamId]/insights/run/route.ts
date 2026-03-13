@@ -6,6 +6,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { insightsRun } from '@/lib/openai/insights'
 import { spendCredits } from '@/lib/billing/credits'
 import { runInsightsSchema } from '@/lib/validation/schemas'
+import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
 const CREDIT_COST: Record<string, number> = { '30d': 3, '90d': 4, '6m': 7, '1y': 10 }
@@ -235,6 +236,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     if (error.message.includes('Insufficient credits') || error.message.includes('not enabled')) {
       return NextResponse.json({ error: error.message }, { status: 402 })
     }
+    captureRouteError(error, { route: '/api/teams/[teamId]/insights/run', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
@@ -332,6 +334,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
 
     return NextResponse.json({ insights: insights || [] })
   } catch (error: any) {
+    captureRouteError(error, { route: '/api/teams/[teamId]/insights/run', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 403 })
   }
 }

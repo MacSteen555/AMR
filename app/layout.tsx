@@ -6,6 +6,10 @@ export const metadata: Metadata = {
   title: 'AutoMyReply — AI-Powered Google Review Management',
   description: 'Automatically generate professional, on-brand replies to your Google Business Profile reviews with AI. Save hours, stay consistent, and never miss a review.',
   keywords: 'google reviews, review management, AI replies, business profile, review automation',
+  icons: {
+    icon: '/images/amber-a.png',
+    apple: '/images/amber-a.png',
+  },
 }
 
 export default function RootLayout({
