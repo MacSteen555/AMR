@@ -69,11 +69,99 @@ interface ReviewRow {
   replied_at: string | null
   location_id: string
   reviewer_name: string | null
+  themes: string[] | null
 }
 
 interface LocationInfo {
   id: string
   name: string
+}
+
+interface PeriodKPIs {
+  totalReviews: number
+  averageRating: number
+  responseRate: number
+  averageResponseTimeHours: number | null
+}
+
+function computePeriodKPIs(reviews: Array<{ rating: number; reply_status: string; replied_at: string | null; review_date: string }>): PeriodKPIs {
+  const repliedStatuses = ['posted', 'synced_external']
+
+  if (reviews.length === 0) {
+    return {
+      totalReviews: 0,
+      averageRating: 0,
+      responseRate: 0,
+      averageResponseTimeHours: null,
+    }
+  }
+
+  const totalReviews = reviews.length
+  const averageRating = Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews) * 100) / 100
+  const repliedReviews = reviews.filter(r => repliedStatuses.includes(r.reply_status))
+  const responseRate = Math.round((repliedReviews.length / totalReviews) * 10000) / 100
+
+  const responseTimes = repliedReviews
+    .filter(r => r.replied_at)
+    .map(r => {
+      const reviewDate = new Date(r.review_date).getTime()
+      const replyDate = new Date(r.replied_at!).getTime()
+      return (replyDate - reviewDate) / (1000 * 60 * 60)
+    })
+    .filter(h => h >= 0 && h < 8760)
+  const averageResponseTimeHours = responseTimes.length > 0
+    ? Math.round((responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) * 10) / 10
+    : null
+
+  return {
+    totalReviews,
+    averageRating,
+    responseRate,
+    averageResponseTimeHours,
+  }
+}
+
+function computeComparison(current: PeriodKPIs, previous: PeriodKPIs) {
+  const deltaPercent = (curr: number, prev: number): number | null =>
+    prev > 0 ? Math.round(((curr - prev) / prev) * 100) : null
+
+  return {
+    totalReviews: {
+      current: current.totalReviews,
+      previous: previous.totalReviews,
+      deltaPercent: deltaPercent(current.totalReviews, previous.totalReviews),
+    },
+    averageRating: {
+      current: current.averageRating,
+      previous: previous.averageRating,
+      delta: Math.round((current.averageRating - previous.averageRating) * 100) / 100,
+    },
+    responseRate: {
+      current: current.responseRate,
+      previous: previous.responseRate,
+      deltaPercent: deltaPercent(current.responseRate, previous.responseRate),
+    },
+    averageResponseTimeHours: {
+      current: current.averageResponseTimeHours,
+      previous: previous.averageResponseTimeHours,
+      deltaPercent: current.averageResponseTimeHours !== null && previous.averageResponseTimeHours !== null
+        ? deltaPercent(current.averageResponseTimeHours, previous.averageResponseTimeHours)
+        : null,
+    },
+  }
+}
+
+function computeThemeMentions(reviews: Array<{ themes: string[] | null }>): Array<{ label: string; count: number }> {
+  const reviewsWithThemes = reviews.filter(r => r.themes && r.themes.length > 0)
+  const themeCountMap = new Map<string, number>()
+  for (const r of reviewsWithThemes) {
+    for (const theme of r.themes!) {
+      themeCountMap.set(theme, (themeCountMap.get(theme) || 0) + 1)
+    }
+  }
+  return [...themeCountMap.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count)
 }
 
 function computeTeamAnalytics(
@@ -94,12 +182,8 @@ function computeTeamAnalytics(
         positivePercent: 0,
         negativePercent: 0,
         locationCount: locations.length,
-        sentimentMomentum: null,
-        anonymousRatio: 0,
-        anonymousNegativeCount: 0,
       },
       ratingOverTime: [],
-      volumeOverTime: [],
       responseRateOverTime: [],
       ratingDistribution: [
         { rating: 5, count: 0 },
@@ -181,14 +265,6 @@ function computeTeamAnalytics(
     return data
   })
 
-  const volumeOverTime = sortedMonths.map(([month, bucket]) => ({
-    month,
-    total: bucket.length,
-    positive: bucket.filter(r => r.rating >= 4).length,
-    neutral: bucket.filter(r => r.rating === 3).length,
-    negative: bucket.filter(r => r.rating <= 2).length,
-  }))
-
   const responseRateOverTime = sortedMonths.map(([month, bucket]) => {
     const replied = bucket.filter(r => repliedStatuses.includes(r.reply_status)).length
     const data: any = {
@@ -263,23 +339,6 @@ function computeTeamAnalytics(
 
   const keywordThemes = extractKeywordThemes(reviews, periodStart, periodEnd)
 
-  // Sentiment momentum — compare first-half avg rating to second-half
-  const midDate = new Date((new Date(periodStart).getTime() + new Date(periodEnd).getTime()) / 2)
-  const firstHalfReviews = reviews.filter(r => new Date(r.review_date) < midDate)
-  const secondHalfReviews = reviews.filter(r => new Date(r.review_date) >= midDate)
-
-  const firstAvg = firstHalfReviews.length > 0 ? firstHalfReviews.reduce((s, r) => s + r.rating, 0) / firstHalfReviews.length : null
-  const secondAvg = secondHalfReviews.length > 0 ? secondHalfReviews.reduce((s, r) => s + r.rating, 0) / secondHalfReviews.length : null
-
-  const sentimentMomentum = firstAvg !== null && secondAvg !== null
-    ? Math.round((secondAvg - firstAvg) * 100) / 100
-    : null
-
-  // Anonymous review ratio
-  const anonymousReviews = reviews.filter(r => !r.reviewer_name || r.reviewer_name === 'Anonymous' || r.reviewer_name.trim() === '')
-  const anonymousRatio = totalReviews > 0 ? Math.round((anonymousReviews.length / totalReviews) * 10000) / 100 : 0
-  const anonymousNegativeCount = anonymousReviews.filter(r => r.rating <= 2).length
-
   return {
     kpis: {
       totalReviews,
@@ -291,12 +350,8 @@ function computeTeamAnalytics(
       positivePercent: Math.round((positive / totalReviews) * 10000) / 100,
       negativePercent: Math.round((negative / totalReviews) * 10000) / 100,
       locationCount: locations.length,
-      sentimentMomentum,
-      anonymousRatio,
-      anonymousNegativeCount,
     },
     ratingOverTime,
-    volumeOverTime,
     responseRateOverTime,
     ratingDistribution,
     sentimentBreakdown: { positive, neutral, negative },
@@ -319,12 +374,8 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
         averageResponseTimeHours: null,
         positivePercent: 0,
         negativePercent: 0,
-        sentimentMomentum: null,
-        anonymousRatio: 0,
-        anonymousNegativeCount: 0,
       },
       ratingOverTime: [],
-      volumeOverTime: [],
       responseRateOverTime: [],
       ratingDistribution: [
         { rating: 5, count: 0 },
@@ -395,14 +446,6 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
     count: bucket.length,
   }))
 
-  const volumeOverTime = sortedMonths.map(([month, bucket]) => ({
-    month,
-    total: bucket.length,
-    positive: bucket.filter(r => r.rating >= 4).length,
-    neutral: bucket.filter(r => r.rating === 3).length,
-    negative: bucket.filter(r => r.rating <= 2).length,
-  }))
-
   const responseRateOverTime = sortedMonths.map(([month, bucket]) => {
     const replied = bucket.filter(r => repliedStatuses.includes(r.reply_status)).length
     return {
@@ -450,23 +493,6 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
 
   const keywordThemes = extractKeywordThemes(reviews, periodStart, periodEnd)
 
-  // Sentiment momentum — compare first-half avg rating to second-half
-  const midDate = new Date((new Date(periodStart).getTime() + new Date(periodEnd).getTime()) / 2)
-  const firstHalfReviews = reviews.filter(r => new Date(r.review_date) < midDate)
-  const secondHalfReviews = reviews.filter(r => new Date(r.review_date) >= midDate)
-
-  const firstAvg = firstHalfReviews.length > 0 ? firstHalfReviews.reduce((s, r) => s + r.rating, 0) / firstHalfReviews.length : null
-  const secondAvg = secondHalfReviews.length > 0 ? secondHalfReviews.reduce((s, r) => s + r.rating, 0) / secondHalfReviews.length : null
-
-  const sentimentMomentum = firstAvg !== null && secondAvg !== null
-    ? Math.round((secondAvg - firstAvg) * 100) / 100
-    : null
-
-  // Anonymous review ratio
-  const anonymousReviews = reviews.filter(r => !r.reviewer_name || r.reviewer_name === 'Anonymous' || r.reviewer_name.trim() === '')
-  const anonymousRatio = totalReviews > 0 ? Math.round((anonymousReviews.length / totalReviews) * 10000) / 100 : 0
-  const anonymousNegativeCount = anonymousReviews.filter(r => r.rating <= 2).length
-
   return {
     kpis: {
       totalReviews,
@@ -477,12 +503,8 @@ function computeLocationAnalytics(reviews: Omit<ReviewRow, 'location_id'>[], per
         : null,
       positivePercent: Math.round((positive / totalReviews) * 10000) / 100,
       negativePercent: Math.round((negative / totalReviews) * 10000) / 100,
-      sentimentMomentum,
-      anonymousRatio,
-      anonymousNegativeCount,
     },
     ratingOverTime,
-    volumeOverTime,
     responseRateOverTime,
     ratingDistribution,
     sentimentBreakdown: { positive, neutral, negative },
@@ -500,6 +522,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const periodStart = searchParams.get('period_start')
     const periodEnd = searchParams.get('period_end')
     const locationParam = searchParams.get('location')
+    const previousStart = searchParams.get('previous_start')
+    const previousEnd = searchParams.get('previous_end')
 
     if (!periodStart || !periodEnd) {
       return NextResponse.json({ error: 'period_start and period_end are required' }, { status: 400 })
@@ -525,7 +549,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       const { data: reviews, error } = await supabase
         .schema('app')
         .from('google_reviews')
-        .select('rating, comment, review_date, reply_status, replied_at, reviewer_name')
+        .select('rating, comment, review_date, reply_status, replied_at, reviewer_name, themes')
         .eq('location_id', locationParam)
         .gte('review_date', periodStart)
         .lte('review_date', periodEnd)
@@ -535,9 +559,32 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
         throw new Error(`Failed to fetch reviews: ${error.message}`)
       }
 
-      const analytics = computeLocationAnalytics(reviews || [], periodStart, periodEnd)
+      const currentReviews = reviews || []
+      const analytics = computeLocationAnalytics(currentReviews, periodStart, periodEnd)
+      const themeMentions = computeThemeMentions(currentReviews)
 
-      return NextResponse.json({ analytics })
+      // Previous period comparison
+      let comparison = undefined
+      if (previousStart && previousEnd) {
+        const { data: prevReviews, error: prevError } = await supabase
+          .schema('app')
+          .from('google_reviews')
+          .select('rating, comment, review_date, reply_status, replied_at, reviewer_name, themes')
+          .eq('location_id', locationParam)
+          .gte('review_date', previousStart)
+          .lte('review_date', previousEnd)
+          .order('review_date', { ascending: true })
+
+        if (prevError) {
+          throw new Error(`Failed to fetch previous period reviews: ${prevError.message}`)
+        }
+
+        const currentKPIs = computePeriodKPIs(currentReviews)
+        const previousKPIs = computePeriodKPIs(prevReviews || [])
+        comparison = computeComparison(currentKPIs, previousKPIs)
+      }
+
+      return NextResponse.json({ analytics, comparison, themeMentions })
     }
 
     // Team-wide path
@@ -550,6 +597,8 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     if (!locations || locations.length === 0) {
       return NextResponse.json({
         analytics: computeTeamAnalytics([], [], periodStart, periodEnd),
+        comparison: undefined,
+        themeMentions: [],
       })
     }
 
@@ -558,7 +607,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     const { data: reviews, error } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('rating, comment, review_date, reply_status, replied_at, location_id, reviewer_name')
+      .select('rating, comment, review_date, reply_status, replied_at, location_id, reviewer_name, themes')
       .in('location_id', locationIds)
       .gte('review_date', periodStart)
       .lte('review_date', periodEnd)
@@ -568,9 +617,32 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       throw new Error(`Failed to fetch reviews: ${error.message}`)
     }
 
-    const analytics = computeTeamAnalytics(reviews || [], locations, periodStart, periodEnd)
+    const currentReviews = (reviews || []) as ReviewRow[]
+    const analytics = computeTeamAnalytics(currentReviews, locations, periodStart, periodEnd)
+    const themeMentions = computeThemeMentions(currentReviews)
 
-    return NextResponse.json({ analytics })
+    // Previous period comparison
+    let comparison = undefined
+    if (previousStart && previousEnd) {
+      const { data: prevReviews, error: prevError } = await supabase
+        .schema('app')
+        .from('google_reviews')
+        .select('rating, comment, review_date, reply_status, replied_at, location_id, reviewer_name, themes')
+        .in('location_id', locationIds)
+        .gte('review_date', previousStart)
+        .lte('review_date', previousEnd)
+        .order('review_date', { ascending: true })
+
+      if (prevError) {
+        throw new Error(`Failed to fetch previous period reviews: ${prevError.message}`)
+      }
+
+      const currentKPIs = computePeriodKPIs(currentReviews)
+      const previousKPIs = computePeriodKPIs(prevReviews || [])
+      comparison = computeComparison(currentKPIs, previousKPIs)
+    }
+
+    return NextResponse.json({ analytics, comparison, themeMentions })
   } catch (error: any) {
     if (error.message === 'Not a team member') {
       return NextResponse.json({ error: error.message }, { status: 403 })
