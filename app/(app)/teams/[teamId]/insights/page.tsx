@@ -323,7 +323,7 @@ export default function InsightsPage() {
                   />
                   <Tooltip
                     contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '13px' }}
-                    labelFormatter={formatMonth}
+                    labelFormatter={(label: any) => formatMonth(String(label))}
                     formatter={(value: any) => [value != null ? Number(value).toFixed(2) : '—', 'Avg Rating']}
                   />
                   <Area
