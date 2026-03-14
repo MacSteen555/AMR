@@ -545,7 +545,7 @@ function ReviewCard({
 export default function ReviewsView({ mode, entityId, title, subtitle }: ReviewsViewProps) {
     const router = useRouter()
     const params = useParams()
-    const { teams } = useAuth()
+    const { teams, refresh: refreshAuth } = useAuth()
     const teamId = (params?.teamId as string) || entityId
     const currentTeam = teams.find(t => t.id === teamId)
     const reviewsManaged = currentTeam?.reviewsManaged || 0
@@ -679,6 +679,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
             const res = await apiPost<{ published: number }>(endpoint, {})
             setToast({ message: `Published ${res.published} replies!`, type: 'success' })
             await loadReviews()
+            refreshAuth()
         } catch (err: any) {
             setReviews(prev)
             if (err?.message?.includes('Insufficient credits') || err?.message?.includes('402')) {
@@ -700,7 +701,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
             setReviews(r => r.map(x => x.id === reviewId ? { ...x, reply_status: 'posted' as const, reply_text: text } : x))
             setEdits(prev => { const n = { ...prev }; delete n[reviewId]; return n })
             const res = await apiPost<{ review: Review }>(`/api/reviews/${reviewId}/publish`, { reply_text: edits[reviewId] || undefined })
-            if (res.review) { setToast({ message: 'Reply posted!', type: 'success' }); setReviews(r => r.map(x => x.id === reviewId ? { ...x, ...res.review } : x)) }
+            if (res.review) { setToast({ message: 'Reply posted!', type: 'success' }); setReviews(r => r.map(x => x.id === reviewId ? { ...x, ...res.review } : x)); refreshAuth() }
         } catch (err: any) {
             setReviews(prevReviews); setEdits(prevEdits)
             if (err?.message?.includes('Insufficient credits') || err?.message?.includes('402')) {
