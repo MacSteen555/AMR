@@ -141,6 +141,49 @@ function MetricCard({ label, value, suffix, delta, deltaLabel, invertColor }: {
   )
 }
 
+// ─── ThemeCloud ─────────────────────────────────────────────────────────────
+
+function ThemeCloud({ themes }: { themes: ThemeMention[] }) {
+  const maxCount = Math.max(...themes.map(t => t.count), 1)
+  const minCount = Math.min(...themes.map(t => t.count), 1)
+  const range = maxCount - minCount || 1
+
+  function getSize(count: number): { fontSize: number; opacity: number } {
+    const t = (count - minCount) / range
+    return {
+      fontSize: 14 + t * 22,   // 14px to 36px
+      opacity: 0.45 + t * 0.55, // 0.45 to 1.0
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-6 mb-8">
+      <div className="mb-5">
+        <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
+        <p className="text-xs text-[#9CA3AF]">{themes.length} themes detected across reviews</p>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-4">
+        {themes.map((t, i) => {
+          const { fontSize, opacity } = getSize(t.count)
+          return (
+            <span
+              key={i}
+              className="relative group cursor-default transition-colors duration-150 hover:text-[#0D9B8A]"
+              style={{ fontSize: `${fontSize}px`, color: `rgba(17, 24, 39, ${opacity})`, fontWeight: fontSize > 24 ? 600 : 500 }}
+            >
+              {t.label}
+              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg bg-[#111827] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
+                {t.count} mention{t.count !== 1 ? 's' : ''}
+                <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-[#111827]" />
+              </span>
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── Page Component ──────────────────────────────────────────────────────────
 
 export default function InsightsPage() {
@@ -291,6 +334,9 @@ export default function InsightsPage() {
             </div>
           )}
 
+          {/* Review Themes — word cloud */}
+          {themeMentions.length > 0 && <ThemeCloud themes={themeMentions} />}
+
           {/* Rating Over Time */}
           {analytics.ratingOverTime && analytics.ratingOverTime.length > 0 && (
             <div className="bg-white rounded-2xl p-5 mb-8">
@@ -336,24 +382,6 @@ export default function InsightsPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
-          )}
-
-          {/* Theme Mentions */}
-          {themeMentions.length > 0 && (
-            <div className="bg-white rounded-2xl p-5 mb-8">
-              <div className="mb-4">
-                <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
-                <p className="text-xs text-[#9CA3AF]">{themeMentions.length} themes detected across reviews</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {themeMentions.map((t, i) => (
-                  <div key={i} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F3F4F6]">
-                    <span className="text-sm font-medium text-[#111827]">{t.label}</span>
-                    <span className="text-xs font-medium text-[#4B5563] bg-white px-2 py-0.5 rounded-full">{t.count}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 

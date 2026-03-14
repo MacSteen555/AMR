@@ -126,6 +126,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   label="AI Reports"
                   active={pathname?.includes('/aireports')}
                   badge={tier === 'FREE' ? 'PRO' : undefined}
+                  disabled={tier === 'FREE'}
                   collapsed={isCollapsed}
                 />
                 <NavItem
