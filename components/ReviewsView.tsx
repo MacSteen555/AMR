@@ -562,6 +562,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
     const [isGbpHelpOpen, setIsGbpHelpOpen] = useState(false)
+    const [missingBusinessScope, setMissingBusinessScope] = useState(false)
 
     // Team-mode: per-location permissions; Location-mode: single boolean
     const [manageableLocationIds, setManageableLocationIds] = useState<Set<string>>(new Set())
@@ -570,6 +571,49 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
     const canPost = (review: Review) => {
         if (mode === 'team') return manageableLocationIds.has(review.location_id || '')
         return canPostReplies !== false
+    }
+
+    useEffect(() => {
+        async function checkScope() {
+            try {
+                const res = await apiGet<{ hasBusinessScope: boolean; hasGoogleIdentity: boolean }>('/api/auth/google/scope-status')
+                if (res.hasGoogleIdentity && !res.hasBusinessScope) {
+                    setMissingBusinessScope(true)
+                }
+            } catch { /* silent */ }
+        }
+        checkScope()
+    }, [])
+
+    const handleGrantScope = () => {
+        const width = 500
+        const height = 600
+        const left = window.screenX + (window.outerWidth - width) / 2
+        const top = window.screenY + (window.outerHeight - height) / 2
+
+        fetch('/api/auth/google/grant-scope', { credentials: 'include' })
+            .then(res => res.json())
+            .then(({ url }) => {
+                const popup = window.open(url, 'google-scope-grant', `width=${width},height=${height},left=${left},top=${top}`)
+
+                const onMessage = (event: MessageEvent) => {
+                    if (event.data?.type === 'google-scope-granted') {
+                        setMissingBusinessScope(false)
+                        setToast({ message: 'Google Business access granted!', type: 'success' })
+                        loadReviews()
+                        window.removeEventListener('message', onMessage)
+                    }
+                }
+                window.addEventListener('message', onMessage)
+
+                const check = setInterval(() => {
+                    if (popup?.closed) {
+                        clearInterval(check)
+                        window.removeEventListener('message', onMessage)
+                    }
+                }, 1000)
+            })
+            .catch(() => setToast({ message: 'Failed to start authorization', type: 'error' }))
     }
 
     useEffect(() => { loadReviews() }, [entityId])
@@ -744,7 +788,20 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            {title}
+                            {missingBusinessScope && (
+                                <button
+                                    onClick={handleGrantScope}
+                                    className="ml-3 inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer align-middle"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    </svg>
+                                    Grant Google Business Access
+                                </button>
+                            )}
+                        </h1>
                         <p className="text-gray-500 text-sm mt-0.5">{subtitle}</p>
                         <button
                             onClick={() => setIsGbpHelpOpen(true)}
@@ -872,7 +929,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                     )}
                 </div>
             </div>
-            <GbpPermissionsModal isOpen={isGbpHelpOpen} onClose={() => setIsGbpHelpOpen(false)} />
+            <GbpPermissionsModal isOpen={isGbpHelpOpen} onClose={() => setIsGbpHelpOpen(false)} missingBusinessScope={missingBusinessScope} onGrantScope={handleGrantScope} />
         </>
     )
 }

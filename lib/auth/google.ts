@@ -23,7 +23,7 @@ const REQUIRED_SCOPES = [
  * Step 1: Start OAuth Flow
  * Generates authorization URL with PKCE for security
  */
-export function googleOAuthStart(): { url: string; codeVerifier: string; state: string } {
+export function googleOAuthStart(options?: { incremental?: boolean }): { url: string; codeVerifier: string; state: string } {
   // Generate PKCE code verifier and challenge
   const codeVerifier = crypto.randomBytes(32).toString('base64url')
   const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url')
@@ -38,10 +38,16 @@ export function googleOAuthStart(): { url: string; codeVerifier: string; state: 
   const authUrlParams: any = {
     access_type: 'offline',
     prompt: 'consent',
-    scope: REQUIRED_SCOPES,
+    scope: options?.incremental
+      ? ['https://www.googleapis.com/auth/business.manage']
+      : REQUIRED_SCOPES,
     state,
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
+  }
+
+  if (options?.incremental) {
+    authUrlParams.include_granted_scopes = true
   }
 
   const url = oauth2Client.generateAuthUrl(authUrlParams)

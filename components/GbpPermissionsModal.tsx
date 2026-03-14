@@ -5,9 +5,11 @@ import { useEffect } from 'react'
 interface GbpPermissionsModalProps {
     isOpen: boolean
     onClose: () => void
+    missingBusinessScope?: boolean
+    onGrantScope?: () => void
 }
 
-export function GbpPermissionsModal({ isOpen, onClose }: GbpPermissionsModalProps) {
+export function GbpPermissionsModal({ isOpen, onClose, missingBusinessScope, onGrantScope }: GbpPermissionsModalProps) {
     useEffect(() => {
         if (!isOpen) return
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -37,6 +39,34 @@ export function GbpPermissionsModal({ isOpen, onClose }: GbpPermissionsModalProp
 
                 {/* Content */}
                 <div className="p-6 space-y-6 overflow-y-auto max-h-[75vh]">
+
+                    {/* Grant Access CTA */}
+                    {missingBusinessScope && onGrantScope && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 flex-shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-amber-900 mb-1">Google Business Access Not Granted</h3>
+                                    <p className="text-sm text-amber-700 leading-relaxed mb-3">
+                                        It looks like you didn&apos;t check the Google Business permission box during sign-in. Click below to grant access without signing out.
+                                    </p>
+                                    <button
+                                        onClick={onGrantScope}
+                                        className="px-4 py-2 text-sm font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors cursor-pointer flex items-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                        Grant Google Business Access
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Section 1 - Google Permissions */}
                     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">

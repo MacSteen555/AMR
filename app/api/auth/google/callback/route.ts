@@ -75,6 +75,25 @@ export async function GET(request: Request) {
     // Clean up OAuth cookies
     cookieStore.delete('oauth_state')
     cookieStore.delete('oauth_code_verifier')
+    const isPopup = cookieStore.get('oauth_popup')?.value === 'true'
+    cookieStore.delete('oauth_popup')
+
+    // Popup mode: render a self-closing page that notifies the opener
+    if (isPopup) {
+      const html = `<!DOCTYPE html><html><body><script>
+        if (window.opener) {
+          window.opener.postMessage({ type: 'google-scope-granted' }, '*');
+        }
+        window.close();
+      </script><p>Permissions granted. This window will close automatically.</p></body></html>`
+      const response = new NextResponse(html, {
+        headers: { 'Content-Type': 'text/html' },
+      })
+      cookiesToSet.forEach(({ name, value, options }) => {
+        response.cookies.set({ name, value, ...options })
+      })
+      return response
+    }
 
     // Check for post-login redirect (e.g. invite acceptance)
     const inviteRedirect = cookieStore.get('invite_redirect')?.value
