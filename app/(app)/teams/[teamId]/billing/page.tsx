@@ -30,14 +30,14 @@ const PLANS = [
     name: 'Free',
     price: '$0',
     credits: 5,
-    features: ['5 credits/month', 'Basic reply generation'],
+    features: ['5 reviews/month', 'Basic reply generation'],
   },
   {
     tier: 'PRO',
     name: 'Pro',
     price: '$15',
     credits: 50,
-    features: ['50 credits/month', 'AI Insights', 'Priority support'],
+    features: ['50 reviews/month', 'AI Insights', 'Priority support'],
     popular: true,
   },
   {
@@ -45,14 +45,14 @@ const PLANS = [
     name: 'Business',
     price: '$35',
     credits: 200,
-    features: ['200 credits/month', 'AI Insights', 'Competitive Intel', 'Team collaboration'],
+    features: ['200 reviews/month', 'AI Insights', 'Competitive Intel', 'Team collaboration'],
   },
   {
     tier: 'ENTERPRISE',
     name: 'Enterprise',
     price: '$80',
     credits: 1000,
-    features: ['1,000 credits/month', 'All features', 'Custom integrations', 'Dedicated support'],
+    features: ['1,000 reviews/month', 'All features', 'Custom integrations', 'Dedicated support'],
   },
 ]
 
@@ -298,15 +298,15 @@ export default function BillingPage() {
               )}
             </div>
 
-            {/* Credit Balance */}
+            {/* Monthly Usage */}
             <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-sm p-6 text-white">
-              <h2 className="text-lg font-semibold mb-4 opacity-90">Credit Balance</h2>
+              <h2 className="text-lg font-semibold mb-4 opacity-90">Monthly Usage</h2>
               <div className="text-5xl font-bold mb-2">{billing?.creditBalance || 0}</div>
-              <div className="opacity-80">credits available</div>
+              <div className="opacity-80">of {billing?.subscription?.monthly_credits || 5} replies remaining this month</div>
 
               {billing?.topupProducts && billing.topupProducts.length > 0 && (
                 <div className="mt-6">
-                  <div className="text-sm opacity-80 mb-2">Need more credits?</div>
+                  <div className="text-sm opacity-80 mb-2">Need more replies?</div>
                   <div className="flex gap-2">
                     {billing.topupProducts.map(product => (
                       <button

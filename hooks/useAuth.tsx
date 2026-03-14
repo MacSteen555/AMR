@@ -23,6 +23,7 @@ export interface Team {
     competitive_enabled: boolean
   } | null
   creditBalance: number
+  reviewsManaged: number
 }
 
 interface AuthData {

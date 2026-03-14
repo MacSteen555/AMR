@@ -23,7 +23,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     const { data: review } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('*, location:locations!inner(google_location_id, google_account_hint)')
+      .select('*, location:locations!inner(team_id, google_location_id, google_account_hint)')
       .eq('id', params.reviewId)
       .single()
 
@@ -79,6 +79,23 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
           reply_source: 'automyreply',
         })
         .eq('id', params.reviewId)
+
+      // Increment reviews_managed counter
+      const { data: currentBalance } = await serviceClient
+        .schema('app')
+        .from('team_credit_balances')
+        .select('reviews_managed')
+        .eq('team_id', review.location.team_id)
+        .single()
+
+      await serviceClient
+        .schema('app')
+        .from('team_credit_balances')
+        .update({
+          reviews_managed: (currentBalance?.reviews_managed || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('team_id', review.location.team_id)
     } catch (error: any) {
       success = false
       errorCode = error.code || 'UNKNOWN'

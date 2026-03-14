@@ -5,6 +5,8 @@ import { apiGet, apiPost, apiPatch, streamDraft } from '@/lib/api'
 import { Toast } from '@/components/Toast'
 import { GbpPermissionsModal } from '@/components/GbpPermissionsModal'
 import { useRouter, useParams } from 'next/navigation'
+import { UpgradeLimitModal } from '@/components/UpgradeLimitModal'
+import { useAuth } from '@/hooks/useAuth'
 
 /* ─── Types ─── */
 
@@ -543,7 +545,11 @@ function ReviewCard({
 export default function ReviewsView({ mode, entityId, title, subtitle }: ReviewsViewProps) {
     const router = useRouter()
     const params = useParams()
-    const teamId = params?.teamId as string | undefined
+    const { teams } = useAuth()
+    const teamId = (params?.teamId as string) || entityId
+    const currentTeam = teams.find(t => t.id === teamId)
+    const reviewsManaged = currentTeam?.reviewsManaged || 0
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false)
     const [reviews, setReviews] = useState<Review[]>([])
     const [loading, setLoading] = useState(true)
     const [tab, setTab] = useState<'inbox' | 'history'>('inbox')
@@ -673,7 +679,14 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
             const res = await apiPost<{ published: number }>(endpoint, {})
             setToast({ message: `Published ${res.published} replies!`, type: 'success' })
             await loadReviews()
-        } catch { setReviews(prev); setToast({ message: 'Publishing failed', type: 'error' }) }
+        } catch (err: any) {
+            setReviews(prev)
+            if (err?.message?.includes('Insufficient credits') || err?.message?.includes('402')) {
+                setShowUpgradeModal(true)
+            } else {
+                setToast({ message: 'Publishing failed', type: 'error' })
+            }
+        }
         finally { setIsPublishing(false) }
     }
 
@@ -688,7 +701,14 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
             setEdits(prev => { const n = { ...prev }; delete n[reviewId]; return n })
             const res = await apiPost<{ review: Review }>(`/api/reviews/${reviewId}/publish`, { reply_text: edits[reviewId] || undefined })
             if (res.review) { setToast({ message: 'Reply posted!', type: 'success' }); setReviews(r => r.map(x => x.id === reviewId ? { ...x, ...res.review } : x)) }
-        } catch { setReviews(prevReviews); setEdits(prevEdits); setToast({ message: 'Failed to publish', type: 'error' }) }
+        } catch (err: any) {
+            setReviews(prevReviews); setEdits(prevEdits)
+            if (err?.message?.includes('Insufficient credits') || err?.message?.includes('402')) {
+                setShowUpgradeModal(true)
+            } else {
+                setToast({ message: 'Failed to publish', type: 'error' })
+            }
+        }
         finally { setPublishingId(null); setTimeout(() => setFadingOut(null), 400) }
     }
 
@@ -873,6 +893,13 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                 </div>
             </div>
             <GbpPermissionsModal isOpen={isGbpHelpOpen} onClose={() => setIsGbpHelpOpen(false)} />
+            {showUpgradeModal && (
+                <UpgradeLimitModal
+                    teamId={teamId}
+                    reviewsManaged={reviewsManaged}
+                    onClose={() => setShowUpgradeModal(false)}
+                />
+            )}
         </>
     )
 }
