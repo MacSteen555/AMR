@@ -67,6 +67,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
           website: locationData.websiteUri || null,
           latitude: locationData.storefrontAddress?.coordinates?.latitude || null,
           longitude: locationData.storefrontAddress?.coordinates?.longitude || null,
+          google_primary_category: locationData.categories?.primaryCategory?.displayName || null,
         })
         .select()
         .single()

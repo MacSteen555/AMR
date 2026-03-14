@@ -19,6 +19,7 @@ interface Location {
   negative_sentiment?: string
   reply_language?: string
   signature?: string | null
+  negative_contact_email?: string | null
 }
 
 const SIGNATURE_PRESETS = ['store_name', 'team_name', 'user_name'] as const
@@ -55,6 +56,7 @@ interface LocationSettings {
   signature?: string | null
   signature_type?: SignaturePreset | 'custom'
   signature_custom?: string
+  negative_contact_email?: string | null
 }
 
 type GoogleLocation = {
@@ -255,6 +257,7 @@ export default function TeamsPage() {
       reply_language: loc.reply_language || 'en',
       signature_type: sigType,
       signature_custom: sigType === 'custom' ? (loc.signature || '') : '',
+      negative_contact_email: loc.negative_contact_email || '',
     })
     setIsLocationSettingsOpen(true)
   }
@@ -274,6 +277,7 @@ export default function TeamsPage() {
         negative_sentiment: settingsForm.negative_sentiment || null,
         reply_language: settingsForm.reply_language || 'en',
         signature: sigValue,
+        negative_contact_email: settingsForm.negative_contact_email || null,
       })
       setIsLocationSettingsOpen(false)
       loadTeamData(selectedTeamId)
@@ -820,6 +824,17 @@ export default function TeamsPage() {
                         className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow min-h-[120px] shadow-sm"
                         placeholder="Specific instructions for how to respond to negative reviews..."
                       />
+                    </div>
+                    <div className="pt-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Negative Review Contact Email</label>
+                      <input
+                        type="email"
+                        value={settingsForm.negative_contact_email || ''}
+                        onChange={e => setSettingsForm({ ...settingsForm, negative_contact_email: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-200 bg-white rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 transition-shadow shadow-sm"
+                        placeholder="e.g. support@yourbusiness.com"
+                      />
+                      <p className="text-sm text-gray-500 mt-1.5 pl-1">If set, negative review replies will invite the reviewer to contact this email to resolve the issue.</p>
                     </div>
                     <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="min-w-0">

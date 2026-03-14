@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
             serviceClient
                 .schema('app')
                 .from('locations')
-                .select('id, name, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language')
+                .select('id, name, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language, negative_contact_email')
                 .eq('team_id', params.teamId),
             serviceClient.schema('app').from('teams').select('name').eq('id', params.teamId).single(),
         ])
@@ -77,7 +77,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                     positive_sentiment: settings.positive_sentiment,
                     negative_sentiment: settings.negative_sentiment,
                     signature: settings.resolvedSignature,
-                    reply_language: settings.reply_language
+                    reply_language: settings.reply_language,
+                    negative_contact_email: settings.negative_contact_email
                 })
 
                 await serviceClient

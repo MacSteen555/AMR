@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiPost, apiGet, apiPatch } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
@@ -11,35 +11,28 @@ type GoogleLocation = {
   location_name: string
   address: any
   account_name?: string
+  primary_category?: string | null
 }
 
-type SampleReviews = {
-  positive_review: {
-    reviewer_name: string
-    rating: number
-    text: string
-    replies: { professional: string; friendly: string; witty: string }
-  }
-  negative_review: {
-    reviewer_name: string
-    rating: number
-    text: string
-    replies: { professional: string; friendly: string; witty: string }
-  }
+type CalibrationReview = {
+  index: number
+  stars: number
+  dimension: string
+  reviewer_name: string
+  comment: string | null
+  reply_a: string
+  reply_b: string
 }
 
-type BrandVoiceOption = 'professional' | 'friendly' | 'witty'
+type CalibrationData = {
+  reviews: CalibrationReview[]
+  business_type: string
+}
 
 const STEPS = [
   { id: 1, label: 'Name Your Team', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
   { id: 2, label: 'Add Locations', icon: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></> },
   { id: 3, label: 'Set Brand Voice', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /> },
-]
-
-const VOICE_OPTIONS: { value: BrandVoiceOption; label: string; desc: string }[] = [
-  { value: 'professional', label: 'Professional', desc: 'Formal, polished, and business-appropriate' },
-  { value: 'friendly', label: 'Friendly', desc: 'Warm, conversational, and approachable' },
-  { value: 'witty', label: 'Witty', desc: 'Clever, fun, and personality-forward' },
 ]
 
 /* ─── Step Indicator ─── */
@@ -98,25 +91,6 @@ function StarRating({ rating }: { rating: number }) {
   )
 }
 
-/* ─── Voice Selector Pill ─── */
-function VoicePill({ voice, selected, onClick, color }: {
-  voice: typeof VOICE_OPTIONS[number]; selected: boolean; onClick: () => void; color: 'green' | 'red'
-}) {
-  const activeClasses = color === 'green'
-    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 shadow-sm'
-    : 'bg-red-50 border-red-300 text-red-800 shadow-sm'
-  return (
-    <button
-      onClick={onClick}
-      className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer ${
-        selected ? activeClasses : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-      }`}
-    >
-      {voice.label}
-    </button>
-  )
-}
-
 /* ═══════════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════ */
@@ -137,24 +111,15 @@ export default function NewTeamPage() {
   const [importedLocationIds, setImportedLocationIds] = useState<{ id: string; name: string }[]>([])
 
   const [currentLocationIdx, setCurrentLocationIdx] = useState(0)
-  const [sampleReviews, setSampleReviews] = useState<SampleReviews | null>(null)
-  const [loadingSamples, setLoadingSamples] = useState(false)
 
-  const reviewCacheRef = useRef<Record<string, SampleReviews>>({})
-  const activeFetchesRef = useRef<Record<string, Promise<SampleReviews>>>({})
-
-  const [positiveVoice, setPositiveVoice] = useState<BrandVoiceOption>('friendly')
-  const [negativeVoice, setNegativeVoice] = useState<BrandVoiceOption>('professional')
-  const [positiveReplyText, setPositiveReplyText] = useState('')
-  const [negativeReplyText, setNegativeReplyText] = useState('')
-  const [positiveOriginal, setPositiveOriginal] = useState('')
-  const [negativeOriginal, setNegativeOriginal] = useState('')
-
-  const [brandVoice, setBrandVoice] = useState('Professional and friendly')
-  const [negativeSentiment, setNegativeSentiment] = useState('Use a professional tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.')
-  const [userEditedPrompt, setUserEditedPrompt] = useState(false)
-  const [isInferringPrompt, setIsInferringPrompt] = useState(false)
-  const [savingBrandVoice, setSavingBrandVoice] = useState(false)
+  const [calibrationData, setCalibrationData] = useState<CalibrationData | null>(null)
+  const [loadingCalibration, setLoadingCalibration] = useState(false)
+  const [picks, setPicks] = useState<Record<number, 'a' | 'b'>>({})
+  const [currentReviewIdx, setCurrentReviewIdx] = useState(0)
+  const [negativeContactEmail, setNegativeContactEmail] = useState('')
+  const [calibrationStep, setCalibrationStep] = useState<'picking' | 'email' | 'review'>('picking')
+  const [generatedVoice, setGeneratedVoice] = useState('')
+  const [savingCalibration, setSavingCalibration] = useState(false)
 
   /* ─── Step 1 ─── */
   const handleCreateTeam = async () => {
@@ -197,7 +162,7 @@ export default function NewTeamPage() {
       setImportedLocationIds(result.locations)
       setStep(3)
       if (result.locations.length > 0) {
-        loadSampleReviews(result.locations[0].name)
+        loadCalibration(result.locations[0].id)
         apiPost(`/api/teams/${teamId}/reviews/sync`, {}).catch(err => console.error('Background sync failed:', err))
       }
     } catch (err: any) { setError(err.message || 'Failed to import locations') }
@@ -205,104 +170,73 @@ export default function NewTeamPage() {
   }
 
   /* ─── Step 3 ─── */
-  const loadSampleReviews = async (locationName: string, isBackground = false) => {
-    if (reviewCacheRef.current[locationName]) {
-      if (!isBackground) initializeBrandVoiceUI(reviewCacheRef.current[locationName])
+  const loadCalibration = async (locationId: string) => {
+    setLoadingCalibration(true)
+    setCalibrationData(null)
+    setPicks({})
+    setCurrentReviewIdx(0)
+    setCalibrationStep('picking')
+    try {
+      const data = await apiPost<CalibrationData>('/api/onboarding/generate-calibration', { location_id: locationId })
+      setCalibrationData(data)
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate calibration reviews')
+    } finally {
+      setLoadingCalibration(false)
+    }
+  }
+
+  const handleSaveCalibration = async () => {
+    if (!teamId || importedLocationIds.length === 0) return
+    const currentLoc = importedLocationIds[currentLocationIdx]
+    if (!currentLoc) return
+
+    if (calibrationStep === 'picking') {
+      setCalibrationStep('email')
       return
     }
-    if (!isBackground) { setLoadingSamples(true); setSampleReviews(null) }
-    try {
-      let fetchPromise = activeFetchesRef.current[locationName]
-      if (!fetchPromise) {
-        fetchPromise = apiPost<SampleReviews>('/api/onboarding/generate-sample-reviews', { location_name: locationName })
-        activeFetchesRef.current[locationName] = fetchPromise
-      }
-      const data = await fetchPromise
-      reviewCacheRef.current[locationName] = data
-      if (!isBackground) initializeBrandVoiceUI(data)
-    } catch (err: any) { if (!isBackground) setError(err.message || 'Failed to generate sample reviews') }
-    finally { delete activeFetchesRef.current[locationName]; if (!isBackground) setLoadingSamples(false) }
-  }
 
-  const initializeBrandVoiceUI = (data: SampleReviews) => {
-    setSampleReviews(data)
-    const initPos: BrandVoiceOption = 'friendly', initNeg: BrandVoiceOption = 'professional'
-    setPositiveVoice(initPos); setNegativeVoice(initNeg)
-    setPositiveReplyText(data.positive_review.replies[initPos])
-    setNegativeReplyText(data.negative_review.replies[initNeg])
-    setPositiveOriginal(data.positive_review.replies[initPos])
-    setNegativeOriginal(data.negative_review.replies[initNeg])
-    if (!userEditedPrompt) {
-      setBrandVoice(`${initPos} and ${initNeg}`)
-      setNegativeSentiment(`Use a ${initNeg} tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.`)
+    if (calibrationStep === 'email') {
+      try {
+        setSavingCalibration(true); setError(null)
+        const picksArray = calibrationData!.reviews.map((review) => ({
+          review_index: review.index,
+          dimension: review.dimension,
+          choice: picks[review.index],
+        }))
+        const result = await apiPost<{ brand_voice: string }>('/api/onboarding/save-calibration', {
+          location_id: currentLoc.id,
+          picks: picksArray,
+          negative_contact_email: negativeContactEmail.trim() || null,
+          business_type: calibrationData!.business_type,
+        })
+        setGeneratedVoice(result.brand_voice)
+        setCalibrationStep('review')
+      } catch (err: any) { setError(err.message || 'Failed to generate brand voice') }
+      finally { setSavingCalibration(false) }
+      return
     }
-  }
 
-  useEffect(() => {
-    if (step === 3 && importedLocationIds.length > 0) {
-      const nextLoc = importedLocationIds[currentLocationIdx + 1]
-      if (nextLoc && !reviewCacheRef.current[nextLoc.name] && !activeFetchesRef.current[nextLoc.name]) {
-        loadSampleReviews(nextLoc.name, true)
-      }
+    if (calibrationStep === 'review') {
+      try {
+        setSavingCalibration(true); setError(null)
+        await apiPatch(`/api/teams/${teamId}/locations/${currentLoc.id}`, {
+          brand_voice: generatedVoice,
+        })
+        if (currentLocationIdx < importedLocationIds.length - 1) {
+          const nextIdx = currentLocationIdx + 1
+          setCurrentLocationIdx(nextIdx)
+          loadCalibration(importedLocationIds[nextIdx].id)
+        } else {
+          router.push('/teams'); router.refresh()
+        }
+      } catch (err: any) { setError(err.message || 'Failed to save brand voice') }
+      finally { setSavingCalibration(false) }
     }
-  }, [step, currentLocationIdx, importedLocationIds])
-
-  const handleSelectPositiveVoice = (voice: BrandVoiceOption) => {
-    setPositiveVoice(voice)
-    if (sampleReviews) { setPositiveReplyText(sampleReviews.positive_review.replies[voice]); setPositiveOriginal(sampleReviews.positive_review.replies[voice]) }
-    if (!userEditedPrompt) updateOpinionPrompt(voice, negativeVoice)
-  }
-
-  const handleSelectNegativeVoice = (voice: BrandVoiceOption) => {
-    setNegativeVoice(voice)
-    if (sampleReviews) { setNegativeReplyText(sampleReviews.negative_review.replies[voice]); setNegativeOriginal(sampleReviews.negative_review.replies[voice]) }
-    if (!userEditedPrompt) updateOpinionPrompt(positiveVoice, voice)
-  }
-
-  const updateOpinionPrompt = (posVoice: string, negVoice: string) => {
-    setBrandVoice(`${posVoice} and ${negVoice}`)
-    setNegativeSentiment(`Use a ${negVoice} tone for negative reviews. Acknowledge concerns empathetically and offer to make things right.`)
-  }
-
-  const handleInferPromptFromReplies = async () => {
-    try {
-      setIsInferringPrompt(true); setError(null)
-      const [posRes, negRes] = await Promise.all([
-        apiPost<{ brand_voice_prompt: string; sentiment_prompt: string }>('/api/onboarding/extract-brand-voice', { original_reply: positiveOriginal, edited_reply: positiveReplyText, sentiment_type: 'positive', selected_voice: positiveVoice }),
-        apiPost<{ brand_voice_prompt: string; sentiment_prompt: string }>('/api/onboarding/extract-brand-voice', { original_reply: negativeOriginal, edited_reply: negativeReplyText, sentiment_type: 'negative', selected_voice: negativeVoice }),
-      ])
-      setBrandVoice(posRes.brand_voice_prompt !== negRes.brand_voice_prompt ? `${posRes.brand_voice_prompt} ${negRes.brand_voice_prompt}` : posRes.brand_voice_prompt)
-      setNegativeSentiment(negRes.sentiment_prompt)
-      setUserEditedPrompt(true)
-      setPositiveOriginal(positiveReplyText)
-      setNegativeOriginal(negativeReplyText)
-    } catch (err: any) { setError(err.message || 'Failed to infer brand voice') }
-    finally { setIsInferringPrompt(false) }
-  }
-
-  const handleSaveBrandVoice = async () => {
-    if (!teamId || importedLocationIds.length === 0) return
-    const currentLocation = importedLocationIds[currentLocationIdx]
-    if (!currentLocation) return
-    try {
-      setSavingBrandVoice(true); setError(null)
-      await apiPatch(`/api/teams/${teamId}/locations/${currentLocation.id}`, {
-        brand_voice: brandVoice, positive_sentiment: '', negative_sentiment: negativeSentiment, reply_language: 'en',
-      })
-      if (currentLocationIdx < importedLocationIds.length - 1) {
-        const nextIdx = currentLocationIdx + 1
-        setCurrentLocationIdx(nextIdx)
-        loadSampleReviews(importedLocationIds[nextIdx].name)
-      } else {
-        router.push('/teams'); router.refresh()
-      }
-    } catch (err: any) { setError(err.message || 'Failed to save brand voice') }
-    finally { setSavingBrandVoice(false) }
   }
 
   const currentLocation = importedLocationIds[currentLocationIdx]
-  const posEdited = positiveReplyText !== positiveOriginal
-  const negEdited = negativeReplyText !== negativeOriginal
+  const allPicked = calibrationData ? calibrationData.reviews.every(r => picks[r.index] !== undefined) : false
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/30">
@@ -421,7 +355,7 @@ export default function NewTeamPage() {
                 Select the Google Business locations you want to manage reviews for. You can always add more later.
               </p>
               <button
-                onClick={() => { setStep(3); if (importedLocationIds.length > 0) loadSampleReviews(importedLocationIds[0].name) }}
+                onClick={() => { setStep(3); if (importedLocationIds.length > 0) loadCalibration(importedLocationIds[0].id) }}
                 className="mt-3 text-sm text-gray-400 hover:text-teal-600 font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 Skip for now
@@ -552,7 +486,7 @@ export default function NewTeamPage() {
               </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-3">Configure Brand Voice</h1>
               <p className="text-gray-500 max-w-2xl mx-auto leading-relaxed">
-                Choose how your AI replies sound for positive and negative reviews. Edit the sample replies below to teach the AI your exact style.
+                Pick the reply you prefer for each review. We&apos;ll use your choices to calibrate the AI&apos;s tone.
               </p>
               <button
                 onClick={() => { router.push('/teams'); router.refresh() }}
@@ -576,96 +510,203 @@ export default function NewTeamPage() {
               )}
             </div>
 
-            {loadingSamples ? (
+            {loadingCalibration ? (
               <div className="flex flex-col items-center justify-center py-24">
                 <div className="relative w-16 h-16 mb-6">
                   <div className="w-16 h-16 border-4 border-teal-100 rounded-full" />
                   <div className="w-16 h-16 border-4 border-teal-600 border-t-transparent rounded-full animate-spin absolute inset-0" />
                 </div>
-                <p className="text-gray-700 font-medium">Drafting sample reviews...</p>
+                <p className="text-gray-700 font-medium">Generating calibration reviews...</p>
                 <p className="text-gray-400 text-sm mt-1">for {currentLocation?.name}</p>
               </div>
-            ) : sampleReviews ? (
+            ) : calibrationData ? (
               <div className="space-y-8">
-                {/* Review columns */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Positive */}
-                  <ReviewColumn
-                    type="positive"
-                    review={sampleReviews.positive_review}
-                    voice={positiveVoice}
-                    replyText={positiveReplyText}
-                    isEdited={posEdited}
-                    onSelectVoice={handleSelectPositiveVoice}
-                    onChangeReply={setPositiveReplyText}
-                    onSave={handleInferPromptFromReplies}
-                    isSaving={isInferringPrompt}
-                  />
-                  {/* Negative */}
-                  <ReviewColumn
-                    type="negative"
-                    review={sampleReviews.negative_review}
-                    voice={negativeVoice}
-                    replyText={negativeReplyText}
-                    isEdited={negEdited}
-                    onSelectVoice={handleSelectNegativeVoice}
-                    onChangeReply={setNegativeReplyText}
-                    onSave={handleInferPromptFromReplies}
-                    isSaving={isInferringPrompt}
-                  />
-                </div>
 
-                {/* Brand Prompt */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
-                      <svg className="w-4.5 h-4.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
+                {/* ── Sub-view: picking (one at a time) ── */}
+                {calibrationStep === 'picking' && calibrationData.reviews[currentReviewIdx] && (
+                  <div key={currentReviewIdx} style={{ animation: 'fadeSlideUp 0.3s ease-out' }}>
+                    {/* Progress dots */}
+                    <div className="flex items-center justify-center gap-2 mb-6">
+                      {calibrationData.reviews.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            i === currentReviewIdx
+                              ? 'w-8 bg-teal-500'
+                              : picks[i] !== undefined
+                                ? 'w-2 bg-teal-300'
+                                : 'w-2 bg-gray-200'
+                          }`}
+                        />
+                      ))}
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900">Your Brand Prompt</h3>
-                      <p className="text-xs text-gray-500">Auto-updated when you save edits above. You can also edit directly.</p>
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-5">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Overall Tone & Style</label>
-                      <textarea
-                        value={brandVoice}
-                        onChange={e => { setBrandVoice(e.target.value); setUserEditedPrompt(true) }}
-                        className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all min-h-[80px]"
-                        placeholder="General instructions for your brand voice..."
+
+                    <div className="max-w-2xl mx-auto">
+                      <CalibrationCard
+                        review={calibrationData.reviews[currentReviewIdx]}
+                        pick={picks[currentReviewIdx] ?? null}
+                        onPick={(choice) => {
+                          setPicks(prev => ({ ...prev, [currentReviewIdx]: choice }))
+                          // Auto-advance after a short delay
+                          setTimeout(() => {
+                            if (currentReviewIdx < calibrationData!.reviews.length - 1) {
+                              setCurrentReviewIdx(prev => prev + 1)
+                            }
+                          }, 400)
+                        }}
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Negative Review Rules</label>
-                      <textarea
-                        value={negativeSentiment}
-                        onChange={e => { setNegativeSentiment(e.target.value); setUserEditedPrompt(true) }}
-                        className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all min-h-[100px]"
-                        placeholder="Specific instructions for how to respond to negative reviews..."
-                      />
+
+                    <div className="flex justify-between items-center pt-6 pb-8 max-w-2xl mx-auto">
+                      <button
+                        onClick={() => setCurrentReviewIdx(prev => prev - 1)}
+                        disabled={currentReviewIdx === 0}
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors cursor-pointer disabled:opacity-0 disabled:cursor-default"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Previous
+                      </button>
+
+                      <span className="text-xs text-gray-400 font-medium">
+                        {currentReviewIdx + 1} of {calibrationData.reviews.length}
+                      </span>
+
+                      {currentReviewIdx < calibrationData.reviews.length - 1 ? (
+                        <button
+                          onClick={() => setCurrentReviewIdx(prev => prev + 1)}
+                          disabled={picks[currentReviewIdx] === undefined}
+                          className="flex items-center gap-2 text-teal-600 hover:text-teal-700 font-medium text-sm transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          Next
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleSaveCalibration}
+                          disabled={!allPicked}
+                          className="group px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                          Continue
+                          <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Final CTA */}
-                <div className="flex justify-end items-center pt-2 pb-8">
-                  <button
-                    onClick={handleSaveBrandVoice}
-                    disabled={savingBrandVoice || (!brandVoice.trim() && !negativeSentiment.trim())}
-                    className="group px-8 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
-                  >
-                    {savingBrandVoice ? (
-                      <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
-                    ) : currentLocationIdx < importedLocationIds.length - 1 ? (
-                      <>Save & Next Location<svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></>
-                    ) : (
-                      <>Save & Finish Setup<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></>
-                    )}
-                  </button>
-                </div>
+                {/* ── Sub-view: email ── */}
+                {calibrationStep === 'email' && (
+                  <div className="max-w-lg mx-auto">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Contact Email for Negative Reviews</h3>
+                          <p className="text-sm text-gray-500">Optional — include an email in replies to unhappy customers so they can reach you directly.</p>
+                        </div>
+                      </div>
+                      <input
+                        type="email"
+                        value={negativeContactEmail}
+                        onChange={(e) => setNegativeContactEmail(e.target.value)}
+                        placeholder="support@yourbusiness.com"
+                        className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none text-gray-900 text-sm transition-all bg-gray-50 focus:bg-white"
+                      />
+                      <p className="mt-2 text-xs text-gray-400">Leave blank to skip — you can always add one later in location settings.</p>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-6 pb-8">
+                      <button
+                        onClick={() => setCalibrationStep('picking')}
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors cursor-pointer"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                      </button>
+                      <button
+                        onClick={handleSaveCalibration}
+                        disabled={savingCalibration}
+                        className="group px-8 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                      >
+                        {savingCalibration ? (
+                          <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Generating...</>
+                        ) : (
+                          <>
+                            Generate Brand Voice
+                            <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Sub-view: review ── */}
+                {calibrationStep === 'review' && (
+                  <div className="max-w-2xl mx-auto">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                          <svg className="w-4.5 h-4.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900">Your Brand Voice Prompt</h3>
+                          <p className="text-xs text-gray-500">Generated from your picks. Feel free to edit before saving.</p>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <textarea
+                          value={generatedVoice}
+                          onChange={e => setGeneratedVoice(e.target.value)}
+                          className="w-full p-3.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all min-h-[160px]"
+                          placeholder="Your brand voice prompt..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-6 pb-8">
+                      <button
+                        onClick={() => setCalibrationStep('email')}
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-700 font-medium text-sm transition-colors cursor-pointer"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                      </button>
+                      <button
+                        onClick={handleSaveCalibration}
+                        disabled={savingCalibration || !generatedVoice.trim()}
+                        className="group px-8 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                      >
+                        {savingCalibration ? (
+                          <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</>
+                        ) : currentLocationIdx < importedLocationIds.length - 1 ? (
+                          <>Save & Next Location<svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg></>
+                        ) : (
+                          <>Save & Finish Setup<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             ) : importedLocationIds.length === 0 ? (
               <div className="text-center py-20">
@@ -692,110 +733,70 @@ export default function NewTeamPage() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   REVIEW COLUMN (positive / negative)
+   CALIBRATION CARD (A/B pick per review)
    ═══════════════════════════════════════════════════════════════ */
-function ReviewColumn({ type, review, voice, replyText, isEdited, onSelectVoice, onChangeReply, onSave, isSaving }: {
-  type: 'positive' | 'negative'
-  review: { reviewer_name: string; rating: number; text: string; replies: Record<string, string> }
-  voice: BrandVoiceOption
-  replyText: string
-  isEdited: boolean
-  onSelectVoice: (v: BrandVoiceOption) => void
-  onChangeReply: (text: string) => void
-  onSave: () => void
-  isSaving: boolean
+function CalibrationCard({ review, pick, onPick }: {
+  review: CalibrationReview
+  pick: 'a' | 'b' | null
+  onPick: (choice: 'a' | 'b') => void
 }) {
-  const isPos = type === 'positive'
-  const headerBg = isPos ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'
-  const headerText = isPos ? 'text-emerald-800' : 'text-red-800'
-  const borderColor = isPos ? 'border-l-emerald-300' : 'border-l-red-300'
-  const ringColor = isPos ? 'focus:ring-emerald-500' : 'focus:ring-red-500'
-  const avatarBg = isPos ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
-  const editedBg = isPos ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
-  const editedText = isPos ? 'text-emerald-700' : 'text-red-700'
-  const saveBtnBg = isPos ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
-  const dotColor = isPos ? 'bg-emerald-500' : 'bg-red-500'
+  const starBg = review.stars >= 4 ? 'bg-emerald-50 border-emerald-100' : review.stars === 3 ? 'bg-amber-50 border-amber-100' : 'bg-red-50 border-red-100'
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className={`px-5 py-3 ${headerBg} border-b flex items-center gap-2`}>
-        <div className={`w-2 h-2 rounded-full ${dotColor}`} />
-        <span className={`text-sm font-semibold ${headerText}`}>{isPos ? 'Positive Review' : 'Negative Review'}</span>
-      </div>
-
-      <div className="p-6 flex-1 flex flex-col">
-        {/* Review */}
-        <div className="flex gap-3.5 mb-6">
-          <div className={`w-10 h-10 ${avatarBg} rounded-full flex items-center justify-center font-bold text-sm shrink-0`}>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Review header with avatar, name, stars, comment */}
+      <div className={`px-6 py-4 ${starBg} border-b`}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white/80 rounded-full flex items-center justify-center font-bold text-sm text-gray-700 shadow-sm">
             {review.reviewer_name.charAt(0)}
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
+          <div>
+            <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900 text-sm">{review.reviewer_name}</span>
-              <StarRating rating={review.rating} />
+              <StarRating rating={review.stars} />
             </div>
-            <p className="text-gray-600 text-sm leading-relaxed">&ldquo;{review.text}&rdquo;</p>
+            {review.comment ? (
+              <p className="text-gray-600 text-sm mt-1">&ldquo;{review.comment}&rdquo;</p>
+            ) : (
+              <p className="text-gray-400 text-sm mt-1 italic">Rating only, no written review</p>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Reply section */}
-        <div className={`pl-4 border-l-[3px] ${borderColor} ml-4 flex-1 flex flex-col`}>
-          {/* Tone selector */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mr-1">Tone</span>
-            {VOICE_OPTIONS.map(v => (
-              <VoicePill key={v.value} voice={v} selected={voice === v.value} onClick={() => onSelectVoice(v.value)} color={isPos ? 'green' : 'red'} />
-            ))}
-          </div>
-
-          {/* Editable reply */}
-          <label className="sr-only">Your Reply</label>
-          <textarea
-            value={replyText}
-            onChange={e => onChangeReply(e.target.value)}
-            className={`w-full flex-1 p-3.5 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 ${ringColor} focus:border-transparent transition-all resize-none min-h-[140px]`}
-            placeholder="Edit the reply to match your voice..."
-          />
-
-          {/* Edit hint bar */}
-          <div className={`mt-3 flex items-center justify-between p-2.5 rounded-xl border transition-all duration-300 ${isEdited ? editedBg : 'bg-gray-50 border-gray-200'}`}>
-            <div className="flex items-center gap-2">
-              {isEdited ? (
-                <svg className={`w-4 h-4 ${editedText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
-              <span className={`text-xs font-medium ${isEdited ? editedText : 'text-gray-500'}`}>
-                {isEdited ? 'Save to update the AI\'s brand voice' : 'Edit the reply to teach the AI your style'}
-              </span>
-            </div>
+      {/* Two reply options side by side */}
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(['a', 'b'] as const).map((choice) => {
+          const isSelected = pick === choice
+          const replyText = choice === 'a' ? review.reply_a : review.reply_b
+          return (
             <button
-              onClick={onSave}
-              disabled={isSaving || !isEdited}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                isEdited
-                  ? `${saveBtnBg} text-white shadow-sm disabled:opacity-60`
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              key={choice}
+              onClick={() => onPick(choice)}
+              className={`text-left p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                isSelected
+                  ? 'border-teal-500 bg-teal-50/50 ring-1 ring-teal-500/20'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
-              {isSaving ? (
-                <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving</>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Save
-                </>
-              )}
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-xs font-bold uppercase tracking-wider ${isSelected ? 'text-teal-600' : 'text-gray-400'}`}>
+                  Option {choice.toUpperCase()}
+                </span>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  isSelected ? 'border-teal-500 bg-teal-500' : 'border-gray-300'
+                }`}>
+                  {isSelected && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{replyText}</p>
             </button>
-          </div>
-        </div>
+          )
+        })}
       </div>
     </div>
   )

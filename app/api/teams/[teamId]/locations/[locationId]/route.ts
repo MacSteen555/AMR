@@ -52,7 +52,9 @@ export async function PATCH(
             positive_sentiment,
             negative_sentiment,
             reply_language,
-            signature
+            signature,
+            tone_calibration,
+            negative_contact_email
         } = body
 
         const serviceClient = createSupabaseServiceRoleClient()
@@ -65,7 +67,9 @@ export async function PATCH(
                 positive_sentiment,
                 negative_sentiment,
                 reply_language,
-                signature
+                signature,
+                tone_calibration,
+                negative_contact_email
             })
             .eq('id', params.locationId)
             .eq('team_id', params.teamId)
