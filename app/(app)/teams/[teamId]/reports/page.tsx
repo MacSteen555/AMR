@@ -48,6 +48,9 @@ export default function AIReportsPage() {
   const currentTeam = teams.find(t => t.id === teamId)
   const tier = currentTeam?.subscription?.tier || 'FREE'
   const insightsEnabled = tier !== 'FREE'
+  const reportsGenerated = currentTeam?.reportsGenerated ?? 0
+  const reportLimit = tier === 'ENTERPRISE' ? Infinity : tier === 'BUSINESS' ? 20 : tier === 'PRO' ? 5 : 0
+  const canGenerate = insightsEnabled && reportsGenerated < reportLimit
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -55,7 +58,6 @@ export default function AIReportsPage() {
   const [allReports, setAllReports] = useState<AIInsight[]>([])
   const [reportFilter, setReportFilter] = useState<string>('all')
   const [selectedReport, setSelectedReport] = useState<AIInsight | null>(null)
-  const [showPeriodPicker, setShowPeriodPicker] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -106,12 +108,13 @@ export default function AIReportsPage() {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handleGenerate = async (periodWindow: string) => {
+  const handleGenerate = async () => {
+    if (!canGenerate) return
     setGenerating(true)
     try {
       const locParam = effectiveLocationId ? `?location=${effectiveLocationId}` : ''
-      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, { period_window: periodWindow })
-      setToast({ message: 'Report generated!', type: 'success' })
+      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, { period_window: 'all' })
+      setToast({ message: 'Reports generated!', type: 'success' })
       await fetchReports()
       await refreshAuth()
     } catch (err: any) {
@@ -134,10 +137,15 @@ export default function AIReportsPage() {
           <p className="text-sm text-[#9CA3AF] mt-1">AI-generated analysis of your reviews</p>
         </div>
         {insightsEnabled && (
-          <div className="relative">
+          <div className="flex items-center gap-3">
+            {tier !== 'ENTERPRISE' && (
+              <span className="text-sm text-[#9CA3AF]">
+                {reportsGenerated}/{reportLimit} reports used
+              </span>
+            )}
             <button
-              onClick={() => setShowPeriodPicker(!showPeriodPicker)}
-              disabled={generating}
+              onClick={handleGenerate}
+              disabled={generating || !canGenerate}
               className="px-5 py-2.5 bg-[#0D9B8A] text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all"
             >
               {generating ? (
@@ -145,35 +153,12 @@ export default function AIReportsPage() {
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                   Generating...
                 </>
+              ) : !canGenerate ? (
+                'Report Limit Reached'
               ) : (
                 'Generate Report'
               )}
             </button>
-            {showPeriodPicker && !generating && (
-              <>
-                <div className="fixed inset-0 z-[9]" onClick={() => setShowPeriodPicker(false)} />
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl border border-[#E5E7EB] shadow-xl z-10 overflow-hidden">
-                  {(['30d', '90d', '6m', '1y'] as const).map(pw => (
-                    <button
-                      key={pw}
-                      onClick={() => { setShowPeriodPicker(false); handleGenerate(pw) }}
-                      className="w-full text-left px-4 py-3 hover:bg-[#F0FDFA] transition-colors flex items-center justify-between"
-                    >
-                      <span className="text-sm font-medium text-[#111827]">{REPORT_LABELS[pw]}</span>
-                      <span className="text-xs text-[#9CA3AF]">{REPORT_CREDITS[pw]} credits</span>
-                    </button>
-                  ))}
-                  <div className="border-t border-[#E5E7EB]" />
-                  <button
-                    onClick={() => { setShowPeriodPicker(false); handleGenerate('all') }}
-                    className="w-full text-left px-4 py-3 hover:bg-[#F0FDFA] transition-colors flex items-center justify-between"
-                  >
-                    <span className="text-sm font-bold text-[#0D9B8A]">Generate All</span>
-                    <span className="text-xs text-[#9CA3AF]">24 credits</span>
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         )}
       </div>
@@ -256,8 +241,8 @@ export default function AIReportsPage() {
                 Generate your first AI-powered report to uncover hidden patterns.
               </p>
               <button
-                onClick={() => setShowPeriodPicker(true)}
-                disabled={generating}
+                onClick={handleGenerate}
+                disabled={generating || !canGenerate}
                 className="px-5 py-2 bg-[#0D9B8A] text-white rounded-lg hover:opacity-90 disabled:opacity-50 text-sm font-medium"
               >
                 Generate First Report

@@ -1,279 +1,405 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/hooks/useAuth'
-import { useParams, usePathname, useSearchParams, useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { useState, useRef, useEffect } from 'react'
-import { ScopeBar } from '@/components/ScopeBar'
+import { useAuth } from "@/hooks/useAuth";
+import {
+  useParams,
+  usePathname,
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
+import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
+import { ScopeBar } from "@/components/ScopeBar";
 
 // Persist selected location per team in sessionStorage so it survives
 // navigating to pages that don't use the ?location param (dashboard, compete, settings).
-const LOCATION_STORAGE_KEY = 'amr:location:'
+const LOCATION_STORAGE_KEY = "amr:location:";
 
 function getStoredLocation(teamId: string): string | null {
-  try { return sessionStorage.getItem(LOCATION_STORAGE_KEY + teamId) } catch { return null }
+  try {
+    return sessionStorage.getItem(LOCATION_STORAGE_KEY + teamId);
+  } catch {
+    return null;
+  }
 }
 
 function storeLocation(teamId: string, locationId: string | null) {
   try {
-    const key = LOCATION_STORAGE_KEY + teamId
-    if (locationId) sessionStorage.setItem(key, locationId)
-    else sessionStorage.removeItem(key)
-  } catch { /* SSR / private browsing */ }
+    const key = LOCATION_STORAGE_KEY + teamId;
+    if (locationId) sessionStorage.setItem(key, locationId);
+    else sessionStorage.removeItem(key);
+  } catch {
+    /* SSR / private browsing */
+  }
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, teams, loading, logout } = useAuth()
-  const params = useParams()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  const { user, teams, loading, logout } = useAuth();
+  const params = useParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const teamId = params?.teamId as string | undefined
-  const currentTeam = teams.find(t => t.id === teamId) || null
+  const teamId = params?.teamId as string | undefined;
+  const currentTeam = teams.find((t) => t.id === teamId) || null;
   // Fallback to first team for nav links and credits when not on a team-scoped page
-  const navTeam = currentTeam || (teams.length > 0 ? teams[0] : null)
-  const credits = navTeam?.creditBalance || 0
-  const tier = navTeam?.subscription?.tier || 'FREE'
+  const navTeam = currentTeam || (teams.length > 0 ? teams[0] : null);
+  const credits = navTeam?.creditBalance || 0;
+  const tier = navTeam?.subscription?.tier || "FREE";
 
   // Resolve location: from URL param if present, otherwise from sessionStorage
-  const urlLocation = searchParams?.get('location') || null
-  const navTeamId = navTeam?.id || ''
-  const storedLocation = navTeamId ? getStoredLocation(navTeamId) : null
-  const activeLocation = urlLocation || storedLocation
+  const urlLocation = searchParams?.get("location") || null;
+  const navTeamId = navTeam?.id || "";
+  const storedLocation = navTeamId ? getStoredLocation(navTeamId) : null;
+  const activeLocation = urlLocation || storedLocation;
 
   // Persist location changes to sessionStorage
   useEffect(() => {
-    if (!navTeamId) return
+    if (!navTeamId) return;
     if (urlLocation) {
-      storeLocation(navTeamId, urlLocation)
+      storeLocation(navTeamId, urlLocation);
     }
     // Don't clear storage when URL doesn't have param — that's the whole point
-  }, [navTeamId, urlLocation])
+  }, [navTeamId, urlLocation]);
 
-  const locationQs = activeLocation ? '?location=' + activeLocation : ''
+  const locationQs = activeLocation ? "?location=" + activeLocation : "";
 
-  const [profileOpen, setProfileOpen] = useState(false)
-  const profileRef = useRef<HTMLDivElement>(null)
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
   const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('amr:sidebar-collapsed') === '1' } catch { return false }
-  })
-  const [mobileOpen, setMobileOpen] = useState(false)
+    try {
+      return localStorage.getItem("amr:sidebar-collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const toggleSidebar = () => {
-    const next = !collapsed
-    setCollapsed(next)
-    try { localStorage.setItem('amr:sidebar-collapsed', next ? '1' : '0') } catch { /* noop */ }
-  }
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      localStorage.setItem("amr:sidebar-collapsed", next ? "1" : "0");
+    } catch {
+      /* noop */
+    }
+  };
 
   // Close mobile drawer on navigation
   useEffect(() => {
-    setMobileOpen(false)
-  }, [pathname])
+    setMobileOpen(false);
+  }, [pathname]);
 
   // Close profile popover on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-        setProfileOpen(false)
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setProfileOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (loading) {
-    return <LoadingScreen />
+    return <LoadingScreen />;
   }
 
   if (!user) {
-    return null
+    return null;
   }
 
   // On mobile drawer, always show expanded labels
-  const isCollapsed = collapsed && !mobileOpen
+  const isCollapsed = collapsed && !mobileOpen;
 
   const sidebarContent = (
     <>
       {/* Navigation */}
-      <nav className={`flex-1 ${isCollapsed ? 'px-2' : 'px-4'} py-4 space-y-1 overflow-y-auto`}>
-            {navTeam ? (
-              <>
-                <NavItem
-                  href={`/teams/${navTeam.id}`}
-                  icon={<DashboardIcon />}
-                  label="Dashboard"
-                  active={pathname === `/teams/${navTeam.id}` || pathname === '/dashboard'}
-                  collapsed={isCollapsed}
-                />
-                <NavItem
-                  href={`/teams/${navTeam.id}/reviews${locationQs}`}
-                  icon={<ReviewIcon />}
-                  label="Reviews"
-                  active={pathname?.includes('/reviews')}
-                  collapsed={isCollapsed}
-                />
-                <NavItem
-                  href={`/teams/${navTeam.id}/insights${locationQs}`}
-                  icon={<InsightsIcon />}
-                  label="Insights"
-                  active={pathname?.includes('/insights')}
-                  collapsed={isCollapsed}
-                />
-                <NavItem
-                  href={`/teams/${navTeam.id}/aireports${locationQs}`}
-                  icon={<ReportsIcon />}
-                  label="AI Reports"
-                  active={pathname?.includes('/aireports')}
-                  badge={tier === 'FREE' ? 'PRO' : undefined}
-                  disabled={tier === 'FREE'}
-                  collapsed={isCollapsed}
-                />
-                <NavItem
-                  href={`/teams/${navTeam.id}/competitive`}
-                  icon={<CompeteIcon />}
-                  label="Compete"
-                  active={pathname?.includes('/competitive')}
-                  badge={tier === 'FREE' ? 'PRO+' : undefined}
-                  disabled={tier === 'FREE'}
-                  collapsed={isCollapsed}
-                />
-              </>
-            ) : (
-              <>
-                <NavItem
-                  href="/dashboard"
-                  icon={<DashboardIcon />}
-                  label="Dashboard"
-                  active={pathname === '/dashboard'}
-                  collapsed={isCollapsed}
-                />
-                {!isCollapsed && (
-                  <div className="text-center py-4 px-4 text-gray-500 text-sm">
-                    Create a team to get started
-                  </div>
-                )}
-              </>
-            )}
-            <div className="pt-4 mt-4 border-t border-gray-100">
-              <NavItem
-                href="/teams"
-                icon={<TeamsIcon />}
-                label="Teams"
-                active={pathname === '/teams'}
-                collapsed={isCollapsed}
-              />
-              {/* Collapse toggle — desktop only */}
-              <button
-                onClick={toggleSidebar}
-                className={`hidden md:flex w-full items-center ${isCollapsed ? 'justify-center px-0' : 'px-3'} py-2.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all duration-200 cursor-pointer mt-1`}
-                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
-                  <svg className={`w-5 h-5 transition-transform duration-200 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                  </svg>
-                  {!isCollapsed && <span className="text-sm font-medium">Collapse</span>}
-                </div>
-              </button>
-            </div>
-          </nav>
+      <nav
+        className={`flex-1 ${isCollapsed ? "px-2" : "px-4"} py-4 space-y-1 overflow-y-auto`}
+      >
+        {navTeam ?
+          <>
+            <NavItem
+              href={`/teams/${navTeam.id}`}
+              icon={<DashboardIcon />}
+              label="Dashboard"
+              active={
+                pathname === `/teams/${navTeam.id}` || pathname === "/dashboard"
+              }
+              collapsed={isCollapsed}
+            />
+            <NavItem
+              href={`/teams/${navTeam.id}/reviews${locationQs}`}
+              icon={<ReviewIcon />}
+              label="Reviews"
+              active={pathname?.includes("/reviews")}
+              collapsed={isCollapsed}
+            />
+            <NavItem
+              href={`/teams/${navTeam.id}/insights${locationQs}`}
+              icon={<InsightsIcon />}
+              label="Insights"
+              active={pathname?.includes("/insights")}
+              collapsed={isCollapsed}
+            />
+            <NavItem
+              href={`/teams/${navTeam.id}/reports${locationQs}`}
+              icon={<LightbulbIcon />}
+              label="AI Reports"
+              active={
+                pathname?.includes("/reports") &&
+                !pathname?.includes("/aireports")
+              }
+              badge={tier === "FREE" ? "PRO" : undefined}
+              disabled={tier === "FREE"}
+              collapsed={isCollapsed}
+              subtitle={
+                !isCollapsed && tier !== "FREE" ?
+                  tier === "ENTERPRISE" ?
+                    undefined
+                  : `${navTeam?.reportsGenerated ?? 0}/${tier === "PRO" ? 5 : 20} reports`
 
-          {/* Credits & User */}
-          <div className={`${isCollapsed ? 'px-2' : 'px-4'} py-4 border-t border-gray-100 space-y-3`}>
-            {/* Credits */}
-            {isCollapsed ? (
-              <button
-                onClick={() => navTeam && router.push(`/teams/${navTeam.id}/billing`)}
-                className="w-full flex flex-col items-center gap-0.5 bg-gray-50 rounded-xl border border-gray-100 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
-                title={`${credits} credits left`}
-              >
-                <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="text-sm font-bold text-teal-600 leading-none">{credits}</div>
-              </button>
-            ) : (
-              <div className="flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-teal-600 leading-none">{credits}</div>
-                    <div className="text-[10px] text-gray-400 font-medium">credits left</div>
-                  </div>
-                </div>
-                {navTeam && (
-                  <button
-                    onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
-                    className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
-                  >
-                    Top up
-                  </button>
-                )}
+                : undefined
+              }
+            />
+            <NavItem
+              href={`/teams/${navTeam.id}/competitive`}
+              icon={<CompeteIcon />}
+              label="Compete"
+              active={pathname?.includes("/competitive")}
+              badge={tier === "FREE" ? "PRO+" : undefined}
+              disabled={tier === "FREE"}
+              collapsed={isCollapsed}
+            />
+          </>
+        : <>
+            <NavItem
+              href="/dashboard"
+              icon={<DashboardIcon />}
+              label="Dashboard"
+              active={pathname === "/dashboard"}
+              collapsed={isCollapsed}
+            />
+            {!isCollapsed && (
+              <div className="text-center py-4 px-4 text-gray-500 text-sm">
+                Create a team to get started
               </div>
             )}
-
-            {/* User Profile with Popover */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className={`w-full flex items-center ${isCollapsed ? 'justify-center p-2' : 'gap-3 p-2.5'} hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]`}
-                title={isCollapsed ? (user.display_name || user.email) : undefined}
+          </>
+        }
+        <div className="pt-4 mt-4 border-t border-gray-100">
+          <NavItem
+            href="/teams"
+            icon={<TeamsIcon />}
+            label="Teams"
+            active={pathname === "/teams"}
+            collapsed={isCollapsed}
+          />
+          {/* Collapse toggle — desktop only */}
+          <button
+            onClick={toggleSidebar}
+            className={`hidden md:flex w-full items-center ${isCollapsed ? "justify-center px-0" : "px-3"} py-2.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-all duration-200 cursor-pointer mt-1`}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <div className={`flex items-center ${isCollapsed ? "" : "gap-3"}`}>
+              <svg
+                className={`w-5 h-5 transition-transform duration-200 ${isCollapsed ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                {user.avatar_url ? (
-                  <Image src={user.avatar_url} alt="Avatar" width={36} height={36} className="w-9 h-9 rounded-full ring-2 ring-gray-100" />
-                ) : (
-                  <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-teal-100">
-                    {(user.display_name || user.email).charAt(0).toUpperCase()}
-                  </div>
-                )}
-                {!isCollapsed && (
-                  <>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
-                      <div className="text-xs text-gray-400 truncate">{user.email}</div>
-                    </div>
-                    <svg className={`w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-all flex-shrink-0 ${profileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  </>
-                )}
-              </button>
-
-              {profileOpen && (
-                <div className={`absolute bottom-full ${isCollapsed ? 'left-0 min-w-[200px]' : 'left-0 right-0'} mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50`} style={{ animation: 'fadeSlideUp 0.15s ease-out' }}>
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <div className="text-xs font-medium text-gray-900 truncate">{user.display_name || 'User'}</div>
-                    <div className="text-[11px] text-gray-400 truncate">{user.email}</div>
-                  </div>
-                  <button
-                    onMouseDown={(e) => { e.stopPropagation(); setProfileOpen(false); logout() }}
-                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Sign out
-                  </button>
-                </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
+              </svg>
+              {!isCollapsed && (
+                <span className="text-sm font-medium">Collapse</span>
               )}
             </div>
+          </button>
+        </div>
+      </nav>
+
+      {/* Credits & User */}
+      <div
+        className={`${isCollapsed ? "px-2" : "px-4"} py-4 border-t border-gray-100 space-y-3`}
+      >
+        {/* Credits */}
+        {isCollapsed ?
+          <button
+            onClick={() =>
+              navTeam && router.push(`/teams/${navTeam.id}/billing`)
+            }
+            className="w-full flex flex-col items-center gap-0.5 bg-gray-50 rounded-xl border border-gray-100 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
+            title={`${credits} credits left`}
+          >
+            <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-teal-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div className="text-sm font-bold text-teal-600 leading-none">
+              {credits}
+            </div>
+          </button>
+        : <div className="flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
+                <svg
+                  className="w-4 h-4 text-teal-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div className="text-lg font-bold text-teal-600 leading-none">
+                  {credits}
+                </div>
+                <div className="text-[10px] text-gray-400 font-medium">
+                  credits left
+                </div>
+              </div>
+            </div>
+            {navTeam && (
+              <button
+                onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
+                className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
+              >
+                Top up
+              </button>
+            )}
           </div>
+        }
+
+        {/* User Profile with Popover */}
+        <div
+          className="relative"
+          ref={profileRef}
+        >
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className={`w-full flex items-center ${isCollapsed ? "justify-center p-2" : "gap-3 p-2.5"} hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group active:scale-[0.98]`}
+            title={isCollapsed ? user.display_name || user.email : undefined}
+          >
+            {user.avatar_url ?
+              <Image
+                src={user.avatar_url}
+                alt="Avatar"
+                width={36}
+                height={36}
+                className="w-9 h-9 rounded-full ring-2 ring-gray-100"
+              />
+            : <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ring-2 ring-teal-100">
+                {(user.display_name || user.email).charAt(0).toUpperCase()}
+              </div>
+            }
+            {!isCollapsed && (
+              <>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {user.display_name || "User"}
+                  </div>
+                  <div className="text-xs text-gray-400 truncate">
+                    {user.email}
+                  </div>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-all flex-shrink-0 ${profileOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 15l7-7 7 7"
+                  />
+                </svg>
+              </>
+            )}
+          </button>
+
+          {profileOpen && (
+            <div
+              className={`absolute bottom-full ${isCollapsed ? "left-0 min-w-[200px]" : "left-0 right-0"} mb-2 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50`}
+              style={{ animation: "fadeSlideUp 0.15s ease-out" }}
+            >
+              <div className="px-3 py-2 border-b border-gray-100">
+                <div className="text-xs font-medium text-gray-900 truncate">
+                  {user.display_name || "User"}
+                </div>
+                <div className="text-[11px] text-gray-400 truncate">
+                  {user.email}
+                </div>
+              </div>
+              <button
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  setProfileOpen(false);
+                  logout();
+                }}
+                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </>
-  )
+  );
 
   return (
     <div className="flex flex-col h-screen bg-gray-50/80">
-      <ScopeBar teams={teams} onMobileMenuToggle={() => setMobileOpen(!mobileOpen)} mobileMenuOpen={mobileOpen} />
+      <ScopeBar
+        teams={teams}
+        onMobileMenuToggle={() => setMobileOpen(!mobileOpen)}
+        mobileMenuOpen={mobileOpen}
+      />
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop sidebar */}
-        <aside className={`hidden md:flex ${collapsed ? 'w-[68px]' : 'w-[240px]'} bg-white border-r border-gray-200/80 flex-col shrink-0 transition-all duration-200`}>
+        <aside
+          className={`hidden md:flex ${collapsed ? "w-[68px]" : "w-[240px]"} bg-white border-r border-gray-200/80 flex-col shrink-0 transition-all duration-200`}
+        >
           {sidebarContent}
         </aside>
 
@@ -286,7 +412,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Mobile drawer */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white border-r border-gray-200/80 flex flex-col transform transition-transform duration-250 ease-in-out md:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-white border-r border-gray-200/80 flex flex-col transform transition-transform duration-250 ease-in-out md:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        >
           {sidebarContent}
         </aside>
 
@@ -296,7 +424,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
-  )
+  );
 }
 
 function NavItem({
@@ -306,43 +434,64 @@ function NavItem({
   active,
   badge,
   disabled,
-  collapsed
+  collapsed,
+  subtitle,
 }: {
-  href: string
-  icon: React.ReactNode
-  label: string
-  active?: boolean
-  badge?: string
-  disabled?: boolean
-  collapsed?: boolean
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  badge?: string;
+  disabled?: boolean;
+  collapsed?: boolean;
+  subtitle?: string;
 }) {
-  const router = useRouter()
+  const router = useRouter();
 
   return (
     <button
       onClick={() => !disabled && router.push(href)}
       disabled={disabled}
       title={collapsed ? label : undefined}
-      className={`w-full flex items-center ${collapsed ? 'justify-center px-0 py-2.5' : 'justify-between px-3 py-2.5'} rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.98] ${active
-        ? 'bg-teal-600 text-white shadow-sm shadow-teal-200'
-        : disabled
-          ? 'text-gray-300 cursor-not-allowed'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        }`}
+      className={`w-full flex items-center ${collapsed ? "justify-center px-0 py-2.5" : "justify-between px-3 py-2.5"} rounded-xl transition-all duration-200 cursor-pointer active:scale-[0.98] ${
+        active ? "bg-teal-600 text-white shadow-sm shadow-teal-200"
+        : disabled ? "text-gray-300 cursor-not-allowed"
+        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+      }`}
     >
-      <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
-        <div className={active ? 'text-white' : disabled ? 'text-gray-300' : 'text-gray-400'}>
+      <div className={`flex items-center ${collapsed ? "" : "gap-3"}`}>
+        <div
+          className={
+            active ? "text-white"
+            : disabled ?
+              "text-gray-300"
+            : "text-gray-400"
+          }
+        >
           {icon}
         </div>
-        {!collapsed && <span className="text-sm font-medium">{label}</span>}
+        {!collapsed && (
+          <div>
+            <span className="text-sm font-medium">{label}</span>
+            {subtitle && (
+              <div
+                className={`text-[10px] font-medium ${active ? "text-white/70" : "text-gray-400"}`}
+              >
+                {subtitle}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       {!collapsed && badge && (
-        <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${active ? 'bg-white/20 text-white' : 'bg-teal-50 text-teal-600'}`}>
+        <span
+          className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${active ? "bg-white/20 text-white" : "bg-teal-50 text-teal-600"}`}
+        >
           {badge}
         </span>
       )}
     </button>
-  )
+  );
 }
 
 function LoadingScreen() {
@@ -365,17 +514,34 @@ function LoadingScreen() {
         <aside className="hidden md:flex w-[240px] bg-white border-r border-gray-200/80 flex-col shrink-0">
           {/* Nav items skeleton */}
           <div className="flex-1 px-4 py-4 space-y-1.5">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 px-3 py-2.5"
+              >
                 <div className="w-5 h-5 rounded bg-gray-100 animate-pulse" />
-                <div className="h-4 rounded-md bg-gray-100 animate-pulse" style={{ width: i === 1 ? 64 : i === 2 ? 56 : 72 }} />
+                <div
+                  className="h-4 rounded-md bg-gray-100 animate-pulse"
+                  style={{
+                    width:
+                      i === 1 ? 64
+                      : i === 2 ? 56
+                      : 72,
+                  }}
+                />
               </div>
             ))}
             <div className="pt-4 mt-4 border-t border-gray-100 space-y-1.5">
-              {[1, 2].map(i => (
-                <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2.5"
+                >
                   <div className="w-5 h-5 rounded bg-gray-50 animate-pulse" />
-                  <div className="h-4 rounded-md bg-gray-50 animate-pulse" style={{ width: i === 1 ? 48 : 56 }} />
+                  <div
+                    className="h-4 rounded-md bg-gray-50 animate-pulse"
+                    style={{ width: i === 1 ? 48 : 56 }}
+                  />
                 </div>
               ))}
             </div>
@@ -410,8 +576,11 @@ function LoadingScreen() {
               <div className="h-8 w-48 rounded-lg bg-gray-100 animate-pulse" />
               <div className="h-9 w-28 rounded-lg bg-gray-100 animate-pulse" />
             </div>
-            {[1, 2, 3].map(i => (
-              <div key={i} className="rounded-2xl border border-gray-100 bg-white p-6 space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-gray-100 bg-white p-6 space-y-3"
+              >
                 <div className="flex items-center justify-between">
                   <div className="h-5 w-40 rounded-md bg-gray-100 animate-pulse" />
                   <div className="h-4 w-20 rounded-md bg-gray-50 animate-pulse" />
@@ -426,53 +595,131 @@ function LoadingScreen() {
         </main>
       </div>
     </div>
-  )
+  );
 }
 
 function ReviewIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+      />
     </svg>
-  )
+  );
 }
 
 function InsightsIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+      />
     </svg>
-  )
+  );
 }
 
 function ReportsIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
     </svg>
-  )
+  );
 }
 
 function CompeteIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+      />
     </svg>
-  )
+  );
 }
 
 function TeamsIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+      />
     </svg>
-  )
+  );
+}
+
+function LightbulbIcon() {
+  return (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+      />
+    </svg>
+  );
 }
 
 function DashboardIcon() {
   return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"
+      />
     </svg>
-  )
+  );
 }

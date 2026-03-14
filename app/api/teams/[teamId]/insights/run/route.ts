@@ -11,6 +11,8 @@ import crypto from 'crypto'
 
 const CREDIT_COST: Record<string, number> = { '30d': 3, '90d': 4, '6m': 7, '1y': 10 }
 
+const REPORT_LIMITS: Record<string, number> = { FREE: 0, PRO: 5, BUSINESS: 20, ENTERPRISE: Infinity }
+
 const FETCH_WINDOWS: Record<string, { current: number; previous: number; unit: 'days' | 'months' }> = {
   '30d': { current: 30, previous: 30, unit: 'days' },
   '90d': { current: 90, previous: 90, unit: 'days' },
@@ -53,6 +55,27 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     // Handle 'all' period — generate all 4 reports concurrently
     if (periodWindow === 'all') {
       const totalCost = 3 + 4 + 7 + 10 // 24 credits
+
+      // Check report generation limit for this tier
+      const { data: subscription } = await serviceClient
+        .schema('app').from('team_subscriptions')
+        .select('tier')
+        .eq('team_id', params.teamId)
+        .single()
+
+      const tierName = (subscription?.tier as string) || 'FREE'
+      const limit = REPORT_LIMITS[tierName] ?? 0
+
+      const { data: balanceRow } = await serviceClient
+        .schema('app').from('team_credit_balances')
+        .select('reports_generated')
+        .eq('team_id', params.teamId)
+        .single()
+
+      const currentCount = balanceRow?.reports_generated || 0
+      if (currentCount >= limit) {
+        return NextResponse.json({ error: `Report limit reached (${currentCount}/${limit === Infinity ? 'unlimited' : limit})` }, { status: 402 })
+      }
 
       // Determine scope
       const scope = locationId ? 'location' : 'team'
@@ -150,6 +173,12 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
       const { data: inserted, error } = await serviceClient.schema('app').from('insights').insert(insertData).select()
       if (error) throw new Error(`Failed to save insights: ${error.message}`)
+
+      // Increment reports_generated counter
+      await serviceClient
+        .schema('app').from('team_credit_balances')
+        .update({ reports_generated: currentCount + 1 })
+        .eq('team_id', params.teamId)
 
       return NextResponse.json({ insights: inserted }, { status: 201 })
     }

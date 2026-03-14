@@ -57,15 +57,17 @@ export async function POST(request: Request, { params }: { params: { locationId:
       const { data: existingMap } = await serviceClient
         .schema('app')
         .from('google_reviews')
-        .select('google_review_id, reply_status')
+        .select('google_review_id, reply_status, themes')
         .eq('location_id', params.locationId)
         .in('google_review_id', incomingGoogleIds)
-        .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
+        .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, { reply_status: r.reply_status, themes: r.themes }])) }))
 
       // Upsert reviews
       const recordsToUpsert = reviews.map(review => {
         const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
-        const existingStatus = existingMap?.get(googleReviewId)
+        const existing = existingMap?.get(googleReviewId)
+        const existingStatus = existing?.reply_status
+        const existingThemes = existing?.themes
 
         // Determine Status
         let newStatus = 'none'
@@ -82,6 +84,17 @@ export async function POST(request: Request, { params }: { params: { locationId:
           }
         }
 
+        // Preserve existing themes — only set themes for brand-new
+        // rating-only reviews (no comment = empty array). Reviews with
+        // comments stay null until the theme extraction pass, but if
+        // themes were already extracted, keep them.
+        let themes: string[] | undefined = undefined
+        if (existingThemes != null) {
+          themes = existingThemes
+        } else if (!review.comment) {
+          themes = []
+        }
+
         return {
           location_id: params.locationId,
           google_review_id: googleReviewId,
@@ -93,14 +106,11 @@ export async function POST(request: Request, { params }: { params: { locationId:
           reviewer_profile_url: review.reviewer?.profilePhotoUrl || null,
           comment: review.comment || null,
           review_date: review.createTime || null,
-          review_url: null, // API doesn't always give URL, maybe construct it?
-          image_urls: [], // Fix mapping if specific format
+          review_url: null,
+          image_urls: [],
           reply_status: newStatus,
           reply_text: review.reviewReply?.comment || null,
-          // Rating-only reviews (no comment) get empty themes array so they're
-          // never picked up for LLM classification. Reviews with comments stay
-          // null until the theme extraction pass processes them.
-          ...(!review.comment ? { themes: [] } : {}),
+          ...(themes !== undefined ? { themes } : {}),
         }
       })
 

@@ -61,8 +61,9 @@ interface TeamAnalytics {
 type PeriodKey = '30d' | '90d' | '6m' | '1y' | 'all'
 
 function getPeriodDates(key: PeriodKey): { start: string; end: string; previousStart: string; previousEnd: string } {
-  const end = new Date()
-  const endStr = end.toISOString().split('T')[0]
+  // Use UTC-based dates to avoid local timezone shifting the day
+  const now = new Date()
+  const endMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
 
   let daysBack: number
   switch (key) {
@@ -73,19 +74,14 @@ function getPeriodDates(key: PeriodKey): { start: string; end: string; previousS
     case 'all': daysBack = 730; break
   }
 
-  const start = new Date(end)
-  start.setDate(start.getDate() - daysBack)
-  const startStr = start.toISOString().split('T')[0]
+  const DAY = 86400000
+  const startMs = endMs - daysBack * DAY
+  const previousEndMs = startMs - DAY
+  const previousStartMs = previousEndMs - daysBack * DAY
 
-  const previousEnd = new Date(start)
-  previousEnd.setDate(previousEnd.getDate() - 1)
-  const previousEndStr = previousEnd.toISOString().split('T')[0]
+  const fmt = (ms: number) => new Date(ms).toISOString().split('T')[0]
 
-  const previousStart = new Date(previousEnd)
-  previousStart.setDate(previousStart.getDate() - daysBack)
-  const previousStartStr = previousStart.toISOString().split('T')[0]
-
-  return { start: startStr, end: endStr, previousStart: previousStartStr, previousEnd: previousEndStr }
+  return { start: fmt(startMs), end: fmt(endMs), previousStart: fmt(previousStartMs), previousEnd: fmt(previousEndMs) }
 }
 
 const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
@@ -96,8 +92,10 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
 ]
 
 function formatMonth(str: string) {
-  const d = new Date(str + '-01')
-  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+  // str is "YYYY-MM" — parse manually to avoid timezone-induced off-by-one
+  const [year, month] = str.split('-').map(Number)
+  const d = new Date(Date.UTC(year, month - 1, 15)) // mid-month to be safe
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' })
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -192,7 +190,7 @@ export default function InsightsPage() {
   const teamId = params.teamId as string
   const locationId = searchParams.get('location')
   const [locations, setLocations] = useState<any[]>([])
-  const [period, setPeriod] = useState<PeriodKey>('90d')
+  const [period, setPeriod] = useState<PeriodKey>('30d')
   const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null)
   const [comparison, setComparison] = useState<Comparison | null>(null)
   const [themeMentions, setThemeMentions] = useState<ThemeMention[]>([])
@@ -337,52 +335,70 @@ export default function InsightsPage() {
           {themeMentions.length > 0 && <ThemeBadges themes={themeMentions} />}
 
           {/* Rating Over Time */}
-          {analytics.ratingOverTime && analytics.ratingOverTime.length > 0 && (
-            <div className="bg-white rounded-2xl p-5 mb-8">
-              <div className="mb-4">
-                <h3 className="text-base font-semibold text-[#111827]">Rating Over Time</h3>
-                <p className="text-xs text-[#9CA3AF]">Average rating by month</p>
+          {analytics.ratingOverTime && analytics.ratingOverTime.length > 0 && (() => {
+            // Fill gaps: carry forward the last known rating for months with no reviews
+            const raw = analytics.ratingOverTime
+            const data = raw.map((pt, i) => {
+              if (pt.averageRating != null) return pt
+              // Walk backwards to find the last known rating
+              for (let j = i - 1; j >= 0; j--) {
+                if (raw[j].averageRating != null) {
+                  return { ...pt, averageRating: raw[j].averageRating }
+                }
+              }
+              return pt
+            })
+
+            return (
+              <div className="bg-white rounded-2xl p-5 mb-8">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-[#111827]">Rating Over Time</h3>
+                  <p className="text-xs text-[#9CA3AF]">Average rating by month</p>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <defs>
+                      <linearGradient id="ratingGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#CCFBF1" stopOpacity={1} />
+                        <stop offset="100%" stopColor="#CCFBF1" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tickFormatter={formatMonth}
+                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      axisLine={{ stroke: '#E5E7EB' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[1, 5]}
+                      ticks={[1, 2, 3, 4, 5]}
+                      tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '13px' }}
+                      labelFormatter={(label: any) => formatMonth(String(label))}
+                      formatter={(value: any, _name: any, props: any) => {
+                        const count = props?.payload?.count ?? 0
+                        const label = count === 0 ? 'Avg Rating (carried forward)' : 'Avg Rating'
+                        return [value != null ? Number(value).toFixed(2) : '—', label]
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="averageRating"
+                      stroke="#14B8A6"
+                      strokeWidth={2}
+                      fill="url(#ratingGradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={analytics.ratingOverTime} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <defs>
-                    <linearGradient id="ratingGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#CCFBF1" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#CCFBF1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tickFormatter={formatMonth}
-                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    axisLine={{ stroke: '#E5E7EB' }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[1, 5]}
-                    ticks={[1, 2, 3, 4, 5]}
-                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #E5E7EB', fontSize: '13px' }}
-                    labelFormatter={(label: any) => formatMonth(String(label))}
-                    formatter={(value: any) => [value != null ? Number(value).toFixed(2) : '—', 'Avg Rating']}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="averageRating"
-                    stroke="#14B8A6"
-                    strokeWidth={2}
-                    fill="url(#ratingGradient)"
-                    connectNulls
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Per-Location Breakdown */}
           {isTeamView && analytics.perLocation && analytics.perLocation.length > 0 && (

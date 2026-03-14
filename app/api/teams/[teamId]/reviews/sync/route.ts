@@ -59,14 +59,16 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                         const { data: existingMap } = await serviceClient
                             .schema('app')
                             .from('google_reviews')
-                            .select('google_review_id, reply_status')
+                            .select('google_review_id, reply_status, themes')
                             .eq('location_id', loc.id)
                             .in('google_review_id', incomingGoogleIds)
-                            .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
+                            .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, { reply_status: r.reply_status, themes: r.themes }])) }))
 
                         const recordsToUpsert = reviews.map(review => {
                             const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
-                            const existingStatus = existingMap?.get(googleReviewId)
+                            const existing = existingMap?.get(googleReviewId)
+                            const existingStatus = existing?.reply_status
+                            const existingThemes = existing?.themes
 
                             let newStatus = 'none'
                             if (review.reviewReply) {
@@ -74,6 +76,14 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                             } else {
                                 if (existingStatus === 'draft') newStatus = 'draft'
                                 else if (existingStatus === 'posted') newStatus = 'none'
+                            }
+
+                            // Preserve existing themes
+                            let themes: string[] | undefined = undefined
+                            if (existingThemes != null) {
+                                themes = existingThemes
+                            } else if (!review.comment) {
+                                themes = []
                             }
 
                             return {
@@ -89,7 +99,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                                 review_date: review.createTime || null,
                                 reply_status: newStatus,
                                 reply_text: review.reviewReply?.comment || null,
-                                ...(!review.comment ? { themes: [] } : {}),
+                                ...(themes !== undefined ? { themes } : {}),
                             }
                         })
 
