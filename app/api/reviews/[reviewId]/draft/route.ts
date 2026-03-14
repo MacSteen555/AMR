@@ -4,16 +4,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReply } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
-import { spendCredits } from '@/lib/billing/credits'
 import { updateDraftSchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
-import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
   try {
     const user = await requireUser()
-    const headers = request.headers
-    const idempotencyKey = headers.get('Idempotency-Key') || crypto.randomUUID()
 
     const supabase = createSupabaseServerClient()
     const serviceClient = createSupabaseServiceRoleClient()
@@ -30,18 +26,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       return NextResponse.json({ error: 'Review not found' }, { status: 404 })
     }
 
-    // Spend credit
-    await spendCredits(
-      review.location.team_id,
-      user.id,
-      'reply_generate',
-      1,
-      'review',
-      params.reviewId,
-      idempotencyKey
-    )
-
-    // Optional relation typing 
+    // Optional relation typing
     const teamData = review.location.teams as { name: string } | null
     const teamName = teamData?.name
 
@@ -92,9 +77,6 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     return NextResponse.json({ draft_text: draftText })
   } catch (error: any) {
-    if (error.message.includes('Insufficient credits') || error.message.includes('Requires')) {
-      return NextResponse.json({ error: error.message }, { status: 402 })
-    }
     captureRouteError(error, { route: '/api/reviews/[reviewId]/draft' })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
