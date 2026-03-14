@@ -62,7 +62,7 @@ export const createCompetitorSchema = z.object({
 })
 
 export const runInsightsSchema = z.object({
-  period_window: z.enum(['30d', '90d', '6m', '1y']),
+  period_window: z.enum(['30d', '90d', '6m', '1y', 'all']),
 })
 
 export const createCompetitiveRunSchema = z.object({

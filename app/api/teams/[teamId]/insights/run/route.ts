@@ -49,6 +49,111 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Compute date ranges
     const now = new Date()
+
+    // Handle 'all' period — generate all 4 reports concurrently
+    if (periodWindow === 'all') {
+      const totalCost = 3 + 4 + 7 + 10 // 24 credits
+
+      // Determine scope
+      const scope = locationId ? 'location' : 'team'
+      const scopeId = locationId || params.teamId
+
+      await spendCredits(params.teamId, user.id, 'insight_run', totalCost, scope, scopeId, idempotencyKey, { feature: 'insights' })
+
+      // Get location info if location-scoped
+      let locationName: string | null = null
+
+      if (locationId) {
+        const { data: loc, error: locError } = await serviceClient
+          .schema('app').from('locations').select('id, name, team_id')
+          .eq('id', locationId).eq('team_id', params.teamId).single()
+        if (locError || !loc) {
+          return NextResponse.json({ error: 'Location not found' }, { status: 404 })
+        }
+        locationName = loc.name
+      }
+
+      // Fetch all reviews from 1 year ago
+      const oneYearAgo = new Date(now)
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+      const fetchStartStr = toDateStr(oneYearAgo)
+      const fetchEndStr = toDateStr(now)
+
+      let reviewQuery = serviceClient.schema('app').from('google_reviews')
+        .select('id, rating, comment, review_date, reply_status, reviewer_name')
+        .gte('review_date', fetchStartStr).lte('review_date', fetchEndStr)
+
+      if (locationId) {
+        reviewQuery = reviewQuery.eq('location_id', locationId)
+      } else {
+        const { data: locs } = await serviceClient.schema('app').from('locations').select('id').eq('team_id', params.teamId)
+        const locIds = (locs || []).map(l => l.id)
+        if (locIds.length > 0) {
+          reviewQuery = reviewQuery.in('location_id', locIds)
+        } else {
+          return NextResponse.json({ insights: [] }, { status: 201 })
+        }
+      }
+
+      const { data: reviews } = await reviewQuery
+
+      const allReviews = (reviews || []).map((r: any) => ({
+        id: r.id, rating: r.rating, comment: r.comment,
+        review_date: r.review_date, reply_status: r.reply_status, reviewer_name: r.reviewer_name,
+      }))
+
+      const periods = [
+        { key: '30d' as const, current: 30, previous: 30, unit: 'days' as const },
+        { key: '90d' as const, current: 90, previous: 90, unit: 'days' as const },
+        { key: '6m' as const, current: 6, previous: 6, unit: 'months' as const },
+        { key: '1y' as const, current: 12, previous: 0, unit: 'months' as const },
+      ]
+
+      const runs = periods.map(async (p) => {
+        const cStart = subtractFromDate(now, p.current, p.unit)
+        const pEnd = cStart
+        const pStart = p.previous > 0 ? subtractFromDate(cStart, p.previous, p.unit) : cStart
+
+        const currentReviews = allReviews.filter(r => new Date(r.review_date) >= cStart)
+        const previousReviews = p.previous > 0
+          ? allReviews.filter(r => new Date(r.review_date) >= pStart && new Date(r.review_date) < cStart)
+          : []
+
+        const data = await insightsRun({
+          reviews: currentReviews,
+          previousReviews: p.key === '1y' ? undefined : previousReviews,
+          periodStart: toDateStr(cStart),
+          periodEnd: toDateStr(now),
+          previousPeriodStart: toDateStr(pStart),
+          previousPeriodEnd: toDateStr(pEnd),
+          scope: locationId ? 'location' : 'team',
+          locationName: locationName || undefined,
+          periodWindow: p.key,
+        })
+
+        return { period_window: p.key, period_start: toDateStr(cStart), period_end: toDateStr(now), data }
+      })
+
+      const results = await Promise.all(runs)
+
+      const insertData = results.map(r => ({
+        team_id: locationId ? null : params.teamId,
+        location_id: locationId || null,
+        period_start: r.period_start,
+        period_end: r.period_end,
+        period_window: r.period_window,
+        kind: 'standard',
+        data: r.data,
+        generated_by_user_id: user.id,
+        model: 'gpt-5-mini',
+      }))
+
+      const { data: inserted, error } = await serviceClient.schema('app').from('insights').insert(insertData).select()
+      if (error) throw new Error(`Failed to save insights: ${error.message}`)
+
+      return NextResponse.json({ insights: inserted }, { status: 201 })
+    }
+
     const window = FETCH_WINDOWS[periodWindow]
     const currentEnd = now
     const currentStart = subtractFromDate(now, window.current, window.unit)
