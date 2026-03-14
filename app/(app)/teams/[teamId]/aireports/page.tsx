@@ -163,6 +163,14 @@ export default function AIReportsPage() {
                       <span className="text-xs text-[#9CA3AF]">{REPORT_CREDITS[pw]} credits</span>
                     </button>
                   ))}
+                  <div className="border-t border-[#E5E7EB]" />
+                  <button
+                    onClick={() => { setShowPeriodPicker(false); handleGenerate('all') }}
+                    className="w-full text-left px-4 py-3 hover:bg-[#F0FDFA] transition-colors flex items-center justify-between"
+                  >
+                    <span className="text-sm font-bold text-[#0D9B8A]">Generate All</span>
+                    <span className="text-xs text-[#9CA3AF]">24 credits</span>
+                  </button>
                 </div>
               </>
             )}
