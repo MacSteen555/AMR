@@ -8,6 +8,7 @@ export type CreditEventType =
   | 'adjustment'
   | 'reply_generate'
   | 'reply_regenerate'
+  | 'reply_post'
   | 'insight_run'
   | 'competitive_run'
   | 'refund'
