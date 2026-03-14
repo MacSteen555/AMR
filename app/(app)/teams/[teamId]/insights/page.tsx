@@ -141,42 +141,41 @@ function MetricCard({ label, value, suffix, delta, deltaLabel, invertColor }: {
   )
 }
 
-// ─── ThemeCloud ─────────────────────────────────────────────────────────────
+// ─── ThemeBadges ────────────────────────────────────────────────────────────
 
-function ThemeCloud({ themes }: { themes: ThemeMention[] }) {
+const TEAL_GRADIENT = [
+  { bg: 'bg-[#F0FDFA]', text: 'text-[#0D9B8A]', count: 'bg-[#CCFBF1] text-[#0D9B8A]' },
+  { bg: 'bg-[#CCFBF1]', text: 'text-[#0F766E]', count: 'bg-[#99F6E4] text-[#0F766E]' },
+  { bg: 'bg-[#99F6E4]', text: 'text-[#115E59]', count: 'bg-[#5EEAD4] text-[#115E59]' },
+  { bg: 'bg-[#5EEAD4]', text: 'text-[#134E4A]', count: 'bg-[#2DD4BF] text-[#134E4A]' },
+  { bg: 'bg-[#14B8A6]', text: 'text-white',      count: 'bg-[#0D9B8A] text-white' },
+]
+
+function ThemeBadges({ themes }: { themes: ThemeMention[] }) {
   const maxCount = Math.max(...themes.map(t => t.count), 1)
   const minCount = Math.min(...themes.map(t => t.count), 1)
   const range = maxCount - minCount || 1
 
-  function getSize(count: number): { fontSize: number; opacity: number } {
+  function getTier(count: number): number {
     const t = (count - minCount) / range
-    return {
-      fontSize: 14 + t * 22,   // 14px to 36px
-      opacity: 0.45 + t * 0.55, // 0.45 to 1.0
-    }
+    return Math.min(Math.floor(t * TEAL_GRADIENT.length), TEAL_GRADIENT.length - 1)
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 mb-8">
-      <div className="mb-5">
+    <div className="bg-white rounded-2xl p-5 mb-8">
+      <div className="mb-4">
         <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
         <p className="text-xs text-[#9CA3AF]">{themes.length} themes detected across reviews</p>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-4">
+      <div className="flex flex-wrap gap-2">
         {themes.map((t, i) => {
-          const { fontSize, opacity } = getSize(t.count)
+          const tier = getTier(t.count)
+          const colors = TEAL_GRADIENT[tier]
           return (
-            <span
-              key={i}
-              className="relative group cursor-default transition-colors duration-150 hover:text-[#0D9B8A]"
-              style={{ fontSize: `${fontSize}px`, color: `rgba(17, 24, 39, ${opacity})`, fontWeight: fontSize > 24 ? 600 : 500 }}
-            >
-              {t.label}
-              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg bg-[#111827] text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
-                {t.count} mention{t.count !== 1 ? 's' : ''}
-                <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-[#111827]" />
-              </span>
-            </span>
+            <div key={i} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${colors.bg}`}>
+              <span className={`text-sm font-medium ${colors.text}`}>{t.label}</span>
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${colors.count}`}>{t.count}</span>
+            </div>
           )
         })}
       </div>
@@ -335,7 +334,7 @@ export default function InsightsPage() {
           )}
 
           {/* Review Themes — word cloud */}
-          {themeMentions.length > 0 && <ThemeCloud themes={themeMentions} />}
+          {themeMentions.length > 0 && <ThemeBadges themes={themeMentions} />}
 
           {/* Rating Over Time */}
           {analytics.ratingOverTime && analytics.ratingOverTime.length > 0 && (
