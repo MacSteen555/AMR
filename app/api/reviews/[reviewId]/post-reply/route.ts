@@ -5,6 +5,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { updateReply } from '@/lib/google/gbp'
 import { postReplySchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
+import { spendCredits } from '@/lib/billing/credits'
 import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
@@ -23,7 +24,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     const { data: review } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('*, location:locations!inner(google_location_id, google_account_hint)')
+      .select('*, location:locations!inner(google_location_id, google_account_hint, team_id)')
       .eq('id', params.reviewId)
       .single()
 
@@ -37,6 +38,17 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     if (!comment) {
       return NextResponse.json({ error: 'No comment provided and no draft available' }, { status: 400 })
     }
+
+    // Spend 1 credit for posting
+    await spendCredits(
+      review.location.team_id,
+      user.id,
+      'reply_post',
+      1,
+      'review',
+      params.reviewId,
+      idempotencyKey
+    )
 
     // Get user identity for Google API
     const { data: identity } = await supabase
@@ -116,6 +128,9 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
     return NextResponse.json({ success: true, reply_text: comment })
   } catch (error: any) {
+    if (error.message?.includes('Insufficient credits') || error.message?.includes('Requires')) {
+      return NextResponse.json({ error: error.message }, { status: 402 })
+    }
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
     }

@@ -36,6 +36,7 @@ interface Member {
   display_name: string | null
   avatar_url: string | null
   role: string
+  digest_frequency?: string
 }
 
 interface PendingInvite {
@@ -66,7 +67,7 @@ type GoogleLocation = {
 }
 
 export default function TeamsPage() {
-  const { teams, loading } = useAuth()
+  const { user, teams, loading } = useAuth()
   const router = useRouter()
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
@@ -225,6 +226,18 @@ export default function TeamsPage() {
       window.location.reload()
     } catch (err: any) {
       setToast({ message: err.message, type: 'error' })
+    }
+  }
+
+  const handleDigestChange = async (teamId: string, frequency: string) => {
+    try {
+      await apiPatch(`/api/teams/${teamId}/digest-preference`, { frequency })
+      setMembers(prev => prev.map(m =>
+        m.id === user?.id ? { ...m, digest_frequency: frequency } : m
+      ))
+      setToast({ message: `Digest set to ${frequency}`, type: 'success' })
+    } catch (err: any) {
+      setToast({ message: err.message || 'Failed to update digest preference', type: 'error' })
     }
   }
 
@@ -670,6 +683,31 @@ export default function TeamsPage() {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      {member.id === user?.id && selectedTeamId && (
+                                        <select
+                                          value={member.digest_frequency || 'off'}
+                                          onChange={(e) => handleDigestChange(selectedTeamId, e.target.value)}
+                                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent cursor-pointer"
+                                        >
+                                          <option value="off">Digest: Off</option>
+                                          {(() => {
+                                            const team = teams.find(t => t.id === selectedTeamId)
+                                            const tier = team?.subscription?.tier || 'FREE'
+                                            const canWeekly = tier !== 'FREE'
+                                            const canDaily = ['BUSINESS', 'ENTERPRISE'].includes(tier)
+                                            return (
+                                              <>
+                                                <option value="weekly" disabled={!canWeekly}>
+                                                  {canWeekly ? 'Weekly' : 'Weekly (PRO+)'}
+                                                </option>
+                                                <option value="daily" disabled={!canDaily}>
+                                                  {canDaily ? 'Daily' : 'Daily (Business+)'}
+                                                </option>
+                                              </>
+                                            )
+                                          })()}
+                                        </select>
+                                      )}
                                       <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg">
                                         {member.role}
                                       </span>

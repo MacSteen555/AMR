@@ -25,6 +25,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       avatar_url: m.user.avatar_url,
       role: m.role,
       joined_at: m.created_at,
+      digest_frequency: m.digest_frequency,
     }))
 
     return NextResponse.json({ members })

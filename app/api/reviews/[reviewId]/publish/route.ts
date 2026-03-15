@@ -3,6 +3,8 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { updateReply } from '@/lib/google/gbp'
 import { captureRouteError } from '@/lib/sentry'
+import { spendCredits } from '@/lib/billing/credits'
+import crypto from 'crypto'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
     try {
@@ -13,7 +15,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         const { data: review } = await serviceClient
             .schema('app')
             .from('google_reviews')
-            .select('*, locations(google_location_id, google_account_hint)')
+            .select('*, locations(google_location_id, google_account_hint, team_id)')
             .eq('id', params.reviewId)
             .single()
 
@@ -32,6 +34,18 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         if (!loc || !loc.google_account_hint) {
             return NextResponse.json({ error: 'Location not configured for sync' }, { status: 400 })
         }
+
+        // Spend 1 credit for posting
+        const idempotencyKey = request.headers.get('Idempotency-Key') || crypto.randomUUID()
+        await spendCredits(
+            loc.team_id,
+            user.id,
+            'reply_post',
+            1,
+            'review',
+            params.reviewId,
+            idempotencyKey
+        )
 
         // 2. Publish to Google
         await updateReply(
@@ -56,6 +70,9 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
         return NextResponse.json({ review: updated })
     } catch (error: any) {
+        if (error.message?.includes('Insufficient credits') || error.message?.includes('Requires')) {
+            return NextResponse.json({ error: error.message }, { status: 402 })
+        }
         captureRouteError(error, { route: '/api/reviews/[reviewId]/publish' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
