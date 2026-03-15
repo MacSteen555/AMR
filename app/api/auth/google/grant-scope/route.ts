@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { googleOAuthStart } from '@/lib/auth/google'
+import { requireUser } from '@/lib/auth/session'
 import { cookies } from 'next/headers'
 import { captureRouteError } from '@/lib/sentry'
 
@@ -7,6 +8,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    await requireUser()
+
     const { url, codeVerifier, state } = googleOAuthStart({ incremental: true })
 
     const cookieStore = cookies()
@@ -14,7 +17,7 @@ export async function GET() {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax' as const,
-      maxAge: 7200,
+      maxAge: 300,
     }
 
     cookieStore.set('oauth_code_verifier', codeVerifier, cookieOptions)

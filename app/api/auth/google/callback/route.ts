@@ -62,8 +62,11 @@ export async function GET(request: Request) {
       }
     )
 
+    // Check if this is an incremental scope grant (popup flow)
+    const isPopup = cookieStore.get('oauth_popup')?.value === 'true'
+
     // Exchange code for tokens and create session using our custom client
-    await googleOAuthCallback(code, codeVerifier, supabase)
+    await googleOAuthCallback(code, codeVerifier, supabase, { incremental: isPopup })
 
     // Verify session was created
     const { data: { session }, error: sessionReadError } = await supabase.auth.getSession()
@@ -75,14 +78,14 @@ export async function GET(request: Request) {
     // Clean up OAuth cookies
     cookieStore.delete('oauth_state')
     cookieStore.delete('oauth_code_verifier')
-    const isPopup = cookieStore.get('oauth_popup')?.value === 'true'
     cookieStore.delete('oauth_popup')
 
     // Popup mode: render a self-closing page that notifies the opener
     if (isPopup) {
+      const targetOrigin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       const html = `<!DOCTYPE html><html><body><script>
         if (window.opener) {
-          window.opener.postMessage({ type: 'google-scope-granted' }, '*');
+          window.opener.postMessage({ type: 'google-scope-granted' }, ${JSON.stringify(targetOrigin)});
         }
         window.close();
       </script><p>Permissions granted. This window will close automatically.</p></body></html>`

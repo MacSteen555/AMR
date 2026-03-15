@@ -563,6 +563,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
     const [isGbpHelpOpen, setIsGbpHelpOpen] = useState(false)
     const [missingBusinessScope, setMissingBusinessScope] = useState(false)
+    const scopePopupRef = useRef<Window | null>(null)
 
     // Team-mode: per-location permissions; Location-mode: single boolean
     const [manageableLocationIds, setManageableLocationIds] = useState<Set<string>>(new Set())
@@ -586,6 +587,12 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
     }, [])
 
     const handleGrantScope = () => {
+        // Prevent multiple popup instances
+        if (scopePopupRef.current && !scopePopupRef.current.closed) {
+            scopePopupRef.current.focus()
+            return
+        }
+
         const width = 500
         const height = 600
         const left = window.screenX + (window.outerWidth - width) / 2
@@ -595,13 +602,18 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
             .then(res => res.json())
             .then(({ url }) => {
                 const popup = window.open(url, 'google-scope-grant', `width=${width},height=${height},left=${left},top=${top}`)
+                scopePopupRef.current = popup
+
+                const expectedOrigin = window.location.origin
 
                 const onMessage = (event: MessageEvent) => {
+                    if (event.origin !== expectedOrigin) return
                     if (event.data?.type === 'google-scope-granted') {
                         setMissingBusinessScope(false)
                         setToast({ message: 'Google Business access granted!', type: 'success' })
                         loadReviews()
                         window.removeEventListener('message', onMessage)
+                        scopePopupRef.current = null
                     }
                 }
                 window.addEventListener('message', onMessage)
@@ -610,6 +622,7 @@ export default function ReviewsView({ mode, entityId, title, subtitle }: Reviews
                     if (popup?.closed) {
                         clearInterval(check)
                         window.removeEventListener('message', onMessage)
+                        scopePopupRef.current = null
                     }
                 }, 1000)
             })

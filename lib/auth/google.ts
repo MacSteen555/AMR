@@ -64,7 +64,8 @@ import { SupabaseClient } from '@supabase/supabase-js'
 export async function googleOAuthCallback(
   code: string,
   codeVerifier: string,
-  supabaseClient?: SupabaseClient
+  supabaseClient?: SupabaseClient,
+  options?: { incremental?: boolean }
 ): Promise<{ supabaseUserId: string }> {
   // ============================================
   // 1. Exchange code for tokens
@@ -76,8 +77,8 @@ export async function googleOAuthCallback(
     codeVerifier,
   })
 
-  if (!tokens.id_token || !tokens.refresh_token) {
-    throw new Error('Missing required tokens from Google')
+  if (!tokens.refresh_token) {
+    throw new Error('Missing refresh token from Google')
   }
 
   // ============================================
@@ -88,32 +89,46 @@ export async function googleOAuthCallback(
   const { data: googleUser } = await oauth2.userinfo.get()
 
   // ============================================
-  // 3. Create Supabase session
+  // 3. Create or preserve Supabase session
   // ============================================
   const supabase = supabaseClient || createSupabaseServerClient()
 
-  // First, sign out any existing session to avoid refresh token conflicts
-  await supabase.auth.signOut()
+  let userId: string
 
-  // Now create a fresh session with the ID token
-  const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
-    provider: 'google',
-    token: tokens.id_token,
-  })
+  if (options?.incremental) {
+    // Incremental scope grant: preserve the existing session, just upsert tokens
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      throw new Error('No existing session found for incremental scope grant')
+    }
+    userId = session.user.id
+  } else {
+    // Full login flow: sign out and create fresh session
+    if (!tokens.id_token) {
+      throw new Error('Missing ID token from Google')
+    }
 
-  if (authError) {
-    throw new Error(`Supabase auth error: ${authError.message}`)
+    await supabase.auth.signOut()
+
+    const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: tokens.id_token,
+    })
+
+    if (authError) {
+      throw new Error(`Supabase auth error: ${authError.message}`)
+    }
+
+    if (!authData?.user) {
+      throw new Error('No user returned from Supabase')
+    }
+
+    if (!authData?.session) {
+      throw new Error('No session returned from Supabase')
+    }
+
+    userId = authData.user.id
   }
-
-  if (!authData?.user) {
-    throw new Error('No user returned from Supabase')
-  }
-
-  if (!authData?.session) {
-    throw new Error('No session returned from Supabase')
-  }
-
-  const userId = authData.user.id
 
   // ============================================
   // 4. Create app user (if doesn't exist)
@@ -133,7 +148,7 @@ export async function googleOAuthCallback(
       .from('users')
       .insert({
         id: userId,
-        email: authData.user.email || googleUser.email || '',
+        email: googleUser.email || '',
         display_name: googleUser.name || null,
         avatar_url: googleUser.picture || null,
       })
