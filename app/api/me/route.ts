@@ -34,15 +34,18 @@ export async function GET() {
         const { data: balance } = await supabase
           .schema('app')
           .from('team_credit_balances')
-          .select('balance, reviews_managed')
+          .select('balance')
           .eq('team_id', team.id)
           .single()
+
+        const monthlyCredits = subscription?.monthly_credits || 5
+        const creditBalance = balance?.balance || 0
 
         return {
           ...team,
           subscription: subscription || null,
-          creditBalance: balance?.balance || 0,
-          reviewsManaged: balance?.reviews_managed || 0,
+          creditBalance,
+          reviewsManaged: Math.max(0, monthlyCredits - creditBalance),
         }
       })
     )

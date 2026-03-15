@@ -538,7 +538,6 @@ function LoadingScreen() {
                   <div className="h-2.5 w-14 rounded bg-gray-100 animate-pulse" />
                 </div>
               </div>
-              <div className="h-6 w-14 rounded-lg bg-gray-100 animate-pulse" />
             </div>
             <div className="flex items-center gap-3 p-2.5">
               <div className="w-9 h-9 rounded-full bg-gray-100 animate-pulse" />

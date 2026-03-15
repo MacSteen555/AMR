@@ -80,22 +80,6 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         })
         .eq('id', params.reviewId)
 
-      // Increment reviews_managed counter
-      const { data: currentBalance } = await serviceClient
-        .schema('app')
-        .from('team_credit_balances')
-        .select('reviews_managed')
-        .eq('team_id', review.location.team_id)
-        .single()
-
-      await serviceClient
-        .schema('app')
-        .from('team_credit_balances')
-        .update({
-          reviews_managed: (currentBalance?.reviews_managed || 0) + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('team_id', review.location.team_id)
     } catch (error: any) {
       success = false
       errorCode = error.code || 'UNKNOWN'

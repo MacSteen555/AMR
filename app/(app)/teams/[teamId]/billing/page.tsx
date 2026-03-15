@@ -266,7 +266,7 @@ export default function BillingPage() {
               <div className="mb-4">
                 <div className="text-3xl font-bold text-teal-600">{currentTier}</div>
                 <div className="text-gray-600">
-                  {billing?.subscription?.monthly_credits || 4} credits/month
+                  {billing?.subscription?.monthly_credits || 4} replies/month
                 </div>
               </div>
 
@@ -418,7 +418,7 @@ export default function BillingPage() {
                 </thead>
                 <tbody>
                   <tr className="border-b">
-                    <td className="py-3 px-4 text-gray-900">Monthly Credits</td>
+                    <td className="py-3 px-4 text-gray-900">Monthly Replies</td>
                     <td className="text-center py-3 px-4">5</td>
                     <td className="text-center py-3 px-4">50</td>
                     <td className="text-center py-3 px-4">200</td>

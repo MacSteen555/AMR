@@ -67,27 +67,9 @@ export async function POST(request: Request, { params }: { params: { teamId: str
             }
         }))
 
-        // Increment reviews_managed counter by number of successful posts
         const successCount = results.filter(Boolean).length
-        if (successCount > 0) {
-            const { data: currentBalance } = await serviceClient
-                .schema('app')
-                .from('team_credit_balances')
-                .select('reviews_managed')
-                .eq('team_id', params.teamId)
-                .single()
 
-            await serviceClient
-                .schema('app')
-                .from('team_credit_balances')
-                .update({
-                    reviews_managed: (currentBalance?.reviews_managed || 0) + successCount,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('team_id', params.teamId)
-        }
-
-        return NextResponse.json({ published: results.filter(Boolean).length })
+        return NextResponse.json({ published: successCount })
 
     } catch (error: any) {
         captureRouteError(error, { route: '/api/teams/[teamId]/reviews/bulk-publish', teamId: params?.teamId })

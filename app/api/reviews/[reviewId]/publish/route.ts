@@ -13,7 +13,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         const { data: review } = await serviceClient
             .schema('app')
             .from('google_reviews')
-            .select('*, locations(team_id, google_location_id, google_account_hint)')
+            .select('*, locations(google_location_id, google_account_hint)')
             .eq('id', params.reviewId)
             .single()
 
@@ -53,25 +53,6 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             .eq('id', params.reviewId)
             .select()
             .single()
-
-        // Increment reviews_managed counter
-        if (review.locations?.team_id) {
-            const { data: currentBalance } = await serviceClient
-                .schema('app')
-                .from('team_credit_balances')
-                .select('reviews_managed')
-                .eq('team_id', review.locations.team_id)
-                .single()
-
-            await serviceClient
-                .schema('app')
-                .from('team_credit_balances')
-                .update({
-                    reviews_managed: (currentBalance?.reviews_managed || 0) + 1,
-                    updated_at: new Date().toISOString(),
-                })
-                .eq('team_id', review.locations.team_id)
-        }
 
         return NextResponse.json({ review: updated })
     } catch (error: any) {
