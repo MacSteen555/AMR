@@ -56,6 +56,7 @@ export async function GET() {
           location_id: googleLocationId,
           location_name: location.storefrontAddress?.addressLines?.[0] || location.title || '',
           address: location.storefrontAddress,
+          primary_category: location.categories?.primaryCategory?.displayName || null,
         })
       }
     }

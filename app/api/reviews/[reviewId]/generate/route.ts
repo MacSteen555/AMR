@@ -55,7 +55,8 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             positive_sentiment: location.positive_sentiment,
             negative_sentiment: location.negative_sentiment,
             signature: resolvedSignature,
-            reply_language: location.reply_language
+            reply_language: location.reply_language,
+            negative_contact_email: location.negative_contact_email
         }, previousDraft)
 
         // 3. Save Draft

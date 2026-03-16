@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     const { data: review } = await supabase
       .schema('app')
       .from('google_reviews')
-      .select('*, location:locations!inner(team_id, name, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language, teams(name))')
+      .select('*, location:locations!inner(team_id, name, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language, negative_contact_email, teams(name))')
       .eq('id', params.reviewId)
       .single()
 
@@ -67,6 +67,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
         negative_sentiment: review.location.negative_sentiment,
         signature: resolvedSignature,
         reply_language: review.location.reply_language,
+        negative_contact_email: review.location.negative_contact_email,
       }
     )
 

@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: { locationId:
         const { data: location } = await serviceClient
             .schema('app')
             .from('locations')
-            .select('id, name, team_id, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language')
+            .select('id, name, team_id, brand_voice, positive_sentiment, negative_sentiment, signature, reply_language, negative_contact_email')
             .eq('id', params.locationId)
             .single()
 
@@ -77,7 +77,8 @@ export async function POST(request: Request, { params }: { params: { locationId:
                     positive_sentiment: location.positive_sentiment,
                     negative_sentiment: location.negative_sentiment,
                     signature: resolvedSignature,
-                    reply_language: location.reply_language
+                    reply_language: location.reply_language,
+                    negative_contact_email: location.negative_contact_email
                 })
 
                 // Update Review in DB

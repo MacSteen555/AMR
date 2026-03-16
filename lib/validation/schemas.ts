@@ -24,6 +24,8 @@ export const updateLocationSettingsSchema = z.object({
   negative_sentiment: z.string().nullable().optional(),
   signature: z.string().nullable().optional(),
   reply_language: z.string().nullable().optional(),
+  tone_calibration: z.any().nullable().optional(),
+  negative_contact_email: z.string().email().nullable().optional(),
 })
 
 export const createLocationAccessSchema = z.object({
