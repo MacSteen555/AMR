@@ -30,14 +30,14 @@ const PLANS = [
     name: 'Free',
     price: '$0',
     credits: 5,
-    features: ['5 credits/month', 'Basic reply generation'],
+    features: ['5 reviews/month', 'Basic reply generation'],
   },
   {
     tier: 'PRO',
     name: 'Pro',
     price: '$15',
     credits: 50,
-    features: ['50 credits/month', 'AI Insights', 'Priority support'],
+    features: ['50 reviews/month', '3 AI reports/month', '1 competitor tracked', 'Priority support'],
     popular: true,
   },
   {
@@ -45,14 +45,14 @@ const PLANS = [
     name: 'Business',
     price: '$35',
     credits: 200,
-    features: ['200 credits/month', 'AI Insights', 'Competitive Intel', 'Team collaboration'],
+    features: ['200 reviews/month', '10 AI reports/month', '5 competitors tracked', 'Team collaboration'],
   },
   {
     tier: 'ENTERPRISE',
     name: 'Enterprise',
     price: '$80',
     credits: 1000,
-    features: ['1,000 credits/month', 'All features', 'Custom integrations', 'Dedicated support'],
+    features: ['1,000 reviews/month', '20 AI reports/month', '20 competitors tracked', 'Dedicated support'],
   },
 ]
 
@@ -211,7 +211,7 @@ export default function BillingPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Billing & Subscription</h1>
             <p className="text-gray-600 mt-1">
-              Manage your subscription and credits for {currentTeam?.name || 'your team'}
+              Manage your subscription for {currentTeam?.name || 'your team'}
             </p>
           </div>
 
@@ -249,7 +249,7 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* Current Plan & Credits Overview */}
+          {/* Current Plan & Reviews Overview */}
           <div className="grid md:grid-cols-2 gap-6 mb-8">
             {/* Current Plan */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -266,7 +266,7 @@ export default function BillingPage() {
               <div className="mb-4">
                 <div className="text-3xl font-bold text-teal-600">{currentTier}</div>
                 <div className="text-gray-600">
-                  {billing?.subscription?.monthly_credits || 4} credits/month
+                  {billing?.subscription?.monthly_credits || 5} reviews/month
                 </div>
               </div>
 
@@ -298,15 +298,30 @@ export default function BillingPage() {
               )}
             </div>
 
-            {/* Credit Balance */}
+            {/* Reviews Managed */}
             <div className="bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl shadow-sm p-6 text-white">
-              <h2 className="text-lg font-semibold mb-4 opacity-90">Credit Balance</h2>
-              <div className="text-5xl font-bold mb-2">{billing?.creditBalance || 0}</div>
-              <div className="opacity-80">credits available</div>
+              <h2 className="text-lg font-semibold mb-4 opacity-90">Reviews Managed</h2>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-5xl font-bold">
+                  {Math.max(0, (billing?.subscription?.monthly_credits || 5) - (billing?.creditBalance || 0))}
+                </span>
+                <span className="text-2xl opacity-70">/ {billing?.subscription?.monthly_credits || 5}</span>
+              </div>
+              <div className="opacity-80 mb-4">reviews managed this month</div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-white/20 rounded-full h-2 mb-4">
+                <div
+                  className="bg-white rounded-full h-2 transition-all duration-500"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, ((billing?.subscription?.monthly_credits || 5) - (billing?.creditBalance || 0)) / (billing?.subscription?.monthly_credits || 5) * 100))}%`
+                  }}
+                />
+              </div>
 
               {billing?.topupProducts && billing.topupProducts.length > 0 && (
-                <div className="mt-6">
-                  <div className="text-sm opacity-80 mb-2">Need more credits?</div>
+                <div>
+                  <div className="text-sm opacity-80 mb-2">Need more reviews?</div>
                   <div className="flex gap-2">
                     {billing.topupProducts.map(product => (
                       <button
@@ -315,7 +330,7 @@ export default function BillingPage() {
                         disabled={actionLoading === product.stripe_price_id}
                         className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm transition-all duration-200 cursor-pointer disabled:opacity-50"
                       >
-                        {actionLoading === product.stripe_price_id ? '...' : `+${product.credits}`}
+                        {actionLoading === product.stripe_price_id ? '...' : `+${product.credits} reviews`}
                       </button>
                     ))}
                   </div>
@@ -418,7 +433,7 @@ export default function BillingPage() {
                 </thead>
                 <tbody>
                   <tr className="border-b">
-                    <td className="py-3 px-4 text-gray-900">Monthly Credits</td>
+                    <td className="py-3 px-4 text-gray-900">Monthly Reviews</td>
                     <td className="text-center py-3 px-4">5</td>
                     <td className="text-center py-3 px-4">50</td>
                     <td className="text-center py-3 px-4">200</td>
@@ -432,18 +447,18 @@ export default function BillingPage() {
                     <td className="text-center py-3 px-4 text-green-500">✓</td>
                   </tr>
                   <tr className="border-b">
-                    <td className="py-3 px-4 text-gray-900">AI Insights</td>
+                    <td className="py-3 px-4 text-gray-900">AI Reports</td>
                     <td className="text-center py-3 px-4 text-gray-300">—</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
+                    <td className="text-center py-3 px-4">3/month</td>
+                    <td className="text-center py-3 px-4">10/month</td>
+                    <td className="text-center py-3 px-4">20/month</td>
                   </tr>
                   <tr className="border-b">
-                    <td className="py-3 px-4 text-gray-900">Competitive Intel</td>
+                    <td className="py-3 px-4 text-gray-900">Competitors Tracked</td>
                     <td className="text-center py-3 px-4 text-gray-300">—</td>
-                    <td className="text-center py-3 px-4 text-gray-300">—</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
+                    <td className="text-center py-3 px-4">1</td>
+                    <td className="text-center py-3 px-4">5</td>
+                    <td className="text-center py-3 px-4">20</td>
                   </tr>
                   <tr className="border-b">
                     <td className="py-3 px-4 text-gray-900">Team Collaboration</td>
@@ -533,11 +548,11 @@ export default function BillingPage() {
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                    You'll keep all features and credits until then
+                    You'll keep all features until then
                   </li>
                   <li className="flex items-center gap-2">
                     <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
-                    After that, you'll be on the FREE plan with 5 credits
+                    After that, you'll be on the Free plan with 5 reviews/month
                   </li>
                 </ul>
               </div>

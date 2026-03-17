@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { syncReviewsSchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
+import { extractThemesForLocation } from '@/lib/openai/themes'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
   try {
@@ -56,15 +57,17 @@ export async function POST(request: Request, { params }: { params: { locationId:
       const { data: existingMap } = await serviceClient
         .schema('app')
         .from('google_reviews')
-        .select('google_review_id, reply_status')
+        .select('google_review_id, reply_status, themes')
         .eq('location_id', params.locationId)
         .in('google_review_id', incomingGoogleIds)
-        .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
+        .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, { reply_status: r.reply_status, themes: r.themes }])) }))
 
       // Upsert reviews
       const recordsToUpsert = reviews.map(review => {
         const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
-        const existingStatus = existingMap?.get(googleReviewId)
+        const existing = existingMap?.get(googleReviewId)
+        const existingStatus = existing?.reply_status
+        const existingThemes = existing?.themes
 
         // Determine Status
         let newStatus = 'none'
@@ -81,6 +84,17 @@ export async function POST(request: Request, { params }: { params: { locationId:
           }
         }
 
+        // Preserve existing themes — only set themes for brand-new
+        // rating-only reviews (no comment = empty array). Reviews with
+        // comments stay null until the theme extraction pass, but if
+        // themes were already extracted, keep them.
+        let themes: string[] | undefined = undefined
+        if (existingThemes != null) {
+          themes = existingThemes
+        } else if (!review.comment) {
+          themes = []
+        }
+
         return {
           location_id: params.locationId,
           google_review_id: googleReviewId,
@@ -92,10 +106,11 @@ export async function POST(request: Request, { params }: { params: { locationId:
           reviewer_profile_url: review.reviewer?.profilePhotoUrl || null,
           comment: review.comment || null,
           review_date: review.createTime || null,
-          review_url: null, // API doesn't always give URL, maybe construct it?
-          image_urls: [], // Fix mapping if specific format
+          review_url: null,
+          image_urls: [],
           reply_status: newStatus,
           reply_text: review.reviewReply?.comment || null,
+          ...(themes !== undefined ? { themes } : {}),
         }
       })
 
@@ -137,6 +152,11 @@ export async function POST(request: Request, { params }: { params: { locationId:
         last_google_sync_status: 'success',
       })
       .eq('id', params.locationId)
+
+    // Fire-and-forget: extract themes for any newly synced reviews
+    extractThemesForLocation(params.locationId).catch(err =>
+      console.error('Theme extraction failed:', err.message)
+    )
 
     return NextResponse.json({ synced: totalSynced })
   } catch (error: any) {

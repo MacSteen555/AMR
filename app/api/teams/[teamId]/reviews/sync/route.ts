@@ -4,6 +4,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { captureRouteError } from '@/lib/sentry'
+import { extractThemesForLocation } from '@/lib/openai/themes'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
     try {
@@ -58,14 +59,16 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                         const { data: existingMap } = await serviceClient
                             .schema('app')
                             .from('google_reviews')
-                            .select('google_review_id, reply_status')
+                            .select('google_review_id, reply_status, themes')
                             .eq('location_id', loc.id)
                             .in('google_review_id', incomingGoogleIds)
-                            .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, r.reply_status])) }))
+                            .then(res => ({ data: new Map(res.data?.map(r => [r.google_review_id, { reply_status: r.reply_status, themes: r.themes }])) }))
 
                         const recordsToUpsert = reviews.map(review => {
                             const googleReviewId = review.reviewId || review.name?.split('/').pop() || ''
-                            const existingStatus = existingMap?.get(googleReviewId)
+                            const existing = existingMap?.get(googleReviewId)
+                            const existingStatus = existing?.reply_status
+                            const existingThemes = existing?.themes
 
                             let newStatus = 'none'
                             if (review.reviewReply) {
@@ -73,6 +76,14 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                             } else {
                                 if (existingStatus === 'draft') newStatus = 'draft'
                                 else if (existingStatus === 'posted') newStatus = 'none'
+                            }
+
+                            // Preserve existing themes
+                            let themes: string[] | undefined = undefined
+                            if (existingThemes != null) {
+                                themes = existingThemes
+                            } else if (!review.comment) {
+                                themes = []
                             }
 
                             return {
@@ -87,7 +98,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
                                 comment: review.comment || null,
                                 review_date: review.createTime || null,
                                 reply_status: newStatus,
-                                reply_text: review.reviewReply?.comment || null
+                                reply_text: review.reviewReply?.comment || null,
+                                ...(themes !== undefined ? { themes } : {}),
                             }
                         })
 
@@ -129,6 +141,13 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         // Execute
         const results = await Promise.all(locations.map(syncLocation))
         const successCount = results.filter(Boolean).length
+
+        // Fire-and-forget: extract themes for all synced locations
+        for (const loc of locations) {
+            extractThemesForLocation(loc.id).catch(err =>
+                console.error(`Theme extraction failed for ${loc.id}:`, err.message)
+            )
+        }
 
         return NextResponse.json({
             locationsSynced: successCount,

@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import {
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts'
 
 interface ReferencedReview {
   rating: number
@@ -165,6 +168,348 @@ function RichText({
   )
 }
 
+// ── Annual Report Panel ─────────────────────────────────────────────────────
+
+function AnnualReportPanel({
+  insight,
+  referencedReviews,
+  onReviewClick,
+}: {
+  insight: AIInsight
+  referencedReviews: Record<string, ReferencedReview>
+  onReviewClick: (review: ReferencedReview) => void
+}) {
+  const d = insight.data
+  const yin = d.yearInNumbers || {}
+  const timeline = d.monthlyTimeline || []
+  const highlights = d.highlights || []
+  const lowlights = d.lowlights || []
+  const strengths = d.keyStrengths || []
+  const weaknesses = d.keyWeaknesses || []
+  const recs = d.recommendations || []
+  const quotes = d.notableQuotes || []
+
+  const rt = (text: string, extraClass?: string, variant?: 'default' | 'light') => (
+    <RichText text={text} referencedReviews={referencedReviews} onReviewClick={onReviewClick} className={extraClass} variant={variant} />
+  )
+
+  const categoryColors: Record<string, string> = {
+    service: 'bg-teal-50 text-teal-700 border-teal-200',
+    staff: 'bg-blue-50 text-blue-700 border-blue-200',
+    operations: 'bg-purple-50 text-purple-700 border-purple-200',
+    marketing: 'bg-amber-50 text-amber-700 border-amber-200',
+    product: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  }
+  const categoryIcons: Record<string, string> = {
+    service: 'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z',
+    staff: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+    operations: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+    marketing: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z',
+    product: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+  }
+
+  // Format month label from "2025-04" to "Apr"
+  const fmtMonth = (m: string) => {
+    const [, month] = m.split('-')
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return months[parseInt(month, 10) - 1] || m
+  }
+
+  return (
+    <div className="space-y-10">
+      {/* ── Year in Numbers Hero ── */}
+      {yin.totalReviews != null && (
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Year in Numbers</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div>
+              <div className="text-4xl font-bold">{yin.totalReviews}</div>
+              <div className="text-sm text-slate-400 mt-1">Total Reviews</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold">{yin.averageRating?.toFixed(1)}</div>
+              <div className="text-sm text-slate-400 mt-1">Average Rating</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold">{yin.fiveStarPercentage != null ? `${yin.fiveStarPercentage}%` : '—'}</div>
+              <div className="text-sm text-slate-400 mt-1">5-Star Reviews</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold">{yin.responseRate != null ? `${yin.responseRate}%` : '—'}</div>
+              <div className="text-sm text-slate-400 mt-1">Response Rate</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {yin.bestMonth && (
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider mb-1">Best Month</div>
+                <div className="text-lg font-bold">{yin.bestMonth.month}</div>
+                <div className="text-sm text-slate-400">{yin.bestMonth.avgRating?.toFixed(1)} avg across {yin.bestMonth.reviewCount} reviews</div>
+              </div>
+            )}
+            {yin.worstMonth && (
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <div className="text-xs text-red-400 font-semibold uppercase tracking-wider mb-1">Toughest Month</div>
+                <div className="text-lg font-bold">{yin.worstMonth.month}</div>
+                <div className="text-sm text-slate-400">{yin.worstMonth.avgRating?.toFixed(1)} avg across {yin.worstMonth.reviewCount} reviews</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Year Story ── */}
+      {d.yearStory && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-8">
+          <h4 className="text-sm font-bold text-gray-900 mb-4">The Year&apos;s Story</h4>
+          <div className="text-gray-700 leading-relaxed text-[15px] whitespace-pre-line">{rt(d.yearStory)}</div>
+        </div>
+      )}
+
+      {/* ── Monthly Timeline Chart ── */}
+      {timeline.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h4 className="text-sm font-bold text-gray-900 mb-6">Monthly Timeline</h4>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={timeline.map((m: any) => ({ ...m, label: fmtMonth(m.month) }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                <YAxis yAxisId="rating" domain={[1, 5]} tick={{ fontSize: 12, fill: '#9ca3af' }} orientation="left" />
+                <YAxis yAxisId="count" tick={{ fontSize: 12, fill: '#9ca3af' }} orientation="right" />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
+                  formatter={(value: any, name: any) => [
+                    name === 'avgRating' ? Number(value).toFixed(2) : value,
+                    name === 'avgRating' ? 'Avg Rating' : 'Reviews',
+                  ]}
+                  labelFormatter={(label: any, payload: any) => {
+                    const entry = payload?.[0]?.payload
+                    return entry?.annotation ? `${label} — ${entry.annotation}` : String(label)
+                  }}
+                />
+                <Bar yAxisId="count" dataKey="reviewCount" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={24} />
+                <Line yAxisId="rating" type="monotone" dataKey="avgRating" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 4, fill: '#0d9488' }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Annotations */}
+          {timeline.some((m: any) => m.annotation) && (
+            <div className="mt-4 space-y-2">
+              {timeline.filter((m: any) => m.annotation).map((m: any, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-sm">
+                  <span className="font-semibold text-teal-700 whitespace-nowrap">{fmtMonth(m.month)}</span>
+                  <span className="text-gray-600">{m.annotation}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Highlights & Lowlights ── */}
+      {(highlights.length > 0 || lowlights.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {highlights.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <h4 className="text-sm font-bold text-gray-900">Highlights</h4>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {highlights.map((h: any, i: number) => (
+                  <div key={i} className="px-6 py-5 hover:bg-emerald-50/30 transition-colors">
+                    <span className="font-semibold text-sm text-gray-900">{h.title}</span>
+                    <p className="text-sm text-gray-600 leading-relaxed mt-1">{rt(h.description)}</p>
+                    {h.quote && (
+                      <div className="mt-3 pl-3 border-l-2 border-emerald-200">
+                        <p className="text-sm text-gray-500 italic">&ldquo;{rt(h.quote)}&rdquo;</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {lowlights.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <h4 className="text-sm font-bold text-gray-900">Lowlights</h4>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {lowlights.map((l: any, i: number) => (
+                  <div key={i} className="px-6 py-5 hover:bg-red-50/30 transition-colors">
+                    <span className="font-semibold text-sm text-gray-900">{l.title}</span>
+                    <p className="text-sm text-gray-600 leading-relaxed mt-1">{rt(l.description)}</p>
+                    {l.quote && (
+                      <div className="mt-3 pl-3 border-l-2 border-red-200">
+                        <p className="text-sm text-gray-500 italic">&ldquo;{rt(l.quote)}&rdquo;</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Strengths & Weaknesses ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {strengths.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+              <h4 className="text-sm font-bold text-gray-900">Enduring Strengths</h4>
+              <span className="text-xs text-gray-400 ml-auto">{strengths.length} identified</span>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {strengths.map((s: any, i: number) => (
+                <div key={i} className="px-6 py-4 hover:bg-green-50/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-semibold text-sm text-gray-900">{s.theme}</span>
+                    {s.mentionCount > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">{s.mentionCount} mentions</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{rt(s.description)}</p>
+                  {s.exampleQuote && (
+                    <div className="mt-2 pl-3 border-l-2 border-green-200">
+                      <p className="text-xs text-gray-500 italic">{rt(s.exampleQuote)}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {weaknesses.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+              <h4 className="text-sm font-bold text-gray-900">Persistent Weaknesses</h4>
+              <span className="text-xs text-gray-400 ml-auto">{weaknesses.length} identified</span>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {weaknesses.map((w: any, i: number) => (
+                <div key={i} className="px-6 py-4 hover:bg-red-50/30 transition-colors">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-semibold text-sm text-gray-900">{w.theme}</span>
+                    <div className="flex items-center gap-2">
+                      {w.mentionCount > 0 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{w.mentionCount} mentions</span>
+                      )}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                        w.severity === 'high' ? 'bg-red-200 text-red-800' :
+                        w.severity === 'medium' ? 'bg-amber-100 text-amber-800' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>{w.severity}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{rt(w.description)}</p>
+                  {w.exampleQuote && (
+                    <div className="mt-2 pl-3 border-l-2 border-red-200">
+                      <p className="text-xs text-gray-500 italic">{rt(w.exampleQuote)}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Recommendations (Strategic Priorities) ── */}
+      {recs.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h4 className="text-sm font-bold text-gray-900">Strategic Priorities for Next Year</h4>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recs.map((r: any, i: number) => (
+              <div key={i} className="px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                <div className="flex items-start justify-between gap-4 mb-1.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border ${categoryColors[r.category] || 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={categoryIcons[r.category] || categoryIcons.service} />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-sm text-gray-900">{r.title}</span>
+                      {r.category && (
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider ml-2">{r.category}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] text-gray-400 uppercase mb-0.5">Impact</span>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3].map(dot => (
+                          <div key={dot} className={`w-2 h-2 rounded-full ${
+                            (r.impact === 'high' && dot <= 3) || (r.impact === 'medium' && dot <= 2) || (r.impact === 'low' && dot <= 1)
+                              ? 'bg-green-500' : 'bg-gray-200'
+                          }`} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[9px] text-gray-400 uppercase mb-0.5">Effort</span>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3].map(dot => (
+                          <div key={dot} className={`w-2 h-2 rounded-full ${
+                            (r.effort === 'high' && dot <= 3) || (r.effort === 'medium' && dot <= 2) || (r.effort === 'low' && dot <= 1)
+                              ? 'bg-amber-500' : 'bg-gray-200'
+                          }`} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed pl-[42px]">{rt(r.description)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Customer Voices of the Year ── */}
+      {quotes.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <h4 className="text-sm font-bold text-gray-900 mb-4">Customer Voices of the Year</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {quotes.map((q: any, i: number) => (
+              <div key={i} className={`rounded-xl p-5 border-l-4 ${
+                q.sentiment === 'positive' ? 'bg-green-50/50 border-l-green-400' : 'bg-red-50/50 border-l-red-400'
+              }`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex text-amber-400 text-base">
+                    {'★'.repeat(q.rating)}
+                    <span className="text-gray-300">{'★'.repeat(5 - q.rating)}</span>
+                  </div>
+                  {q.theme && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-500 font-medium">{q.theme}</span>
+                  )}
+                </div>
+                <p className="text-base text-gray-700 italic leading-relaxed">&ldquo;{q.quote}&rdquo;</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Metadata Footer ── */}
+      <div className="flex items-center gap-4 text-xs text-gray-400 pt-4 border-t border-gray-100">
+        <span>Generated {new Date(insight.generated_at).toLocaleString()}</span>
+        <span>Model: {insight.model}</span>
+        <span>Period: {insight.period_start} to {insight.period_end}</span>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Panel ──────────────────────────────────────────────────────────────
 
 export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
@@ -172,6 +517,8 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
 
   const d = insight.data
   const referencedReviews: Record<string, ReferencedReview> = d.referencedReviews || {}
+
+  const isAnnualReport = !!d.yearInNumbers
 
   // Support both old format (string customerPersona) and new format (object)
   const summary = d.executiveSummary || d.summary || ''
@@ -184,9 +531,19 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
   const sentiment = typeof d.overallSentiment === 'number' ? d.overallSentiment : null
   const momentum = typeof d.momentumScore === 'number' ? d.momentumScore : null
   const topAction = d.topActionItem || null
-  const responseStrategy = d.responseStrategy || null
-  const persona = typeof d.customerPersona === 'object' ? d.customerPersona :
-    typeof d.customerPersona === 'string' ? { description: d.customerPersona, demographics: '', motivations: [], painPoints: [] } : null
+  // Badge derivation for emerging topics
+  const getTopicBadge = (t: any) => {
+    if (t.previousMentions != null && t.currentMentions != null) {
+      if (t.previousMentions === 0 && t.currentMentions >= 1) return { label: 'NEW', cls: 'bg-purple-200 text-purple-800' }
+      if (t.currentMentions > t.previousMentions) return { label: 'RISING', cls: 'bg-green-200 text-green-800' }
+      if (t.currentMentions < t.previousMentions) return { label: 'FADING', cls: 'bg-red-200 text-red-800' }
+      return { label: 'STEADY', cls: 'bg-gray-200 text-gray-700' }
+    }
+    // Fallback for old data with trend field
+    if (t.trend === 'rising') return { label: 'RISING', cls: 'bg-green-200 text-green-800' }
+    if (t.trend === 'falling') return { label: 'FADING', cls: 'bg-red-200 text-red-800' }
+    return { label: 'STEADY', cls: 'bg-gray-200 text-gray-700' }
+  }
 
   // Sentiment gauge helpers
   const sentimentStroke = sentiment !== null
@@ -228,11 +585,80 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
     <RichText text={text} referencedReviews={referencedReviews} onReviewClick={setActiveReview} className={extraClass} variant={variant} />
   )
 
+  if (isAnnualReport) {
+    return (
+      <div>
+        {activeReview && (
+          <ReviewModal review={activeReview} onClose={() => setActiveReview(null)} />
+        )}
+        <AnnualReportPanel insight={insight} referencedReviews={referencedReviews} onReviewClick={setActiveReview} />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       {/* Review Modal */}
       {activeReview && (
         <ReviewModal review={activeReview} onClose={() => setActiveReview(null)} />
+      )}
+
+      {/* ── Comparison Block ── */}
+      {d.comparison && (
+        <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl border border-gray-200 p-6">
+          <h4 className="text-sm font-bold text-gray-900 mb-4">vs Previous Period</h4>
+          <p className="text-base font-semibold text-gray-800 mb-4">{d.comparison.headline}</p>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{d.comparison.currentAvgRating?.toFixed(1)}</div>
+              <div className="text-xs text-gray-500">Avg Rating</div>
+              <div className={`text-xs font-medium mt-1 ${
+                d.comparison.currentAvgRating > d.comparison.previousAvgRating ? 'text-green-600' :
+                d.comparison.currentAvgRating < d.comparison.previousAvgRating ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                was {d.comparison.previousAvgRating?.toFixed(1)}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{d.comparison.currentReviewCount}</div>
+              <div className="text-xs text-gray-500">Reviews</div>
+              <div className={`text-xs font-medium mt-1 ${
+                d.comparison.currentReviewCount > d.comparison.previousReviewCount ? 'text-green-600' :
+                d.comparison.currentReviewCount < d.comparison.previousReviewCount ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                was {d.comparison.previousReviewCount}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">{d.comparison.currentSentiment}</div>
+              <div className="text-xs text-gray-500">Sentiment</div>
+              <div className={`text-xs font-medium mt-1 ${
+                d.comparison.currentSentiment > d.comparison.previousSentiment ? 'text-green-600' :
+                d.comparison.currentSentiment < d.comparison.previousSentiment ? 'text-red-600' : 'text-gray-500'
+              }`}>
+                was {d.comparison.previousSentiment}
+              </div>
+            </div>
+          </div>
+          {d.comparison.keyDeltas?.length > 0 && (
+            <div className="space-y-2">
+              {d.comparison.keyDeltas.map((delta: any, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    delta.direction === 'up' ? 'bg-green-100 text-green-600' :
+                    delta.direction === 'down' ? 'bg-red-100 text-red-600' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>
+                    <svg className={`w-3 h-3 ${delta.direction === 'down' ? 'rotate-180' : delta.direction === 'flat' ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-gray-700"><strong>{delta.metric}:</strong> {delta.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Hero Section: Sentiment Gauge + Momentum + Top Action ── */}
@@ -480,17 +906,21 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
                     t.sentiment === 'positive' ? 'text-green-800' :
                     t.sentiment === 'negative' ? 'text-red-800' : 'text-amber-800'
                   }`}>{t.topic}</span>
-                  {t.trend && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                      t.trend === 'rising' ? 'bg-green-200 text-green-800' :
-                      t.trend === 'falling' ? 'bg-red-200 text-red-800' :
-                      'bg-gray-200 text-gray-700'
-                    }`}>
-                      {t.trend === 'rising' ? '^ Rising' : t.trend === 'falling' ? 'v Falling' : '- Steady'}
-                    </span>
-                  )}
+                  {(() => {
+                    const badge = getTopicBadge(t)
+                    return (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    )
+                  })()}
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed">{rt(t.description)}</p>
+                {(t.previousMentions != null || t.currentMentions != null) && (
+                  <div className="text-[10px] text-gray-400 mt-1">
+                    {t.currentMentions} mentions now{t.previousMentions != null ? ` vs ${t.previousMentions} last period` : ''}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -577,90 +1007,6 @@ export function AIInsightsPanel({ insight }: { insight: AIInsight }) {
           </div>
         </div>
       )}
-
-      {/* ── Response Strategy + Customer Persona ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {responseStrategy && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-gray-900">Response Strategy</h4>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tone</span>
-                <p className="text-sm text-gray-700 mt-0.5">{rt(responseStrategy.tone)}</p>
-              </div>
-              {responseStrategy.priorities?.length > 0 && (
-                <div>
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Priorities</span>
-                  <ul className="mt-1 space-y-1">
-                    {responseStrategy.priorities.map((p: string, i: number) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-teal-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {rt(p)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {responseStrategy.avoidTopics?.length > 0 && (
-                <div>
-                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Avoid</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {responseStrategy.avoidTopics.map((t: string, i: number) => (
-                      <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{rt(t)}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {persona && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
-                <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
-              <h4 className="text-sm font-bold text-gray-900">Customer Persona</h4>
-            </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-3">{rt(persona.description)}</p>
-            {persona.demographics && (
-              <p className="text-xs text-gray-500 mb-3">{rt(persona.demographics)}</p>
-            )}
-            {persona.motivations?.length > 0 && (
-              <div className="mb-3">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Motivations</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {persona.motivations.map((m: string, i: number) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-100">{rt(m)}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {persona.painPoints?.length > 0 && (
-              <div>
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pain Points</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {persona.painPoints.map((p: string, i: number) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 border border-red-100">{rt(p)}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* ── Metadata Footer ── */}
       <div className="flex items-center gap-4 text-xs text-gray-400 pt-4 border-t border-gray-100">

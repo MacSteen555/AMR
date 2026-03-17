@@ -53,7 +53,7 @@ export default function BillingSuccessPage() {
             <>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
               <p className="text-gray-600 mb-6">
-                Your subscription has been updated. Credits will be added to your account shortly.
+                Your subscription has been updated. Your new review limit is now active.
               </p>
             </>
           )}

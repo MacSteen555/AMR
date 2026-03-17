@@ -34,7 +34,7 @@ export async function GET() {
         const { data: balance } = await supabase
           .schema('app')
           .from('team_credit_balances')
-          .select('balance')
+          .select('balance, reports_generated')
           .eq('team_id', team.id)
           .single()
 
@@ -42,6 +42,7 @@ export async function GET() {
           ...team,
           subscription: subscription || null,
           creditBalance: balance?.balance || 0,
+          reportsGenerated: balance?.reports_generated || 0,
         }
       })
     )
