@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: { params: { competitorId
     const { data: reviews } = await supabase
       .schema('app')
       .from('competitor_reviews')
-      .select('id, rating, reviewer_name, comment, review_date, owner_response')
+      .select('id, rating, reviewer_name, reviewer_is_local_guide, reviewer_reviews_count, comment, review_date, owner_response, likes')
       .eq('competitor_id', params.competitorId)
       .order('review_date', { ascending: false })
       .limit(limit)

@@ -51,9 +51,12 @@ interface CompetitorReview {
   id: string
   rating: number
   reviewer_name: string | null
+  reviewer_is_local_guide: boolean | null
+  reviewer_reviews_count: number | null
   comment: string | null
   review_date: string
-  owner_response: any
+  owner_response: string | null
+  likes: number | null
 }
 
 type Timeframe = '30d' | '90d' | '6m' | '1y'
@@ -447,12 +450,23 @@ function ReviewsTab({ competitorId }: { competitorId: string }) {
     <div className="space-y-4">
       {reviews.map((review) => (
         <div key={review.id} className="rounded-2xl border border-gray-100 bg-white p-5">
-          <div className="flex items-center gap-3 mb-2">
+          {/* Header: stars, name, badges, date */}
+          <div className="flex items-center flex-wrap gap-2 mb-2.5">
             <Stars rating={review.rating} />
             {review.reviewer_name && (
               <span className="text-sm font-medium text-gray-700">{review.reviewer_name}</span>
             )}
-            <span className="text-xs text-gray-400">
+            {review.reviewer_is_local_guide && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+                Local Guide
+              </span>
+            )}
+            {review.reviewer_reviews_count != null && review.reviewer_reviews_count > 0 && (
+              <span className="text-[11px] text-gray-400">
+                {review.reviewer_reviews_count} review{review.reviewer_reviews_count !== 1 ? 's' : ''}
+              </span>
+            )}
+            <span className="text-xs text-gray-400 ml-auto">
               {new Date(review.review_date).toLocaleDateString('en-US', {
                 month: 'short',
                 day: 'numeric',
@@ -460,13 +474,37 @@ function ReviewsTab({ competitorId }: { competitorId: string }) {
               })}
             </span>
           </div>
-          {review.comment && (
+
+          {/* Comment */}
+          {review.comment ? (
             <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
+          ) : (
+            <p className="text-sm text-gray-300 italic">No comment</p>
           )}
+
+          {/* Likes */}
+          {review.likes != null && review.likes > 0 && (
+            <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+              </svg>
+              {review.likes}
+            </div>
+          )}
+
+          {/* Owner response */}
           {review.owner_response && (
-            <span className="inline-block mt-3 text-xs px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 font-medium">
-              Owner replied
-            </span>
+            <div className="mt-3 ml-4 pl-4 border-l-2 border-teal-200 bg-teal-50/40 rounded-r-xl py-3 pr-4">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg className="w-3.5 h-3.5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+                <span className="text-xs font-semibold text-teal-700">Owner Response</span>
+              </div>
+              <p className="text-sm text-teal-800/80 leading-relaxed">{review.owner_response}</p>
+            </div>
           )}
         </div>
       ))}

@@ -115,7 +115,7 @@ export async function fetchCompetitorReviews(
             image_urls: review.images || [],
             details: review.details || null,
             likes: review.likes || null,
-            owner_response: review.owner_response || null,
+            owner_response: review.response?.snippet || review.owner_response?.snippet || null,
             raw_payload: review,
           },
           {
