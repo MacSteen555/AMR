@@ -159,7 +159,8 @@ Return JSON: { "results": [{ "id": "review-uuid", "themes": ["theme1", "theme2"]
       }
     ],
     max_completion_tokens: 10000,
-    response_format: { type: 'json_object' }
+    response_format: { type: 'json_object' },
+    temperature: 0,
   })
 
   const text = completion.choices[0]?.message?.content?.trim()
