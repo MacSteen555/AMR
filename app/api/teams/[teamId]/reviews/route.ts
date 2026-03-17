@@ -48,13 +48,27 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
             manageableLocationIds = accessRows?.map(a => a.location_id) || []
         }
 
-        const { data: reviews } = await serviceClient
+        const locationFilter = searchParams.get('location')
+        const themeFilter = searchParams.get('theme')
+
+        let reviewQuery = serviceClient
             .schema('app')
             .from('google_reviews')
             .select('*')
-            .in('location_id', locationIds)
             .order('review_date', { ascending: false })
             .limit(limit)
+
+        if (locationFilter && locationIds.includes(locationFilter)) {
+            reviewQuery = reviewQuery.eq('location_id', locationFilter)
+        } else {
+            reviewQuery = reviewQuery.in('location_id', locationIds)
+        }
+
+        if (themeFilter) {
+            reviewQuery = reviewQuery.contains('themes', [themeFilter])
+        }
+
+        const { data: reviews } = await reviewQuery
 
         // Attach location name
         const enrichedReviews = reviews?.map(r => ({

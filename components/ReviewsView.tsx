@@ -290,6 +290,22 @@ function FocusView({
 
     return (
         <div className="flex-1 flex flex-col max-w-2xl w-full mx-auto">
+            {/* Keyboard hint */}
+            <div className="flex items-center justify-center gap-6 mb-4 py-2 px-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono shadow-sm">←</kbd>
+                    <span>Dismiss</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono shadow-sm">↑</kbd>
+                    <span>Skip</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-mono shadow-sm">→</kbd>
+                    <span>Post</span>
+                </div>
+            </div>
+
             {/* Minimal progress */}
             <div className="flex items-center gap-3 mb-4">
                 <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">

@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { apiGet } from '@/lib/api'
 import {
   LineChart, Line, BarChart, Bar, ComposedChart, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -135,7 +136,7 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle: str
   )
 }
 
-function ThemeBadges({ themes }: { themes: ThemeMention[] }) {
+function ThemeBadges({ themes, onThemeClick }: { themes: ThemeMention[]; onThemeClick: (label: string) => void }) {
   const maxCount = Math.max(...themes.map(t => t.count), 1)
   const minCount = Math.min(...themes.map(t => t.count), 1)
   const range = maxCount - minCount || 1
@@ -149,19 +150,99 @@ function ThemeBadges({ themes }: { themes: ThemeMention[] }) {
     <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
       <div className="mb-4">
         <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
-        <p className="text-xs text-[#9CA3AF]">{themes.length} themes detected across reviews</p>
+        <p className="text-xs text-[#9CA3AF]">{themes.length} themes detected — click to view reviews</p>
       </div>
       <div className="flex flex-wrap gap-2">
         {themes.map((t, i) => {
           const tier = getTier(t.count)
           const colors = TEAL_GRADIENT[tier]
           return (
-            <div key={i} className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${colors.bg}`}>
+            <button
+              key={i}
+              onClick={() => onThemeClick(t.label)}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${colors.bg}`}
+            >
               <span className={`text-sm font-medium ${colors.text}`}>{t.label}</span>
               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${colors.count}`}>{t.count}</span>
-            </div>
+            </button>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+interface ThemeReview {
+  id: string
+  rating: number
+  comment: string | null
+  reviewer_name: string | null
+  review_date: string | null
+  location_name?: string
+}
+
+function ThemeReviewsModal({ theme, reviews, loading, onClose }: {
+  theme: string
+  reviews: ThemeReview[]
+  loading: boolean
+  onClose: () => void
+}) {
+  const STAR_COLORS: Record<number, string> = { 5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f97316', 1: '#ef4444' }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F4F6]">
+          <div>
+            <h3 className="text-lg font-semibold text-[#111827]">Reviews about &ldquo;{theme}&rdquo;</h3>
+            <p className="text-xs text-[#9CA3AF]">Most recent reviews tagged with this theme</p>
+          </div>
+          <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#4B5563] transition-colors cursor-pointer">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D9B8A]" />
+            </div>
+          ) : reviews.length === 0 ? (
+            <p className="text-center text-[#9CA3AF] py-12">No reviews found for this theme.</p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map(review => (
+                <div key={review.id} className="border border-[#E5E7EB] rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <span key={star} className="text-sm" style={{ color: star <= review.rating ? STAR_COLORS[review.rating] : '#E5E7EB' }}>★</span>
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-[#111827]">{review.reviewer_name || 'Anonymous'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {review.location_name && (
+                        <span className="text-xs text-[#9CA3AF]">{review.location_name}</span>
+                      )}
+                      {review.review_date && (
+                        <span className="text-xs text-[#9CA3AF]">
+                          {new Date(review.review_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm text-[#4B5563] leading-relaxed">{review.comment}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -181,6 +262,28 @@ export function MetricsView({
 }: MetricsViewProps) {
   const router = useRouter()
   const kpis = analytics.kpis
+
+  // Theme modal state
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
+  const [themeReviews, setThemeReviews] = useState<ThemeReview[]>([])
+  const [themeLoading, setThemeLoading] = useState(false)
+
+  const handleThemeClick = async (label: string) => {
+    setSelectedTheme(label)
+    setThemeReviews([])
+    setThemeLoading(true)
+    try {
+      const locParam = locationId ? `&location=${locationId}` : ''
+      const res = await apiGet<{ reviews: ThemeReview[] }>(
+        `/api/teams/${teamId}/reviews?theme=${encodeURIComponent(label)}&limit=10${locParam}`
+      )
+      setThemeReviews(res.reviews || [])
+    } catch {
+      setThemeReviews([])
+    } finally {
+      setThemeLoading(false)
+    }
+  }
 
   // Fill gaps in rating data: carry forward the last known rating for months with no reviews,
   // then drop any leading nulls that couldn't be filled
@@ -214,8 +317,17 @@ export function MetricsView({
       {/* Theme Badges */}
       {themeMentions.length > 0 && (
         <div className="mb-8">
-          <ThemeBadges themes={themeMentions} />
+          <ThemeBadges themes={themeMentions} onThemeClick={handleThemeClick} />
         </div>
+      )}
+
+      {selectedTheme && (
+        <ThemeReviewsModal
+          theme={selectedTheme}
+          reviews={themeReviews}
+          loading={themeLoading}
+          onClose={() => setSelectedTheme(null)}
+        />
       )}
 
       {/* Charts Grid — 2x2 */}

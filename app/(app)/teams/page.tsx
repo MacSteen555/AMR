@@ -473,6 +473,12 @@ export default function TeamsPage() {
                               <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg">
                                 {team.role}
                               </span>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); router.push(`/teams/${team.id}/billing`) }}
+                                className="px-2.5 py-1 text-xs font-medium text-gray-500 hover:text-teal-600 hover:bg-teal-50 border border-gray-200 hover:border-teal-200 rounded-lg transition-all duration-200 cursor-pointer"
+                              >
+                                Manage Billing
+                              </button>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               {team.id === selectedTeamId ? (
