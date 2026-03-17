@@ -4,7 +4,6 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { captureRouteError } from '@/lib/sentry'
-import { extractThemesForLocation } from '@/lib/openai/themes'
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
     try {
@@ -142,11 +141,13 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         const results = await Promise.all(locations.map(syncLocation))
         const successCount = results.filter(Boolean).length
 
-        // Fire-and-forget: extract themes for all synced locations
+        // Trigger theme extraction in separate function invocations
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         for (const loc of locations) {
-            extractThemesForLocation(loc.id).catch(err =>
-                console.error(`Theme extraction failed for ${loc.id}:`, err.message)
-            )
+          fetch(`${baseUrl}/api/locations/${loc.id}/themes/extract`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          }).catch(() => {})
         }
 
         return NextResponse.json({

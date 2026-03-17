@@ -6,7 +6,6 @@ import { requireUser } from '@/lib/auth/session'
 import { listReviews } from '@/lib/google/gbp'
 import { syncReviewsSchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
-import { extractThemesForLocation } from '@/lib/openai/themes'
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
   try {
@@ -153,10 +152,12 @@ export async function POST(request: Request, { params }: { params: { locationId:
       })
       .eq('id', params.locationId)
 
-    // Fire-and-forget: extract themes for any newly synced reviews
-    extractThemesForLocation(params.locationId).catch(err =>
-      console.error('Theme extraction failed:', err.message)
-    )
+    // Trigger theme extraction in a separate function invocation
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    fetch(`${baseUrl}/api/locations/${params.locationId}/themes/extract`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+    }).catch(() => {})
 
     return NextResponse.json({ synced: totalSynced })
   } catch (error: any) {
