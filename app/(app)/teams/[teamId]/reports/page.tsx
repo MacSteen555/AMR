@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useSearchParams } from 'next/navigation'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { Suspense, useState, useEffect, useMemo } from 'react'
 import { apiGet } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Toast } from '@/components/Toast'
@@ -18,7 +18,7 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: '1y',  label: '1 year' },
 ]
 
-export default function ReportsPage() {
+function ReportsPageContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const teamId = params.teamId as string
@@ -88,5 +88,13 @@ export default function ReportsPage() {
         onToast={handleToast}
       />
     </div>
+  )
+}
+
+export default function ReportsPage() {
+  return (
+    <Suspense>
+      <ReportsPageContent />
+    </Suspense>
   )
 }

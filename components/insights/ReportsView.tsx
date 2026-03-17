@@ -40,6 +40,12 @@ interface ReportsViewProps {
 
 const PERIOD_LABELS: Record<string, string> = { '30d': 'Last 30 Days', '90d': 'Last 90 Days', '6m': 'Last 6 Months', '1y': 'Year in Review' }
 
+function formatDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  const d = new Date(Date.UTC(year, month - 1, day))
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ReportsView({ teamId, locationId, tier, period, onToast }: ReportsViewProps) {
@@ -159,7 +165,7 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
             {PERIOD_LABELS[viewingReport.period_window || ''] || viewingReport.period_window || 'custom'}
           </span>
           <span className="text-sm text-[#4B5563]">
-            {viewingReport.period_start} — {viewingReport.period_end}
+            {formatDate(viewingReport.period_start)} — {formatDate(viewingReport.period_end)}
           </span>
           <span className="text-xs text-[#9CA3AF]">
             Generated {new Date(viewingReport.generated_at).toLocaleDateString()}
@@ -188,24 +194,31 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
           <span className="text-sm text-[#9CA3AF]">
             {reportsGenerated}/{reportLimit} reports this month
           </span>
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !canGenerate}
-            className="px-5 py-2.5 bg-[#0D9B8A] text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all"
-          >
-            {generating ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                Generating...
-              </>
-            ) : !canGenerate ? (
-              'Report Limit Reached'
-            ) : latestReport ? (
-              'Regenerate Report'
-            ) : (
-              'Generate Report'
-            )}
-          </button>
+          {!canGenerate && insightsEnabled ? (
+            <button
+              onClick={() => router.push(`/teams/${teamId}/billing`)}
+              className="px-5 py-2.5 bg-[#D97706] text-white rounded-lg hover:opacity-90 font-medium text-sm transition-all"
+            >
+              Upgrade for More Reports
+            </button>
+          ) : (
+            <button
+              onClick={handleGenerate}
+              disabled={generating || !canGenerate}
+              className="px-5 py-2.5 bg-[#0D9B8A] text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium text-sm flex items-center gap-2 transition-all"
+            >
+              {generating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  Generating...
+                </>
+              ) : latestReport ? (
+                'Regenerate Report'
+              ) : (
+                'Generate Report'
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -214,7 +227,7 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
         <div>
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xs text-[#9CA3AF]">
-              {latestReport.period_start} — {latestReport.period_end}
+              {formatDate(latestReport.period_start)} — {formatDate(latestReport.period_end)}
             </span>
             <span className="text-xs text-[#9CA3AF]">
               Generated {new Date(latestReport.generated_at).toLocaleDateString()}
@@ -264,7 +277,7 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[#111827]">
-                    {report.period_start} — {report.period_end}
+                    {formatDate(report.period_start)} — {formatDate(report.period_end)}
                   </span>
                   <div className="flex items-center gap-3">
                     {report.data?.overallSentiment != null && (

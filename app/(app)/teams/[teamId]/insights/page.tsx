@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useSearchParams } from 'next/navigation'
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { Suspense, useState, useEffect, useMemo, useCallback } from 'react'
 import { apiGet } from '@/lib/api'
 import { Toast } from '@/components/Toast'
 import { MetricsView, type TeamAnalytics } from '@/components/insights/MetricsView'
@@ -23,24 +23,29 @@ type PeriodKey = '30d' | '90d' | '6m' | '1y'
 
 function getPeriodDates(key: PeriodKey): { start: string; end: string; previousStart: string; previousEnd: string } {
   const now = new Date()
-  const endMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const end = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
+  const start = new Date(end)
+  const fmt = (d: Date) => d.toISOString().split('T')[0]
 
-  let daysBack: number
   switch (key) {
-    case '30d': daysBack = 30; break
-    case '90d': daysBack = 90; break
-    case '6m':  daysBack = 183; break
-    case '1y':  daysBack = 365; break
+    case '30d': start.setUTCDate(start.getUTCDate() - 30); break
+    case '90d': start.setUTCDate(start.getUTCDate() - 90); break
+    case '6m':  start.setUTCMonth(start.getUTCMonth() - 6); break
+    case '1y':  start.setUTCMonth(start.getUTCMonth() - 12); break
   }
 
-  const DAY = 86400000
-  const startMs = endMs - daysBack * DAY
-  const previousEndMs = startMs - DAY
-  const previousStartMs = previousEndMs - daysBack * DAY
+  const previousEnd = new Date(start)
+  previousEnd.setUTCDate(previousEnd.getUTCDate() - 1)
+  const previousStart = new Date(previousEnd)
 
-  const fmt = (ms: number) => new Date(ms).toISOString().split('T')[0]
+  switch (key) {
+    case '30d': previousStart.setUTCDate(previousStart.getUTCDate() - 30); break
+    case '90d': previousStart.setUTCDate(previousStart.getUTCDate() - 90); break
+    case '6m':  previousStart.setUTCMonth(previousStart.getUTCMonth() - 6); break
+    case '1y':  previousStart.setUTCMonth(previousStart.getUTCMonth() - 12); break
+  }
 
-  return { start: fmt(startMs), end: fmt(endMs), previousStart: fmt(previousStartMs), previousEnd: fmt(previousEndMs) }
+  return { start: fmt(start), end: fmt(end), previousStart: fmt(previousStart), previousEnd: fmt(previousEnd) }
 }
 
 const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
@@ -58,7 +63,7 @@ function formatMonth(str: string) {
 
 // ─── Page Component ──────────────────────────────────────────────────────────
 
-export default function MetricsPage() {
+function MetricsPageContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const teamId = params.teamId as string
@@ -177,5 +182,13 @@ export default function MetricsPage() {
         />
       )}
     </div>
+  )
+}
+
+export default function MetricsPage() {
+  return (
+    <Suspense>
+      <MetricsPageContent />
+    </Suspense>
   )
 }
