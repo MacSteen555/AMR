@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { extractThemesForLocation } from '@/lib/openai/themes'
 import { captureRouteError } from '@/lib/sentry'
 
-export const maxDuration = 60
+export const maxDuration = 180
 
 export async function POST(request: Request, { params }: { params: { locationId: string } }) {
   try {

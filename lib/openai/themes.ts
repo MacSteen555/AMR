@@ -167,10 +167,21 @@ Return JSON: { "results": [{ "id": "review-uuid", "themes": ["theme1", "theme2"]
 
   try {
     const parsed = JSON.parse(text)
-    return (parsed.results || []).filter(
+    const results = (parsed.results || []).filter(
       (r: any) => r.id && Array.isArray(r.themes)
     )
-  } catch {
+    if (results.length === 0 && reviews.length > 0) {
+      captureRouteError(
+        new Error(`Theme classification returned 0 results for ${reviews.length} reviews`),
+        { route: 'lib/openai/themes/classifyReviews', extra: { responsePreview: text.slice(0, 200) } }
+      )
+    }
+    return results
+  } catch (err) {
+    captureRouteError(
+      new Error(`Theme classification JSON parse failed: ${(err as Error).message}`),
+      { route: 'lib/openai/themes/classifyReviews', extra: { responsePreview: text.slice(0, 200) } }
+    )
     return []
   }
 }
