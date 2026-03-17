@@ -460,13 +460,6 @@ export default function BillingPage() {
                     <td className="text-center py-3 px-4">5</td>
                     <td className="text-center py-3 px-4">20</td>
                   </tr>
-                  <tr className="border-b">
-                    <td className="py-3 px-4 text-gray-900">Team Collaboration</td>
-                    <td className="text-center py-3 px-4 text-gray-300">—</td>
-                    <td className="text-center py-3 px-4 text-gray-300">—</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
-                    <td className="text-center py-3 px-4 text-green-500">✓</td>
-                  </tr>
                   <tr>
                     <td className="py-3 px-4 text-gray-900">Priority Support</td>
                     <td className="text-center py-3 px-4 text-gray-300">—</td>
