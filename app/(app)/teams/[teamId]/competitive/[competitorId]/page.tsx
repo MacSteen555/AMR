@@ -487,50 +487,57 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 // ─── Metrics Tab ────────────────────────────────────────────────────────────
 
+interface TrendPoint {
+  month: string
+  youRating: number | null
+  youVolume: number
+  themRating: number | null
+  themVolume: number
+}
+
 function MetricsTab({
   runs,
   selectedRun,
+  competitorId,
   activeTimeframe,
   onTimeframeChange,
 }: {
   runs: CompetitiveRun[]
   selectedRun: CompetitiveRun | null
+  competitorId: string
   activeTimeframe: Timeframe
   onTimeframeChange: (t: Timeframe) => void
 }) {
   const reportData = selectedRun?.data?.[activeTimeframe] || null
+  const [trends, setTrends] = useState<TrendPoint[]>([])
+  const [trendsLoading, setTrendsLoading] = useState(true)
 
-  // ── Over-time data built from ALL runs ──
-  const ratingOverTime = useMemo(() => {
-    const points = runs
-      .filter(r => r.data?.[activeTimeframe]?.headToHead?.[0])
-      .map(r => {
-        const h = r.data[activeTimeframe].headToHead[0]
-        return {
-          date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          You: h.yourRating,
-          Them: h.theirRating,
-        }
-      })
-      .reverse()
-    return points.length >= 2 ? points : null
-  }, [runs, activeTimeframe])
+  // Fetch monthly trends from actual review dates
+  useEffect(() => {
+    setTrendsLoading(true)
+    apiGet<{ timeline: TrendPoint[] }>(`/api/competitors/${competitorId}/trends`)
+      .then(res => setTrends(res.timeline || []))
+      .catch(() => {})
+      .finally(() => setTrendsLoading(false))
+  }, [competitorId])
 
-  const sentimentOverTime = useMemo(() => {
-    const points = runs
-      .filter(r => r.data?.[activeTimeframe]?.sentimentComparison)
-      .map(r => {
-        const s = r.data[activeTimeframe].sentimentComparison
-        return {
-          date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          You: s.yourSentiment ?? 0,
-          Them: s.competitorSentiment ?? 0,
-        }
-      })
-      .reverse()
-    return points.length >= 2 ? points : null
-  }, [runs, activeTimeframe])
+  // Format month labels: "2026-01" -> "Jan"
+  const formatMonth = (m: string) => {
+    const [year, month] = m.split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1)
+    return date.toLocaleDateString('en-US', { month: 'short' })
+  }
 
+  // Prepare line chart data from trends
+  const ratingTimeline = trends
+    .filter(t => t.youRating != null || t.themRating != null)
+    .map(t => ({ month: formatMonth(t.month), You: t.youRating, Them: t.themRating }))
+
+  const volumeTimeline = trends
+    .filter(t => t.youVolume > 0 || t.themVolume > 0)
+    .map(t => ({ month: formatMonth(t.month), You: t.youVolume, Them: t.themVolume }))
+
+  // Position score over time from runs (one per report, still useful)
   const positionOverTime = useMemo(() => {
     const points = runs
       .filter(r => r.data?.[activeTimeframe]?.competitivePositionScore != null)
@@ -542,7 +549,7 @@ function MetricsTab({
     return points.length >= 2 ? points : null
   }, [runs, activeTimeframe])
 
-  if (!reportData) {
+  if (!reportData && ratingTimeline.length === 0) {
     return (
       <>
         <div className="mb-6">
@@ -558,9 +565,9 @@ function MetricsTab({
     )
   }
 
-  const headToHead = reportData.headToHead?.[0]
-  const responseComparison = reportData.responseComparison
-  const sentimentComparison = reportData.sentimentComparison
+  const headToHead = reportData?.headToHead?.[0]
+  const responseComparison = reportData?.responseComparison
+  const sentimentComparison = reportData?.sentimentComparison
 
   // Current snapshot data for bar charts
   const comparisonData = headToHead ? [
@@ -590,8 +597,53 @@ function MetricsTab({
         <TimeframeTabs active={activeTimeframe} onChange={onTimeframeChange} />
       </div>
 
+      {trendsLoading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {[1, 2].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 h-[300px] animate-pulse">
+              <div className="h-4 w-32 bg-gray-100 rounded mb-4" />
+              <div className="h-[230px] bg-gray-50 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Head-to-Head Snapshot (Rating + Volume) */}
+        {/* 1. Monthly Rating Trend (from actual review dates) */}
+        {ratingTimeline.length >= 2 && (
+          <ChartCard title="Average Rating by Month">
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={ratingTimeline}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <YAxis domain={[1, 5]} tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="You" stroke={TEAL_600} strokeWidth={2.5} dot={{ fill: TEAL_600, r: 4 }} connectNulls />
+                <Line type="monotone" dataKey="Them" stroke={GRAY_400} strokeWidth={2.5} dot={{ fill: GRAY_400, r: 4 }} strokeDasharray="6 3" connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
+
+        {/* 2. Monthly Review Volume (from actual review dates) */}
+        {volumeTimeline.length >= 2 && (
+          <ChartCard title="Review Volume by Month">
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={volumeTimeline} barGap={4}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="You" fill={TEAL_600} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Them" fill={GRAY_400} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
+
+        {/* 3. Head-to-Head Snapshot (latest report) */}
         {comparisonData && (
           <ChartCard title="Head-to-Head Snapshot">
             <ResponsiveContainer width="100%" height={250}>
@@ -608,7 +660,7 @@ function MetricsTab({
           </ChartCard>
         )}
 
-        {/* 2. Response Rate & Sentiment Snapshot */}
+        {/* 4. Response Rate & Sentiment Snapshot */}
         {responseAndSentiment.length > 0 && (
           <ChartCard title="Response & Sentiment">
             <ResponsiveContainer width="100%" height={250}>
@@ -625,41 +677,7 @@ function MetricsTab({
           </ChartCard>
         )}
 
-        {/* 3. Rating Over Time (line — You vs Them) */}
-        {ratingOverTime && (
-          <ChartCard title="Rating Over Time">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={ratingOverTime}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#6b7280' }} />
-                <YAxis domain={[1, 5]} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="You" stroke={TEAL_600} strokeWidth={2.5} dot={{ fill: TEAL_600, r: 4 }} />
-                <Line type="monotone" dataKey="Them" stroke={GRAY_400} strokeWidth={2.5} dot={{ fill: GRAY_400, r: 4 }} strokeDasharray="6 3" />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        )}
-
-        {/* 4. Sentiment Over Time (line — You vs Them) */}
-        {sentimentOverTime && (
-          <ChartCard title="Sentiment Over Time">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={sentimentOverTime}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#6b7280' }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#6b7280' }} />
-                <Tooltip />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="You" stroke={TEAL_600} strokeWidth={2.5} dot={{ fill: TEAL_600, r: 4 }} />
-                <Line type="monotone" dataKey="Them" stroke={GRAY_400} strokeWidth={2.5} dot={{ fill: GRAY_400, r: 4 }} strokeDasharray="6 3" />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        )}
-
-        {/* 5. Competitive Position Score Over Time */}
+        {/* 5. Competitive Position Score Over Time (from reports) */}
         {positionOverTime && (
           <ChartCard title="Competitive Position Over Time">
             <ResponsiveContainer width="100%" height={250}>
@@ -883,6 +901,7 @@ export default function CompetitorDetailPage() {
         <MetricsTab
           runs={runs}
           selectedRun={selectedRun}
+          competitorId={competitorId}
           activeTimeframe={activeTimeframe}
           onTimeframeChange={setActiveTimeframe}
         />

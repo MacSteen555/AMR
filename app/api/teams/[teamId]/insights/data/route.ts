@@ -343,11 +343,15 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
 
     const locationIds = locations.map(l => l.id)
 
-    // ── Fetch ALL reviews for this team/location (no date filter) ────────────
+    // ── Fetch reviews covering both current and previous periods ─────────────
+    const fetchStart = previousStart && previousStart < chartStart ? previousStart : chartStart
+
     let query = supabase
       .schema('app')
       .from('google_reviews')
       .select('rating, comment, review_date, reply_status, replied_at, location_id, reviewer_name, themes')
+      .gte('review_date', fetchStart)
+      .lte('review_date', periodEnd)
       .order('review_date', { ascending: true })
       .limit(10000)
 

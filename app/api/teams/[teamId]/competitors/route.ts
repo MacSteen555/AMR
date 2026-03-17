@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       .select('id, competitor_ids, created_at, data')
       .eq('team_id', params.teamId)
       .order('created_at', { ascending: false })
-      .limit(competitors.length * 2)
+      .limit(Math.max(competitors.length * 5, 50))
 
     // Build map: competitor_id -> latest run (with metrics from 30d data)
     const latestRunMap: Record<string, {
@@ -251,7 +251,9 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         'Authorization': `Bearer ${process.env.CRON_SECRET}`,
         'Content-Type': 'application/json',
       },
-    }).catch(() => {})
+    }).catch((err) => {
+      console.error(`[competitors] Setup call failed for ${competitor.id}:`, err.message)
+    })
 
     return NextResponse.json({
       competitor: { ...competitor, setup_status: 'pending' }

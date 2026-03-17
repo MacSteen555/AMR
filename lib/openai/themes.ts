@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
+import { captureRouteError } from '@/lib/sentry'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
@@ -108,6 +109,12 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
     )
 
     const failures = updateResults.filter(r => r.error)
+    if (failures.length > 0) {
+      captureRouteError(
+        new Error(`Theme update failed for ${failures.length}/${tagged.length} reviews in batch ${batchNum}`),
+        { route: 'lib/openai/themes', extra: { locationId, batchNum } }
+      )
+    }
 
     totalTagged += tagged.length
   }

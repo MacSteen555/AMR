@@ -66,6 +66,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'No competitors due for reports', processed: 0 })
   }
 
+  // Cap per invocation to avoid serverless timeout (cron runs every few hours, will catch up)
+  const MAX_PER_RUN = 5
+  const batch = dueCompetitors.slice(0, MAX_PER_RUN)
+
   const results: Array<{
     competitorId: string
     name: string
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
   let failed = 0
 
   // Process sequentially to avoid SerpAPI rate limits
-  for (const competitor of dueCompetitors) {
+  for (const competitor of batch) {
     try {
       // Sync reviews
       await serviceClient
@@ -128,7 +132,9 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    processed: dueCompetitors.length,
+    processed: batch.length,
+    due: dueCompetitors.length,
+    remaining: dueCompetitors.length - batch.length,
     succeeded,
     failed,
     results,
