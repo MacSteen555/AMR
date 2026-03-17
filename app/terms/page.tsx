@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+    title: 'Terms of Service',
+    description: 'AutoMyReply Terms of Service — the rules and guidelines for using our AI-powered Google review management platform.',
+}
 
 export default function TermsPage() {
     return (
@@ -9,7 +15,7 @@ export default function TermsPage() {
                 </Link>
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">AutoMyReply Terms of Service</h1>
                 <div className="prose prose-teal max-w-none text-gray-600 space-y-6">
-                    <p className="text-sm text-gray-400">Effective date: March 3, 2026</p>
+                    <p className="text-sm text-gray-400">Effective date: March 17, 2026</p>
 
                     <p>These Terms of Service ("Terms") govern your access to and use of AutoMyReply (the "Service"). The Service is operated by AutoMyReply ("we," "us," "our"). By creating an account, accessing, or using the Service, you agree to these Terms.</p>
                     <p>If you do not agree, do not use the Service.</p>
@@ -69,12 +75,12 @@ export default function TermsPage() {
                             <li>You authorize us (via our payment processor) to charge your payment method on a recurring basis until canceled.</li>
                             <li>Fees are generally non-refundable except where required by law, or where we explicitly provide a refund.</li>
                         </ul>
-                        <p className="mt-4">If the Service uses "credits" (e.g., for draft generation, insights, or competitive runs), credits:</p>
+                        <p className="mt-4">Your plan includes a monthly allowance of reviews managed. Reviews managed:</p>
                         <ul className="list-disc pl-6 space-y-2 mt-2">
-                            <li>are not currency,</li>
-                            <li>have no cash value,</li>
-                            <li>may expire or reset based on your plan,</li>
-                            <li>may be changed as part of plan updates.</li>
+                            <li>represent the number of reviews you can generate AI replies for per billing period,</li>
+                            <li>are not currency and have no cash value,</li>
+                            <li>reset each billing period based on your plan,</li>
+                            <li>may be adjusted as part of plan updates.</li>
                         </ul>
                         <p className="mt-4">We may change pricing and plan features with reasonable notice.</p>
                     </div>

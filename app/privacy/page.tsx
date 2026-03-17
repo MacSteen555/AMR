@@ -1,4 +1,10 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+    title: 'Privacy Policy',
+    description: 'AutoMyReply Privacy Policy — how we collect, use, and protect your data when you use our Google review management service.',
+}
 
 export default function PrivacyPage() {
     return (

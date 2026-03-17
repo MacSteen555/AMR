@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { getSupabaseUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Sign In",
+  description: "Sign in to AutoMyReply to manage your Google Business Profile reviews with AI-powered replies.",
+};
 
 export default async function LoginPage({
   searchParams,
