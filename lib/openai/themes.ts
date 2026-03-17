@@ -158,7 +158,7 @@ ${reviewBlock}
 Return JSON: { "results": [{ "id": "review-uuid", "themes": ["theme1", "theme2"] }] }`
       }
     ],
-    max_completion_tokens: 2000,
+    max_completion_tokens: 10000,
     response_format: { type: 'json_object' }
   })
 
