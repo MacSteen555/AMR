@@ -20,11 +20,12 @@ interface ScopeBarProps {
 }
 
 // Pages that support location-level filtering
-const LOCATION_ENABLED_SECTIONS = ['reviews', 'insights']
+const LOCATION_ENABLED_SECTIONS = ['reviews', 'insights', 'reports']
 
 function getCurrentSection(pathname: string | null): string {
   if (!pathname) return 'reviews'
   if (pathname.includes('/insights')) return 'insights'
+  if (pathname.includes('/reports')) return 'reports'
   if (pathname.includes('/competitive')) return 'competitive'
   if (pathname.includes('/billing')) return 'billing'
   if (pathname.includes('/reviews')) return 'reviews'

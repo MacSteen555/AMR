@@ -4,7 +4,7 @@ import { Redis } from '@upstash/redis'
 import { createServerClient } from '@supabase/ssr'
 
 // Routes that bypass rate limiting entirely
-const BYPASS_ROUTES = ['/api/stripe/webhook']
+const BYPASS_ROUTES = ['/api/stripe/webhook', '/api/cron/']
 
 // Strict tier: auth & onboarding (matched with startsWith)
 const STRICT_PREFIX_PATTERNS = ['/api/auth/', '/api/onboarding/']
@@ -16,7 +16,7 @@ const SYNC_PATTERNS = ['/reviews/sync']
 const QUICK_AI_PATTERNS = ['/generate', '/regenerate', '/stream']
 
 // Large AI: bulk/expensive operations (POST only)
-const LARGE_AI_PATTERNS = ['/bulk-generate', '/insights/run', '/competitive-runs']
+const LARGE_AI_PATTERNS = ['/bulk-generate', '/insights/run']
 
 // Contact/feedback emails: very strict to prevent spam
 const CONTACT_PATTERNS = ['/api/contact', '/api/feature-request']

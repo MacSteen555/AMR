@@ -138,7 +138,7 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       },
     })
   } catch (error: any) {
-    if (error.message.includes('Insufficient credits') || error.message.includes('Requires')) {
+    if (error.message.includes('Review limit reached') || error.message.includes('Requires')) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 402,
         headers: { 'Content-Type': 'application/json' },

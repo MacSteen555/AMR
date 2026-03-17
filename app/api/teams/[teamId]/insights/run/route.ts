@@ -4,14 +4,10 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { insightsRun } from '@/lib/openai/insights'
-import { spendCredits } from '@/lib/billing/credits'
 import { runInsightsSchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
-import crypto from 'crypto'
 
-const CREDIT_COST: Record<string, number> = { '30d': 3, '90d': 4, '6m': 7, '1y': 10 }
-
-const REPORT_LIMITS: Record<string, number> = { FREE: 0, PRO: 5, BUSINESS: 20, ENTERPRISE: Infinity }
+const REPORT_LIMITS: Record<string, number> = { FREE: 0, PRO: 3, BUSINESS: 10, ENTERPRISE: 20 }
 
 const FETCH_WINDOWS: Record<string, { current: number; previous: number; unit: 'days' | 'months' }> = {
   '30d': { current: 30, previous: 30, unit: 'days' },
@@ -38,8 +34,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
   try {
     await requireTeamMember(params.teamId)
     const user = await requireUser()
-    const headers = request.headers
-    const idempotencyKey = headers.get('Idempotency-Key') || crypto.randomUUID()
 
     const body = await request.json()
     const { period_window: periodWindow } = runInsightsSchema.parse(body)
@@ -49,43 +43,38 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     const serviceClient = createSupabaseServiceRoleClient()
 
+    // Check tier and report limit
+    const { data: subscription } = await serviceClient
+      .schema('app').from('team_subscriptions')
+      .select('tier')
+      .eq('team_id', params.teamId)
+      .single()
+
+    const tierName = (subscription?.tier as string) || 'FREE'
+    const limit = REPORT_LIMITS[tierName] ?? 0
+
+    if (limit === 0) {
+      return NextResponse.json({ error: 'Reports are not available on the FREE tier' }, { status: 402 })
+    }
+
+    const { data: balanceRow } = await serviceClient
+      .schema('app').from('team_credit_balances')
+      .select('reports_generated')
+      .eq('team_id', params.teamId)
+      .single()
+
+    const currentCount = balanceRow?.reports_generated || 0
+    if (currentCount >= limit) {
+      return NextResponse.json({ error: `Monthly report limit reached (${currentCount}/${limit})` }, { status: 402 })
+    }
+
     // Compute date ranges
     const now = new Date()
 
-    // Handle 'all' period — generate all 4 reports concurrently
+    // Handle 'all' — generate all 4 periods concurrently, costs 1 report credit
     if (periodWindow === 'all') {
-      const totalCost = 3 + 4 + 7 + 10 // 24 credits
-
-      // Check report generation limit for this tier
-      const { data: subscription } = await serviceClient
-        .schema('app').from('team_subscriptions')
-        .select('tier')
-        .eq('team_id', params.teamId)
-        .single()
-
-      const tierName = (subscription?.tier as string) || 'FREE'
-      const limit = REPORT_LIMITS[tierName] ?? 0
-
-      const { data: balanceRow } = await serviceClient
-        .schema('app').from('team_credit_balances')
-        .select('reports_generated')
-        .eq('team_id', params.teamId)
-        .single()
-
-      const currentCount = balanceRow?.reports_generated || 0
-      if (currentCount >= limit) {
-        return NextResponse.json({ error: `Report limit reached (${currentCount}/${limit === Infinity ? 'unlimited' : limit})` }, { status: 402 })
-      }
-
-      // Determine scope
-      const scope = locationId ? 'location' : 'team'
-      const scopeId = locationId || params.teamId
-
-      await spendCredits(params.teamId, user.id, 'insight_run', totalCost, scope, scopeId, idempotencyKey, { feature: 'insights' })
-
       // Get location info if location-scoped
       let locationName: string | null = null
-
       if (locationId) {
         const { data: loc, error: locError } = await serviceClient
           .schema('app').from('locations').select('id, name, team_id')
@@ -96,15 +85,13 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         locationName = loc.name
       }
 
-      // Fetch all reviews from 1 year ago
+      // Fetch all reviews from 1 year ago (covers all periods)
       const oneYearAgo = new Date(now)
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-      const fetchStartStr = toDateStr(oneYearAgo)
-      const fetchEndStr = toDateStr(now)
 
       let reviewQuery = serviceClient.schema('app').from('google_reviews')
         .select('id, rating, comment, review_date, reply_status, reviewer_name')
-        .gte('review_date', fetchStartStr).lte('review_date', fetchEndStr)
+        .gte('review_date', toDateStr(oneYearAgo)).lte('review_date', toDateStr(now))
 
       if (locationId) {
         reviewQuery = reviewQuery.eq('location_id', locationId)
@@ -119,12 +106,12 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       }
 
       const { data: reviews } = await reviewQuery
-
       const allReviews = (reviews || []).map((r: any) => ({
         id: r.id, rating: r.rating, comment: r.comment,
         review_date: r.review_date, reply_status: r.reply_status, reviewer_name: r.reviewer_name,
       }))
 
+      // Run all 4 periods concurrently
       const periods = [
         { key: '30d' as const, current: 30, previous: 30, unit: 'days' as const },
         { key: '90d' as const, current: 90, previous: 90, unit: 'days' as const },
@@ -134,7 +121,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
       const runs = periods.map(async (p) => {
         const cStart = subtractFromDate(now, p.current, p.unit)
-        const pEnd = cStart
         const pStart = p.previous > 0 ? subtractFromDate(cStart, p.previous, p.unit) : cStart
 
         const currentReviews = allReviews.filter(r => new Date(r.review_date) >= cStart)
@@ -148,7 +134,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
           periodStart: toDateStr(cStart),
           periodEnd: toDateStr(now),
           previousPeriodStart: toDateStr(pStart),
-          previousPeriodEnd: toDateStr(pEnd),
+          previousPeriodEnd: toDateStr(cStart),
           scope: locationId ? 'location' : 'team',
           locationName: locationName || undefined,
           periodWindow: p.key,
@@ -174,10 +160,10 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       const { data: inserted, error } = await serviceClient.schema('app').from('insights').insert(insertData).select()
       if (error) throw new Error(`Failed to save insights: ${error.message}`)
 
-      // Increment reports_generated counter
+      // Increment reports_generated by 1 (all 4 periods = 1 report credit)
       await serviceClient
         .schema('app').from('team_credit_balances')
-        .update({ reports_generated: currentCount + 1 })
+        .update({ reports_generated: (currentCount || 0) + 1 }) // Note: not atomic — acceptable given report generation takes 10+ seconds
         .eq('team_id', params.teamId)
 
       return NextResponse.json({ insights: inserted }, { status: 201 })
@@ -197,9 +183,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     // The earliest date we need to fetch reviews from
     const fetchStart = window.previous > 0 ? previousStartStr : currentStartStr
 
-    // Credit cost for the chosen period
-    const creditCost = CREDIT_COST[periodWindow]
-
     if (locationId) {
       // Location-scoped run
       const { data: loc, error: locError } = await serviceClient
@@ -213,17 +196,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       if (locError || !loc) {
         return NextResponse.json({ error: 'Location not found' }, { status: 404 })
       }
-
-      await spendCredits(
-        params.teamId,
-        user.id,
-        'insight_run',
-        creditCost,
-        'location',
-        locationId,
-        idempotencyKey,
-        { feature: 'insights' }
-      )
 
       // Get reviews for this location covering both current and previous periods
       const { data: reviews } = await serviceClient
@@ -281,21 +253,16 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         throw new Error(`Failed to save insights: ${error?.message}`)
       }
 
+      // Increment reports_generated counter
+      await serviceClient
+        .schema('app').from('team_credit_balances')
+        .update({ reports_generated: (currentCount || 0) + 1 }) // Note: not atomic — acceptable given report generation takes 10+ seconds
+        .eq('team_id', params.teamId)
+
       return NextResponse.json({ insight: insertedInsight }, { status: 201 })
     }
 
     // Team-wide run
-    await spendCredits(
-      params.teamId,
-      user.id,
-      'insight_run',
-      creditCost,
-      'team',
-      params.teamId,
-      idempotencyKey,
-      { feature: 'insights' }
-    )
-
     // Get all locations for this team
     const { data: locations } = await serviceClient
       .schema('app')
@@ -362,13 +329,16 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       throw new Error(`Failed to save insights: ${error?.message}`)
     }
 
+    // Increment reports_generated counter
+    await serviceClient
+      .schema('app').from('team_credit_balances')
+      .update({ reports_generated: currentCount + 1 })
+      .eq('team_id', params.teamId)
+
     return NextResponse.json({ insight: insertedInsight }, { status: 201 })
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
-    }
-    if (error.message.includes('Insufficient credits') || error.message.includes('not enabled')) {
-      return NextResponse.json({ error: error.message }, { status: 402 })
     }
     captureRouteError(error, { route: '/api/teams/[teamId]/insights/run', teamId: params?.teamId })
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -469,6 +439,9 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     return NextResponse.json({ insights: insights || [] })
   } catch (error: any) {
     captureRouteError(error, { route: '/api/teams/[teamId]/insights/run', teamId: params?.teamId })
-    return NextResponse.json({ error: error.message }, { status: 403 })
+    if (error.message === 'Not a team member') {
+      return NextResponse.json({ error: error.message }, { status: 403 })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

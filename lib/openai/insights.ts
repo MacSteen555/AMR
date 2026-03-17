@@ -487,6 +487,15 @@ export interface CompetitiveInput {
   periodStart: string
   periodEnd: string
   periodWindow: PeriodWindow
+  previousMetrics?: {
+    competitivePositionScore: number
+    marketMomentum: number
+    ownedAverageRating: number
+    competitorAverageRating: number
+    threatAlerts: string[]
+    topStrengths: string[]
+    topWeaknesses: string[]
+  }
 }
 
 export interface CompetitiveResult {
@@ -585,6 +594,18 @@ export interface CompetitiveResult {
     yourSentiment: number // 0-100
     competitorSentiment: number // 0-100
     analysis: string
+  }
+
+  // Delta comparison (present when previousMetrics was provided)
+  deltaComparison?: {
+    scoreChange: number
+    momentumChange: number
+    ratingGapChange: number
+    newThreats: string[]
+    resolvedThreats: string[]
+    improvedThemes: string[]
+    declinedThemes: string[]
+    summary: string
   }
 }
 
@@ -752,6 +773,18 @@ function buildCompetitivePrompt(input: CompetitiveInput): string {
     }
   })
 
+  if (input.previousMetrics) {
+    const pm = input.previousMetrics
+    prompt += `\n═══ PREVIOUS REPORT METRICS (for comparison) ═══\n`
+    prompt += `Competitive Position Score: ${pm.competitivePositionScore}/100\n`
+    prompt += `Market Momentum: ${pm.marketMomentum}\n`
+    prompt += `Your Average Rating: ${pm.ownedAverageRating}\n`
+    prompt += `Competitor Average Rating: ${pm.competitorAverageRating}\n`
+    prompt += `Active Threats: ${pm.threatAlerts.length > 0 ? pm.threatAlerts.join(', ') : 'None'}\n`
+    prompt += `Key Strengths: ${pm.topStrengths.join(', ')}\n`
+    prompt += `Key Weaknesses: ${pm.topWeaknesses.join(', ')}\n\n`
+  }
+
   prompt += `\n─── OUTPUT ───\n`
   prompt += `Return a JSON object with this EXACT structure:
 {
@@ -816,7 +849,18 @@ function buildCompetitivePrompt(input: CompetitiveInput): string {
     "yourSentiment": <int 0-100>,
     "competitorSentiment": <int 0-100>,
     "analysis": "..."
-  }
+  }${input.previousMetrics ? `,
+
+  "deltaComparison": {
+    "scoreChange": <number>,
+    "momentumChange": <number>,
+    "ratingGapChange": <number>,
+    "newThreats": ["..."],
+    "resolvedThreats": ["..."],
+    "improvedThemes": ["..."],
+    "declinedThemes": ["..."],
+    "summary": "2-3 sentences comparing to previous report"
+  }` : ''}
 }
 
 Rules:
@@ -831,7 +875,8 @@ Rules:
 - recommendations: 3-5 items. Sorted by impact. Quick wins first. Grounded in the competitive data.
 - stealWorthy: 2-4 items. Actual quotes from competitor reviews that reveal what their customers love. Learn from the best.
 - responseComparison: compare how actively each business responds to reviews. If response data isn't available, estimate 0.
-- sentimentComparison: overall customer sentiment (0=terrible, 100=excellent) for each side, based on review content and ratings.
+- sentimentComparison: overall customer sentiment (0=terrible, 100=excellent) for each side, based on review content and ratings.${input.previousMetrics ? `
+- deltaComparison: Compare current metrics against previous report. scoreChange = current score minus previous. Identify threats that are new vs resolved. Themes that improved or declined based on strengths/weaknesses lists. summary should be 2-3 sentences describing what changed.` : ''}
 - Every field must be grounded in the actual review data. No generic advice. No filler. No hallucinating themes not present in the reviews.
 - Do NOT use em dashes. Use commas, periods, or semicolons instead.
 `

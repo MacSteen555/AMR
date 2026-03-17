@@ -772,7 +772,7 @@ export default function LandingPage() {
                   { quote: 'The AI insights surfaced a recurring complaint about parking we never noticed. We fixed it and our ratings jumped from 4.2 to 4.7 in two months.', name: 'Amara Okafor', role: 'GM, The Green Leaf', initials: 'AO' },
                   { quote: 'We went from ignoring most reviews to responding to every single one. Our response rate is now 100% and customers notice the difference.', name: 'Jake Morrison', role: 'Owner, CloudNine Spa', initials: 'JM' },
                   { quote: 'Managing reviews for 8 franchise locations used to be a nightmare. AutoMyReply turned it into a 10-minute daily task. Life-changing.', name: 'Priya Sharma', role: 'Franchise Director, Urban Dental Co.', initials: 'PS' },
-                  { quote: 'The credit system is super fair. We use the Pro plan and never run out. The AI replies are better than what our team was writing manually.', name: 'Carlos Mendez', role: 'Marketing Lead, The Breakfast Club', initials: 'CM' },
+                  { quote: 'We use the Pro plan and manage all 50 reviews every month. The AI replies are better than what our team was writing manually.', name: 'Carlos Mendez', role: 'Marketing Lead, The Breakfast Club', initials: 'CM' },
                 ].map((t, i) => (
                   <div key={`${setIdx}-${i}`} className="w-[380px] shrink-0 bg-white rounded-2xl p-7 border border-gray-100 hover:border-amber-200 hover:shadow-lg hover:shadow-amber-50 transition-all duration-300 whitespace-normal">
                     <div className="flex gap-1 mb-4">
@@ -816,7 +816,7 @@ export default function LandingPage() {
                 name: 'Free',
                 price: '$0',
                 period: 'mo',
-                features: ['5 credits / month', 'AI reply generation', '1 location', 'Basic support'],
+                features: ['5 reviews / month', 'AI reply generation', '1 location', 'Basic support'],
                 popular: false,
                 cta: 'Start Free',
               },
@@ -824,7 +824,7 @@ export default function LandingPage() {
                 name: 'Pro',
                 price: '$15',
                 period: 'mo',
-                features: ['50 credits / month', 'Everything in Free', 'AI Insights', 'Priority support'],
+                features: ['50 reviews / month', 'Everything in Free', 'AI Insights', 'Priority support'],
                 popular: true,
                 cta: 'Get Pro',
               },
@@ -832,7 +832,7 @@ export default function LandingPage() {
                 name: 'Business',
                 price: '$35',
                 period: 'mo',
-                features: ['200 credits / month', 'Everything in Pro', 'Competitive Intel', 'Team collaboration'],
+                features: ['200 reviews / month', 'Everything in Pro', 'Competitive Intel', 'Team collaboration'],
                 popular: false,
                 cta: 'Get Business',
               },
@@ -840,7 +840,7 @@ export default function LandingPage() {
                 name: 'Enterprise',
                 price: '$80',
                 period: 'mo',
-                features: ['1,000 credits / month', 'All features', 'Custom integrations', 'Dedicated support'],
+                features: ['1,000 reviews / month', 'All features', 'Custom integrations', 'Dedicated support'],
                 popular: false,
                 cta: 'Contact Us',
               },
@@ -910,8 +910,8 @@ export default function LandingPage() {
               answer="Absolutely! Every generated reply is a draft that you can review, edit, and refine before posting. The AI learns from your edits over time, so future drafts will better match your preferences."
             />
             <FAQItem
-              question="How does the credit system work?"
-              answer="Credits are used for AI-powered actions: generating a reply costs 1 credit, running insights costs 3 credits, and competitive analysis costs 5 credits. Each plan includes monthly credits, and you can always purchase additional top-ups if you need more."
+              question="How does the review system work?"
+              answer="Each plan includes a monthly review limit. Generating an AI reply to a review counts as one review managed. For example, the Pro plan includes 50 reviews per month. You can always purchase additional capacity if you need more."
             />
             <FAQItem
               question="Is my Google Business Profile data secure?"
@@ -923,7 +923,7 @@ export default function LandingPage() {
             />
             <FAQItem
               question="Do you offer a free trial?"
-              answer="Our Free plan gives you 5 credits per month at no cost — no credit card required. This lets you experience the AI reply generation firsthand. When you're ready for more features and credits, you can upgrade to Pro, Business, or Enterprise."
+              answer="Our Free plan lets you manage up to 5 reviews per month at no cost — no credit card required. This lets you experience the AI reply generation firsthand. When you're ready for more features and capacity, you can upgrade to Pro, Business, or Enterprise."
             />
           </div>
         </div>

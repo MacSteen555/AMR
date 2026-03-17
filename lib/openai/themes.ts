@@ -25,7 +25,6 @@ interface ReviewForThemes {
  * The themes IS NULL guard ensures a review is never processed twice.
  */
 export async function extractThemesForLocation(locationId: string): Promise<number> {
-  console.log(`[themes] Starting theme extraction for location ${locationId}`)
   const serviceClient = createSupabaseServiceRoleClient()
 
   // 1. Get team_id from location
@@ -36,10 +35,7 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
     .eq('id', locationId)
     .single()
 
-  if (!location) {
-    console.log(`[themes] No location found for ${locationId}`, locError?.message)
-    return 0
-  }
+  if (!location) return 0
 
   const teamId = location.team_id
 
@@ -54,8 +50,6 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
     .order('review_date', { ascending: true })
     .limit(200)
 
-  console.log(`[themes] Found ${allUntagged?.length ?? 0} untagged reviews`, reviewError?.message ?? '')
-
   if (!allUntagged || allUntagged.length === 0) return 0
 
   // 3. Fetch existing theme dictionary (starting point)
@@ -66,7 +60,6 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
     .eq('team_id', teamId)
 
   const knownLabels = new Set((existingThemes || []).map(t => t.label))
-  console.log(`[themes] Starting dictionary: ${knownLabels.size} themes`)
 
   // 4. Process in sequential batches
   let totalTagged = 0
@@ -74,7 +67,6 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
   for (let i = 0; i < allUntagged.length; i += BATCH_SIZE) {
     const batch = allUntagged.slice(i, i + BATCH_SIZE) as ReviewForThemes[]
     const batchNum = Math.floor(i / BATCH_SIZE) + 1
-    console.log(`[themes] Batch ${batchNum}: classifying ${batch.length} reviews (dictionary: ${knownLabels.size} themes)`)
 
     // Classify this batch with the current dictionary
     const tagged = await classifyReviews(batch, [...knownLabels])
@@ -94,7 +86,6 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
 
     // Insert new themes into dictionary BEFORE processing next batch
     if (batchNewThemes.length > 0) {
-      console.log(`[themes] Batch ${batchNum}: adding ${batchNewThemes.length} new themes:`, batchNewThemes)
       await serviceClient
         .schema('app')
         .from('theme_dictionary')
@@ -104,24 +95,23 @@ export async function extractThemesForLocation(locationId: string): Promise<numb
         )
     }
 
-    // Write themes back to reviews
-    for (const entry of tagged) {
-      const { error: updateError } = await serviceClient
-        .schema('app')
-        .from('google_reviews')
-        .update({ themes: entry.themes })
-        .eq('id', entry.id)
-        .is('themes', null) // race guard
+    // Write themes back to reviews in parallel
+    const updateResults = await Promise.all(
+      tagged.map(entry =>
+        serviceClient
+          .schema('app')
+          .from('google_reviews')
+          .update({ themes: entry.themes })
+          .eq('id', entry.id)
+          .is('themes', null) // race guard
+      )
+    )
 
-      if (updateError) {
-        console.error(`[themes] Failed to update review ${entry.id}:`, updateError.message)
-      }
-    }
+    const failures = updateResults.filter(r => r.error)
 
     totalTagged += tagged.length
   }
 
-  console.log(`[themes] Done. Tagged ${totalTagged} reviews. Final dictionary: ${knownLabels.size} themes`)
   return totalTagged
 }
 
@@ -138,7 +128,7 @@ async function classifyReviews(
     .join('\n')
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4.1-mini',
+    model: 'gpt-5-nano',
     messages: [
       {
         role: 'system',
@@ -162,8 +152,7 @@ Return JSON: { "results": [{ "id": "review-uuid", "themes": ["theme1", "theme2"]
       }
     ],
     max_completion_tokens: 2000,
-    response_format: { type: 'json_object' },
-    temperature: 0,
+    response_format: { type: 'json_object' }
   })
 
   const text = completion.choices[0]?.message?.content?.trim()

@@ -164,6 +164,8 @@ function computeAnalytics(
       ratingOverTime: [],
       responseRateOverTime: [],
       ratingDistribution: [5, 4, 3, 2, 1].map(rating => ({ rating, count: 0 })),
+      volumeOverTime: [],
+      sentimentBreakdown: { positive: 0, neutral: 0, negative: 0 },
       perLocation: [],
       replyGap: [],
     }
@@ -226,6 +228,14 @@ function computeAnalytics(
     return data
   })
 
+  const volumeOverTime = sortedMonths.map(([month, bucket]) => ({
+    month,
+    total: bucket.length,
+    positive: bucket.filter(r => r.rating >= 4).length,
+    neutral: bucket.filter(r => r.rating === 3).length,
+    negative: bucket.filter(r => r.rating <= 2).length,
+  }))
+
   // Per-location stats
   const locationMap = new Map(locations.map(l => [l.id, l.name]))
   const perLocationMap = new Map<string, ReviewRow[]>()
@@ -263,6 +273,12 @@ function computeAnalytics(
     kpis: { ...kpis, locationCount: locations.length },
     ratingOverTime,
     responseRateOverTime,
+    volumeOverTime,
+    sentimentBreakdown: {
+      positive: reviews.filter(r => r.rating >= 4).length,
+      neutral: reviews.filter(r => r.rating === 3).length,
+      negative: reviews.filter(r => r.rating <= 2).length,
+    },
     ratingDistribution,
     perLocation,
     replyGap,

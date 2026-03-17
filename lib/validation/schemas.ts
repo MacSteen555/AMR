@@ -59,16 +59,15 @@ export const createCompetitorSchema = z.object({
   rating: z.number().optional().nullable(),
   review_count: z.number().optional().nullable(),
   opening_hours: z.any().optional().nullable(),
+  location_ids: z.array(z.string().uuid()).min(1, 'Select at least one competing location').max(3, 'Maximum 3 competing locations'),
+})
+
+export const updateCompetitorLocationsSchema = z.object({
+  location_ids: z.array(z.string().uuid()).min(1, 'Select at least one competing location').max(3, 'Maximum 3 competing locations'),
 })
 
 export const runInsightsSchema = z.object({
   period_window: z.enum(['30d', '90d', '6m', '1y', 'all']),
-})
-
-export const createCompetitiveRunSchema = z.object({
-  name: z.string().optional(),
-  owned_location_ids: z.array(z.string().uuid()).min(1).max(3),
-  competitor_ids: z.array(z.string().uuid()).min(1).max(3),
 })
 
 export const createCheckoutSchema = z.object({

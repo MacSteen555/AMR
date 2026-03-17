@@ -1,14 +1,28 @@
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth/session'
 import { requireTeamMember } from '@/lib/rbac'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { createCompetitorSchema } from '@/lib/validation/schemas'
 import { getTeamTier } from '@/lib/billing/credits'
 import { captureRouteError } from '@/lib/sentry'
 
+const TIER_LIMITS: Record<string, number> = {
+  FREE: 0,
+  PRO: 1,
+  BUSINESS: 5,
+  ENTERPRISE: 20,
+}
+
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
+    await requireUser()
     await requireTeamMember(params.teamId)
     const supabase = createSupabaseServerClient()
+    const serviceClient = createSupabaseServiceRoleClient()
+
+    // Fetch tier info for limits
+    const tierInfo = await getTeamTier(params.teamId)
+    const maxCompetitors = TIER_LIMITS[tierInfo.tier] || 0
 
     const { data: competitors } = await supabase
       .schema('app')
@@ -18,15 +32,103 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
-    return NextResponse.json({ competitors: competitors || [] })
+    if (!competitors || competitors.length === 0) {
+      return NextResponse.json({
+        competitors: [],
+        tier: tierInfo.tier,
+        maxCompetitors,
+      })
+    }
+
+    // Fetch team locations for name mapping
+    const { data: teamLocations } = await supabase
+      .schema('app')
+      .from('locations')
+      .select('id, name')
+      .eq('team_id', params.teamId)
+
+    const locationNameMap: Record<string, string> = {}
+    for (const loc of teamLocations || []) {
+      locationNameMap[loc.id] = loc.name
+    }
+
+    // Fetch recent competitive_runs (bounded) to find latest per competitor
+    const { data: runs } = await serviceClient
+      .schema('app')
+      .from('competitive_runs')
+      .select('id, competitor_ids, created_at, data')
+      .eq('team_id', params.teamId)
+      .order('created_at', { ascending: false })
+      .limit(competitors.length * 2)
+
+    // Build map: competitor_id -> latest run (with metrics from 30d data)
+    const latestRunMap: Record<string, {
+      created_at: string
+      competitivePositionScore?: number
+      marketMomentum?: number
+      ownedAverageRating?: number
+      competitorAverageRating?: number
+      ratingGap?: number
+      threatCount?: number
+      opportunityCount?: number
+    }> = {}
+
+    for (const run of runs || []) {
+      for (const cid of run.competitor_ids || []) {
+        if (!latestRunMap[cid]) {
+          const d30 = run.data?.['30d']
+          latestRunMap[cid] = {
+            created_at: run.created_at,
+            competitivePositionScore: d30?.competitivePositionScore,
+            marketMomentum: d30?.marketMomentum,
+            ownedAverageRating: d30?.ownedAverageRating,
+            competitorAverageRating: d30?.competitorAverageRating,
+            ratingGap: d30?.ratingGap,
+            threatCount: d30?.threatAlerts?.length,
+            opportunityCount: d30?.opportunities?.length,
+          }
+        }
+      }
+    }
+
+    // Enrich competitors
+    const enriched = competitors.map((c: any) => {
+      const latest = latestRunMap[c.id]
+      const locationNames = (c.location_ids || [])
+        .map((id: string) => locationNameMap[id])
+        .filter(Boolean)
+
+      return {
+        ...c,
+        location_names: locationNames,
+        latest_report_date: latest?.created_at || null,
+        metrics: latest ? {
+          competitivePositionScore: latest.competitivePositionScore,
+          marketMomentum: latest.marketMomentum,
+          ownedAverageRating: latest.ownedAverageRating,
+          competitorAverageRating: latest.competitorAverageRating,
+          ratingGap: latest.ratingGap,
+          threatCount: latest.threatCount,
+          opportunityCount: latest.opportunityCount,
+        } : null,
+      }
+    })
+
+    return NextResponse.json({
+      competitors: enriched,
+      tier: tierInfo.tier,
+      maxCompetitors,
+    })
   } catch (error: any) {
     captureRouteError(error, { route: '/api/teams/[teamId]/competitors', teamId: params?.teamId })
-    return NextResponse.json({ error: error.message }, { status: 403 })
+    const status = error.message?.includes('Unauthorized') || error.message?.includes('not a member') ? 403 : 500
+    return NextResponse.json({ error: error.message }, { status })
   }
 }
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
   try {
+    await requireUser()
     await requireTeamMember(params.teamId)
     const body = await request.json()
     const data = createCompetitorSchema.parse(body)
@@ -35,13 +137,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // 1. Check tier limits
     const tierInfo = await getTeamTier(params.teamId)
-    const limits: Record<string, number> = {
-      FREE: 0,
-      PRO: 1,
-      BUSINESS: 5,
-      ENTERPRISE: 20
-    }
-    const maxCompetitors = limits[tierInfo.tier] || 0
+    const maxCompetitors = TIER_LIMITS[tierInfo.tier] || 0
 
     if (maxCompetitors === 0) {
       return NextResponse.json({ error: 'Please upgrade to PRO or higher to add competitors' }, { status: 403 })
@@ -66,7 +162,21 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       )
     }
 
-    // 3. Check for existing competitor (active or soft-deleted)
+    // 3. Validate location_ids belong to this team
+    const { data: validLocations } = await supabase
+      .schema('app')
+      .from('locations')
+      .select('id')
+      .eq('team_id', params.teamId)
+      .in('id', data.location_ids)
+
+    const validIds = new Set((validLocations || []).map((l: any) => l.id))
+    const invalidIds = data.location_ids.filter((id: string) => !validIds.has(id))
+    if (invalidIds.length > 0) {
+      return NextResponse.json({ error: 'One or more location IDs do not belong to this team.' }, { status: 400 })
+    }
+
+    // 4. Check for existing competitor (active or soft-deleted)
     const { data: existing } = await supabase
       .schema('app')
       .from('competitors')
@@ -82,12 +192,11 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         return NextResponse.json({ error: 'This competitor is already being tracked.' }, { status: 400 })
       }
 
-      // Restore and update the deleted competitor
       const { data: updated, error } = await supabase
         .schema('app')
         .from('competitors')
         .update({
-          deleted_at: null, // Restore
+          deleted_at: null,
           name: data.name,
           website: data.website || null,
           phone: data.phone || null,
@@ -97,6 +206,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
           rating: data.rating || null,
           review_count: data.review_count || null,
           opening_hours: data.opening_hours || null,
+          location_ids: data.location_ids,
         })
         .eq('id', existing.id)
         .select()
@@ -107,7 +217,6 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       }
       competitor = updated
     } else {
-      // Insert new competitor
       const { data: inserted, error } = await supabase
         .schema('app')
         .from('competitors')
@@ -123,6 +232,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
           rating: data.rating || null,
           review_count: data.review_count || null,
           opening_hours: data.opening_hours || null,
+          location_ids: data.location_ids,
         })
         .select()
         .single()
@@ -133,7 +243,19 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       competitor = inserted
     }
 
-    return NextResponse.json({ competitor }, { status: 201 })
+    // 4. Fire-and-forget: trigger async setup (review sync + first report)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    fetch(`${baseUrl}/api/competitors/${competitor.id}/setup`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+        'Content-Type': 'application/json',
+      },
+    }).catch(() => {})
+
+    return NextResponse.json({
+      competitor: { ...competitor, setup_status: 'pending' }
+    }, { status: 201 })
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
@@ -142,4 +264,3 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-

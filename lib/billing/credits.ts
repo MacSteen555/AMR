@@ -9,7 +9,6 @@ export type CreditEventType =
   | 'reply_generate'
   | 'reply_regenerate'
   | 'insight_run'
-  | 'competitive_run'
   | 'refund'
 
 export type SubscriptionTier = 'FREE' | 'PRO' | 'BUSINESS' | 'ENTERPRISE'
@@ -165,7 +164,7 @@ export async function spendCredits(
   const balance = await getBalance(teamId)
 
   if (balance < amount) {
-    throw new Error('Insufficient credits')
+    throw new Error('Review limit reached')
   }
 
   // Create idempotency record if key provided

@@ -480,7 +480,6 @@ export default function TeamDashboardPage() {
                 label="Run insights"
                 icon={<InsightsIcon />}
                 onClick={() => router.push(`/teams/${teamId}/insights`)}
-                sub="3 credits"
               />
               <QuickAction
                 label="Manage locations"

@@ -42,9 +42,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const teamId = params?.teamId as string | undefined;
   const currentTeam = teams.find((t) => t.id === teamId) || null;
-  // Fallback to first team for nav links and credits when not on a team-scoped page
+  // Fallback to first team for nav links when not on a team-scoped page
   const navTeam = currentTeam || (teams.length > 0 ? teams[0] : null);
-  const credits = navTeam?.creditBalance || 0;
   const tier = navTeam?.subscription?.tier || "FREE";
 
   // Resolve location: from URL param if present, otherwise from sessionStorage
@@ -142,29 +141,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavItem
               href={`/teams/${navTeam.id}/insights${locationQs}`}
               icon={<InsightsIcon />}
-              label="Insights"
+              label="Metrics"
               active={pathname?.includes("/insights")}
               collapsed={isCollapsed}
             />
             <NavItem
               href={`/teams/${navTeam.id}/reports${locationQs}`}
-              icon={<LightbulbIcon />}
-              label="AI Reports"
-              active={
-                pathname?.includes("/reports") &&
-                !pathname?.includes("/aireports")
-              }
-              badge={tier === "FREE" ? "PRO" : undefined}
+              icon={<ReportsIcon />}
+              label="Reports"
+              active={pathname?.includes("/reports")}
+              badge={tier === "FREE" ? "PRO+" : undefined}
               disabled={tier === "FREE"}
               collapsed={isCollapsed}
-              subtitle={
-                !isCollapsed && tier !== "FREE" ?
-                  tier === "ENTERPRISE" ?
-                    undefined
-                  : `${navTeam?.reportsGenerated ?? 0}/${tier === "PRO" ? 5 : 20} reports`
-
-                : undefined
-              }
             />
             <NavItem
               href={`/teams/${navTeam.id}/competitive`}
@@ -227,74 +215,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* Credits & User */}
+      {/* Plan Badge & User */}
       <div
         className={`${isCollapsed ? "px-2" : "px-4"} py-4 border-t border-gray-100 space-y-3`}
       >
-        {/* Credits */}
-        {isCollapsed ?
-          <button
-            onClick={() =>
-              navTeam && router.push(`/teams/${navTeam.id}/billing`)
-            }
-            className="w-full flex flex-col items-center gap-0.5 bg-gray-50 rounded-xl border border-gray-100 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
-            title={`${credits} credits left`}
-          >
-            <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
-              <svg
-                className="w-4 h-4 text-teal-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="text-sm font-bold text-teal-600 leading-none">
-              {credits}
-            </div>
-          </button>
-        : <div className="flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-teal-100 flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-teal-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+        {/* Plan Badge */}
+        {navTeam && (
+          isCollapsed ? (
+            <button
+              onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
+              className="w-full flex flex-col items-center gap-0.5 bg-gray-50 rounded-xl border border-gray-100 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
+              title={`${tier} — Manage billing`}
+            >
+              <span className="text-xs font-bold text-teal-600 px-2 py-0.5 bg-teal-50 rounded-md">
+                {tier}
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
+              className="w-full flex items-center justify-between bg-gray-50 rounded-2xl border border-gray-100 px-3.5 py-2.5 hover:border-teal-200 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-teal-600 px-2.5 py-0.5 bg-teal-50 rounded-lg">
+                  {tier}
+                </span>
+                <span className="text-xs text-gray-400 font-medium"></span>
               </div>
-              <div>
-                <div className="text-lg font-bold text-teal-600 leading-none">
-                  {credits}
-                </div>
-                <div className="text-[10px] text-gray-400 font-medium">
-                  credits left
-                </div>
-              </div>
-            </div>
-            {navTeam && (
-              <button
-                onClick={() => router.push(`/teams/${navTeam.id}/billing`)}
-                className="text-xs px-2.5 py-1 bg-white border border-gray-200 hover:border-teal-200 hover:bg-teal-50 text-gray-500 hover:text-teal-600 rounded-lg transition-all duration-200 font-medium cursor-pointer active:scale-[0.98]"
-              >
-                Top up
-              </button>
-            )}
-          </div>
-        }
+              <span className="text-xs text-gray-400 font-medium hover:text-teal-600 transition-colors">
+                Manage
+              </span>
+            </button>
+          )
+        )}
 
         {/* User Profile with Popover */}
         <div
@@ -547,17 +500,14 @@ function LoadingScreen() {
             </div>
           </div>
 
-          {/* Credits & user skeleton */}
+          {/* Plan badge & user skeleton */}
           <div className="px-4 py-4 border-t border-gray-100 space-y-3">
             <div className="flex items-center justify-between bg-gray-50 rounded-xl px-3.5 py-2.5">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gray-100 animate-pulse" />
-                <div className="space-y-1">
-                  <div className="h-5 w-8 rounded bg-gray-100 animate-pulse" />
-                  <div className="h-2.5 w-14 rounded bg-gray-100 animate-pulse" />
-                </div>
+                <div className="h-5 w-10 rounded-md bg-gray-100 animate-pulse" />
+                <div className="h-3 w-8 rounded bg-gray-100 animate-pulse" />
               </div>
-              <div className="h-6 w-14 rounded-lg bg-gray-100 animate-pulse" />
+              <div className="h-3 w-12 rounded bg-gray-100 animate-pulse" />
             </div>
             <div className="flex items-center gap-3 p-2.5">
               <div className="w-9 h-9 rounded-full bg-gray-100 animate-pulse" />
@@ -688,23 +638,6 @@ function TeamsIcon() {
   );
 }
 
-function LightbulbIcon() {
-  return (
-    <svg
-      className="w-5 h-5"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-      />
-    </svg>
-  );
-}
 
 function DashboardIcon() {
   return (
