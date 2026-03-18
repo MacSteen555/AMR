@@ -16,6 +16,7 @@ export const updateTeamMemberSchema = z.object({
 export const importLocationsSchema = z.object({
   google_location_ids: z.array(z.string()).min(1),
   account_id: z.string().optional(),
+  force: z.boolean().optional(),
 })
 
 export const updateLocationSettingsSchema = z.object({

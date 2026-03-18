@@ -17,6 +17,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const serviceClient = createSupabaseServiceRoleClient()
 
     const importedLocations = []
+    const conflicts: { name: string; google_location_id: string }[] = []
 
     for (const googleLocationId of data.google_location_ids) {
       // Get location details from Google if account_id provided
@@ -33,7 +34,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         }
       }
 
-      // Enforce: A location can only belong to ONE team.
+      // Check if location already belongs to another team
       const { data: existingGlobal } = await serviceClient
         .schema('app')
         .from('locations')
@@ -43,10 +44,19 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
       if (existingGlobal) {
         if (existingGlobal.team_id !== params.teamId) {
-          throw new Error(`Location "${existingGlobal.name || googleLocationId}" is already managed by another team.`)
+          if (!data.force) {
+            // Return conflict info so the frontend can prompt the user
+            conflicts.push({
+              name: existingGlobal.name || googleLocationId,
+              google_location_id: googleLocationId,
+            })
+            continue
+          }
+          // force=true: allow importing even though another team has it
+        } else {
+          // Already belongs to this team, skip
+          continue
         }
-        // If it belongs to this team, we can skip or update. Let's skip.
-        continue
       }
 
       // Create location
@@ -109,7 +119,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       },
     }).catch(err => console.error('Background sync failed on import:', err))
 
-    return NextResponse.json({ locations: importedLocations }, { status: 201 })
+    return NextResponse.json({ locations: importedLocations, conflicts }, { status: 201 })
   } catch (error: any) {
     if (error.name === 'ZodError') {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })

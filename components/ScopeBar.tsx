@@ -87,7 +87,7 @@ export function ScopeBar({ teams, onMobileMenuToggle, mobileMenuOpen }: ScopeBar
       try { sessionStorage.removeItem('amr:location:' + teamId) } catch { /* noop */ }
     }
     // Navigate to same section on new team, drop location param
-    router.push(`/teams/${newTeamId}/${section}`)
+    router.push(`/teams/${newTeamId}${section === 'dashboard' ? '' : `/${section}`}`)
   }
 
   const handleLocationSwitch = (locationId: string | null) => {

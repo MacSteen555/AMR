@@ -135,6 +135,8 @@ export default function NewTeamPage() {
   const [selectedGoogleIds, setSelectedGoogleIds] = useState<string[]>([])
   const [importingLocations, setImportingLocations] = useState(false)
   const [importedLocationIds, setImportedLocationIds] = useState<{ id: string; name: string }[]>([])
+  const [conflictLocations, setConflictLocations] = useState<{ name: string; google_location_id: string }[]>([])
+  const [showConflictModal, setShowConflictModal] = useState(false)
 
   const [currentLocationIdx, setCurrentLocationIdx] = useState(0)
   const [sampleReviews, setSampleReviews] = useState<SampleReviews | null>(null)
@@ -184,17 +186,30 @@ export default function NewTeamPage() {
     setSelectedGoogleIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
-  const handleImportLocations = async () => {
+  const handleImportLocations = async (force = false) => {
     if (selectedGoogleIds.length === 0 || !teamId) return
     try {
-      setImportingLocations(true); setError(null)
+      setImportingLocations(true); setError(null); setShowConflictModal(false)
       const selectedLocs = googleLocations.filter(l => selectedGoogleIds.includes(l.location_id))
       const accountId = selectedLocs[0]?.account_id
-      const result = await apiPost<{ locations: { id: string; name: string }[] }>(
+      const result = await apiPost<{ locations: { id: string; name: string }[]; conflicts: { name: string; google_location_id: string }[] }>(
         `/api/teams/${teamId}/locations/import`,
-        { account_id: accountId, google_location_ids: selectedGoogleIds }
+        { account_id: accountId, google_location_ids: selectedGoogleIds, force }
       )
+
+      // If there are conflicts and we haven't forced yet, show the modal
+      if (result.conflicts?.length > 0 && !force) {
+        setConflictLocations(result.conflicts)
+        // Still track any locations that imported successfully
+        if (result.locations.length > 0) {
+          setImportedLocationIds(result.locations)
+        }
+        setShowConflictModal(true)
+        return
+      }
+
       setImportedLocationIds(result.locations)
+      setConflictLocations([])
       setStep(3)
       if (result.locations.length > 0) {
         loadSampleReviews(result.locations[0].name)
@@ -203,6 +218,7 @@ export default function NewTeamPage() {
     } catch (err: any) { setError(err.message || 'Failed to import locations') }
     finally { setImportingLocations(false) }
   }
+
 
   /* ─── Step 3 ─── */
   const loadSampleReviews = async (locationName: string, isBackground = false) => {
@@ -334,6 +350,57 @@ export default function NewTeamPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        )}
+
+        {/* ═══════ Conflict Confirmation Modal ═══════ */}
+        {showConflictModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" style={{ animation: 'fadeSlideUp 0.2s ease-out' }}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+              <div className="px-6 pt-6 pb-4">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Heads up</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {conflictLocations.length === 1
+                        ? `"${conflictLocations[0].name}" is already being managed by another team.`
+                        : `${conflictLocations.length} of your selected locations are already being managed by other teams.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-teal-50 border border-teal-100 rounded-xl p-3">
+                  <p className="text-sm text-teal-800">
+                    <span className="font-semibold">Tip:</span> You could also ask the other team&apos;s owner to invite you, so you can collaborate on the same team.
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={() => { setShowConflictModal(false); setConflictLocations([]) }}
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleImportLocations(true)}
+                  disabled={importingLocations}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-600 to-teal-700 text-white text-sm font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {importingLocations ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Adding...</>
+                  ) : (
+                    'Yes, Add Anyway'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -498,7 +565,7 @@ export default function NewTeamPage() {
               {googleLocations.length > 0 && (
                 <div className="px-5 py-4 border-t border-gray-200 bg-gray-50/80 flex justify-end gap-3">
                   <button
-                    onClick={handleImportLocations}
+                    onClick={() => handleImportLocations()}
                     disabled={importingLocations || selectedGoogleIds.length === 0}
                     className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-teal-200/60 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm cursor-pointer"
                   >
