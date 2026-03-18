@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Navbar } from '@/components/marketing/Navbar'
 
 /* ════════════════════════════════════════════════════════════════════
    SCROLL REVEAL HOOK
@@ -243,9 +244,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 /* ════════════════════════════════════════════════════════════════════
    MAIN LANDING PAGE
    ════════════════════════════════════════════════════════════════════ */
-export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+export default function LandingPageClient() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [contactOpen, setContactOpen] = useState(false)
 
@@ -255,14 +254,7 @@ export default function LandingPage() {
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   const scrollTo = (id: string) => {
-    setMobileMenuOpen(false)
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
 
@@ -282,52 +274,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white text-gray-900">
 
       {/* ════════════════ NAVBAR ════════════════ */}
-      <nav className={`fixed top-4 left-4 right-4 z-50 transition-all duration-500 rounded-2xl ${
-        scrolled
-          ? 'bg-white/80 backdrop-blur-xl shadow-lg shadow-gray-200/40 border border-gray-200/60'
-          : 'bg-white/0'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={32} height={32} className="h-8 w-auto" />
-            <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
-          </div>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Features</button>
-            <button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Pricing</button>
-            <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">FAQ</button>
-            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">{isLoggedIn ? "Dashboard" : "Log in"}</Link>
-            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-200 transition-all duration-300">
-              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}
-            </Link>
-          </div>
-
-          {/* Mobile hamburger */}
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 cursor-pointer" aria-label="Toggle menu">
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              }
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 px-6 py-4 bg-white rounded-b-2xl space-y-3" style={{ animation: 'fadeSlideUp 0.3s ease-out' }}>
-            <button onClick={() => scrollTo('features')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Features</button>
-            <button onClick={() => scrollTo('pricing')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Pricing</button>
-            <button onClick={() => scrollTo('faq')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">FAQ</button>
-            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="block text-sm text-gray-600 hover:text-gray-900 py-2">{isLoggedIn ? "Dashboard" : "Log in"}</Link>
-            <Link href={isLoggedIn ? "/dashboard" : "/login"} className="block w-full text-center px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold">
-              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}
-            </Link>
-          </div>
-        )}
-      </nav>
+      <Navbar showAnchorLinks />
 
       {/* ════════════════ HERO ════════════════ */}
       <section className="relative pt-36 pb-24 overflow-hidden mesh-gradient">
@@ -982,70 +929,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════════════ FOOTER ════════════════ */}
-      <footer className="border-t border-gray-100 bg-gray-50/50">
-        <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
-            {/* Brand column */}
-            <div className="lg:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <Image src="/images/amber_teal-logo.png" alt="AutoMyReply" width={32} height={32} className="h-8 w-auto" />
-                <span className="text-lg font-bold text-gray-900">AutoMyReply</span>
-              </div>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-sm mb-6">
-                AI-powered review management for Google Business Profile. Save time, stay consistent, and never miss a review.
-              </p>
-              <div className="flex items-center gap-4">
-                {/* Twitter/X */}
-                <a href="#" className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-all duration-200" aria-label="Twitter">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
-                </a>
-                {/* LinkedIn */}
-                <a href="#" className="w-9 h-9 rounded-lg bg-gray-100 hover:bg-teal-50 flex items-center justify-center text-gray-400 hover:text-teal-600 transition-all duration-200" aria-label="LinkedIn">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" /></svg>
-                </a>
-              </div>
-            </div>
-
-            {/* Product links */}
-            <div>
-              <h4 className="font-semibold text-gray-900 text-sm mb-4">Product</h4>
-              <ul className="space-y-3">
-                <li><button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Features</button></li>
-                <li><button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Pricing</button></li>
-                <li><button onClick={() => scrollTo('demo')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Live Demo</button></li>
-              </ul>
-            </div>
-
-            {/* Company links */}
-            <div>
-              <h4 className="font-semibold text-gray-900 text-sm mb-4">Company</h4>
-              <ul className="space-y-3">
-                <li><Link href="/terms" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Terms of Service</Link></li>
-                <li><Link href="/privacy" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Privacy Policy</Link></li>
-              </ul>
-            </div>
-
-            {/* Support links */}
-            <div>
-              <h4 className="font-semibold text-gray-900 text-sm mb-4">Support</h4>
-              <ul className="space-y-3">
-                <li><button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">FAQ</button></li>
-                <li><button onClick={() => setContactOpen(true)} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Contact Us</button></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom bar */}
-          <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} AutoMyReply. All rights reserved.</p>
-            <div className="flex items-center gap-6">
-              <Link href="/terms" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Terms</Link>
-              <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Privacy</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
 
       {contactOpen && <LandingContactModal onClose={() => setContactOpen(false)} />}
     </div>
