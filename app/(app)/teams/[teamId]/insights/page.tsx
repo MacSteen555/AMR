@@ -15,7 +15,7 @@ interface Comparison {
   averageResponseTimeHours: { current: number | null; previous: number | null; deltaPercent: number | null }
 }
 
-interface ThemeMention { label: string; count: number }
+interface ThemeMention { label: string; count: number; sentiment: 'positive' | 'negative' }
 
 // ─── Period Helpers ──────────────────────────────────────────────────────────
 

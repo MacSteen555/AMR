@@ -17,7 +17,7 @@ interface Comparison {
   averageResponseTimeHours: { current: number | null; previous: number | null; deltaPercent: number | null }
 }
 
-interface ThemeMention { label: string; count: number }
+interface ThemeMention { label: string; count: number; sentiment: 'positive' | 'negative' }
 interface TimePoint { month: string; averageRating: number | null; count: number; [key: string]: any }
 interface VolumePoint { month: string; total: number; positive: number; neutral: number; negative: number }
 interface ResponseRatePoint { month: string; rate: number | null; replied: number; total: number; [key: string]: any }
@@ -83,6 +83,14 @@ const TEAL_GRADIENT = [
   { bg: 'bg-[#14B8A6]', text: 'text-white',      count: 'bg-[#0D9B8A] text-white' },
 ]
 
+const RED_GRADIENT = [
+  { bg: 'bg-[#FEF2F2]', text: 'text-[#DC2626]', count: 'bg-[#FECACA] text-[#DC2626]' },
+  { bg: 'bg-[#FECACA]', text: 'text-[#B91C1C]', count: 'bg-[#FCA5A5] text-[#B91C1C]' },
+  { bg: 'bg-[#FCA5A5]', text: 'text-[#991B1B]', count: 'bg-[#F87171] text-[#991B1B]' },
+  { bg: 'bg-[#F87171]', text: 'text-[#7F1D1D]', count: 'bg-[#EF4444] text-[#7F1D1D]' },
+  { bg: 'bg-[#EF4444]', text: 'text-white',      count: 'bg-[#DC2626] text-white' },
+]
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatResponseTime(hours: number | null): string {
@@ -136,30 +144,37 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle: str
   )
 }
 
-function ThemeBadges({ themes, onThemeClick }: { themes: ThemeMention[]; onThemeClick: (label: string) => void }) {
+function ThemeBadgeColumn({ title, dot, themes, gradient, onThemeClick }: {
+  title: string
+  dot: string
+  themes: ThemeMention[]
+  gradient: typeof TEAL_GRADIENT
+  onThemeClick: (label: string, sentiment: 'positive' | 'negative') => void
+}) {
   const maxCount = Math.max(...themes.map(t => t.count), 1)
   const minCount = Math.min(...themes.map(t => t.count), 1)
   const range = maxCount - minCount || 1
 
   function getTier(count: number): number {
     const t = (count - minCount) / range
-    return Math.min(Math.floor(t * TEAL_GRADIENT.length), TEAL_GRADIENT.length - 1)
+    return Math.min(Math.floor(t * gradient.length), gradient.length - 1)
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-      <div className="mb-4">
-        <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
-        <p className="text-xs text-[#9CA3AF]">{themes.length} themes detected — click to view reviews</p>
+    <div>
+      <div className="flex items-center gap-2 mb-3">
+        <div className={`w-2.5 h-2.5 rounded-full ${dot}`} />
+        <h4 className="text-sm font-semibold text-[#111827]">{title}</h4>
+        <span className="text-xs text-[#9CA3AF]">({themes.length})</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {themes.map((t, i) => {
           const tier = getTier(t.count)
-          const colors = TEAL_GRADIENT[tier]
+          const colors = gradient[tier]
           return (
             <button
               key={i}
-              onClick={() => onThemeClick(t.label)}
+              onClick={() => onThemeClick(t.label, t.sentiment)}
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${colors.bg}`}
             >
               <span className={`text-sm font-medium ${colors.text}`}>{t.label}</span>
@@ -167,6 +182,41 @@ function ThemeBadges({ themes, onThemeClick }: { themes: ThemeMention[]; onTheme
             </button>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function ThemeBadges({ themes, onThemeClick }: { themes: ThemeMention[]; onThemeClick: (label: string, sentiment: 'positive' | 'negative') => void }) {
+  const positive = themes.filter(t => t.sentiment === 'positive')
+  const negative = themes.filter(t => t.sentiment === 'negative')
+  const hasNegative = negative.length > 0
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-[#111827]">Review Themes</h3>
+        <p className="text-xs text-[#9CA3AF]">{themes.length} themes detected — click to view reviews</p>
+      </div>
+      <div className={`grid gap-6 ${hasNegative ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+        {positive.length > 0 && (
+          <ThemeBadgeColumn
+            title="What Customers Love"
+            dot="bg-[#22c55e]"
+            themes={positive}
+            gradient={TEAL_GRADIENT}
+            onThemeClick={onThemeClick}
+          />
+        )}
+        {hasNegative && (
+          <ThemeBadgeColumn
+            title="What Needs Attention"
+            dot="bg-[#ef4444]"
+            themes={negative}
+            gradient={RED_GRADIENT}
+            onThemeClick={onThemeClick}
+          />
+        )}
       </div>
     </div>
   )
@@ -181,13 +231,15 @@ interface ThemeReview {
   location_name?: string
 }
 
-function ThemeReviewsModal({ theme, reviews, loading, onClose }: {
+function ThemeReviewsModal({ theme, sentiment, reviews, loading, onClose }: {
   theme: string
+  sentiment: 'positive' | 'negative'
   reviews: ThemeReview[]
   loading: boolean
   onClose: () => void
 }) {
   const STAR_COLORS: Record<number, string> = { 5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f97316', 1: '#ef4444' }
+  const sentimentLabel = sentiment === 'positive' ? 'positive (4-5★)' : 'negative (1-3★)'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -196,7 +248,7 @@ function ThemeReviewsModal({ theme, reviews, loading, onClose }: {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F4F6]">
           <div>
             <h3 className="text-lg font-semibold text-[#111827]">Reviews about &ldquo;{theme}&rdquo;</h3>
-            <p className="text-xs text-[#9CA3AF]">Most recent reviews tagged with this theme</p>
+            <p className="text-xs text-[#9CA3AF]">Most recent {sentimentLabel} reviews tagged with this theme</p>
           </div>
           <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#4B5563] transition-colors cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,17 +317,19 @@ export function MetricsView({
 
   // Theme modal state
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
+  const [selectedSentiment, setSelectedSentiment] = useState<'positive' | 'negative'>('positive')
   const [themeReviews, setThemeReviews] = useState<ThemeReview[]>([])
   const [themeLoading, setThemeLoading] = useState(false)
 
-  const handleThemeClick = async (label: string) => {
+  const handleThemeClick = async (label: string, sentiment: 'positive' | 'negative') => {
     setSelectedTheme(label)
+    setSelectedSentiment(sentiment)
     setThemeReviews([])
     setThemeLoading(true)
     try {
       const locParam = locationId ? `&location=${locationId}` : ''
       const res = await apiGet<{ reviews: ThemeReview[] }>(
-        `/api/teams/${teamId}/reviews?theme=${encodeURIComponent(label)}&limit=10${locParam}`
+        `/api/teams/${teamId}/reviews?theme=${encodeURIComponent(label)}&sentiment=${sentiment}&limit=10${locParam}`
       )
       setThemeReviews(res.reviews || [])
     } catch {
@@ -324,6 +378,7 @@ export function MetricsView({
       {selectedTheme && (
         <ThemeReviewsModal
           theme={selectedTheme}
+          sentiment={selectedSentiment}
           reviews={themeReviews}
           loading={themeLoading}
           onClose={() => setSelectedTheme(null)}
