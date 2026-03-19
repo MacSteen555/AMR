@@ -68,6 +68,13 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
             reviewQuery = reviewQuery.contains('themes', [themeFilter])
         }
 
+        const sentimentFilter = searchParams.get('sentiment')
+        if (sentimentFilter === 'positive') {
+            reviewQuery = reviewQuery.gte('rating', 4)
+        } else if (sentimentFilter === 'negative') {
+            reviewQuery = reviewQuery.lte('rating', 3)
+        }
+
         const { data: reviews } = await reviewQuery
 
         // Attach location name

@@ -135,17 +135,30 @@ function computeComparison(current: PeriodKPIs, previous: PeriodKPIs) {
 
 // ─── Theme extraction ────────────────────────────────────────────────────────
 
-function computeThemeMentions(reviews: Array<{ themes: string[] | null }>): Array<{ label: string; count: number }> {
-  const map = new Map<string, number>()
+function computeThemeMentions(
+  reviews: Array<{ themes: string[] | null; rating: number }>,
+): Array<{ label: string; count: number; sentiment: 'positive' | 'negative' }> {
+  const posMap = new Map<string, number>()
+  const negMap = new Map<string, number>()
+
   for (const r of reviews) {
     if (!r.themes) continue
+    const map = r.rating >= 4 ? posMap : negMap
     for (const t of r.themes) {
       map.set(t, (map.get(t) || 0) + 1)
     }
   }
-  return [...map.entries()]
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count)
+
+  const results: Array<{ label: string; count: number; sentiment: 'positive' | 'negative' }> = []
+
+  for (const [label, count] of posMap) {
+    results.push({ label, count, sentiment: 'positive' })
+  }
+  for (const [label, count] of negMap) {
+    results.push({ label, count, sentiment: 'negative' })
+  }
+
+  return results.sort((a, b) => b.count - a.count)
 }
 
 // ─── Analytics computation ───────────────────────────────────────────────────
