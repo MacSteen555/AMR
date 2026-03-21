@@ -82,6 +82,119 @@ export interface AnnualReportData {
   notableQuotes: Array<{ quote: string; rating: number; sentiment: 'positive' | 'negative'; theme: string }>
 }
 
+/* ── Unified Report (replaces all 4 period-specific reports) ─────────── */
+
+export interface SnapshotCard {
+  headline: string
+  description: string
+  delta?: string          // e.g. "+12%", "3x", "new"
+  sentiment: 'positive' | 'negative' | 'neutral'
+}
+
+export interface TrendStats {
+  currentAvgRating: number
+  previousAvgRating: number | null
+  currentReviewCount: number
+  previousReviewCount: number
+  currentSentiment: number       // 0-100
+  previousSentiment: number | null
+  currentResponseRate: number
+  previousResponseRate: number | null
+  currentFiveStarPct: number
+  previousFiveStarPct: number | null
+  currentDistribution: number[]  // [1-star, 2-star, 3-star, 4-star, 5-star]
+  previousDistribution: number[] | null
+}
+
+export interface ThemeItem {
+  theme: string
+  mentionCount: number
+  sentiment: 'positive' | 'negative' | 'mixed'
+  isNew: boolean                 // new this period vs recurring
+  topQuotes: string[]            // 2-3 review-referenced quotes
+}
+
+export interface WeeklyVolume {
+  weekLabel: string              // e.g. "Mar 3-9"
+  reviewCount: number
+  avgRating: number
+}
+
+export interface TimelineMonth {
+  month: string                  // YYYY-MM
+  avgRating: number
+  reviewCount: number
+  annotation: string | null
+}
+
+export interface HighlightCard {
+  title: string
+  description: string
+  quote?: string
+}
+
+export interface StrengthCard {
+  theme: string
+  description: string
+  mentionCount: number
+  exampleQuote?: string
+}
+
+export interface WeaknessCard {
+  theme: string
+  description: string
+  mentionCount: number
+  severity: 'low' | 'medium' | 'high'
+  exampleQuote?: string
+}
+
+export interface RecommendationCard {
+  title: string
+  description: string
+  impact: 'low' | 'medium' | 'high'
+  effort: 'low' | 'medium' | 'high'
+  category: string
+}
+
+export interface UnifiedReportData {
+  // Metadata
+  adaptiveWindowDays: number
+  recentPeriodStart: string
+  recentPeriodEnd: string
+  previousPeriodStart: string | null
+  previousPeriodEnd: string | null
+
+  // Zone 1: Recent Trends
+  snapshot: SnapshotCard[]                    // Section 1
+  trendStats: TrendStats                      // Section 2
+  weeklyVolume: WeeklyVolume[]                // Section 2 (chart data)
+  themes: ThemeItem[]                         // Section 3
+
+  // Zone 2: Big Picture
+  bigPictureStats: {                          // Section 4
+    totalReviews: number
+    averageRating: number
+    fiveStarPercentage: number
+    responseRate: number
+  }
+  bigPictureNarrative: string                 // Section 4
+  keyStrengths: StrengthCard[]                // Section 5
+  keyWeaknesses: WeaknessCard[]               // Section 5
+  monthlyTimeline: TimelineMonth[]            // Section 6
+  highlights: HighlightCard[]                 // Section 6
+  lowlights: HighlightCard[]                  // Section 6
+  recommendations: RecommendationCard[]       // Section 7 (may be empty)
+  notableQuotes: Array<{ quote: string; rating: number; sentiment: string; theme: string }>
+
+  // Review references (populated post-generation)
+  referencedReviews: Record<string, {
+    rating: number
+    comment: string | null
+    review_date: string
+    reviewer_name?: string | null
+  }>
+}
+
 // ─── Voice Block ──────────────────────────────────────────────────────────────
 
 const VOICE_RULES = `
