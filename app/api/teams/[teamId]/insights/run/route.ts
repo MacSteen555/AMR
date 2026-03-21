@@ -3,7 +3,7 @@ import { requireTeamMember } from '@/lib/rbac'
 import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
-import { insightsRun } from '@/lib/openai/insights'
+import { insightsRun, insightsRunUnified } from '@/lib/openai/insights'
 import { runInsightsSchema } from '@/lib/validation/schemas'
 import { captureRouteError } from '@/lib/sentry'
 
@@ -28,6 +28,43 @@ function subtractFromDate(date: Date, amount: number, unit: 'days' | 'months'): 
 
 function toDateStr(date: Date): string {
   return date.toISOString().split('T')[0]
+}
+
+/**
+ * Compute the adaptive window for recent trends.
+ * Starts at 30 days, widens to 60, then 90 until both
+ * current and previous periods have at least 1 review.
+ * Max window: 90 days.
+ */
+function computeAdaptiveWindow(
+  reviews: Array<{ review_date: string }>,
+  now: Date
+): { windowDays: number; currentStart: Date; previousStart: Date; previousEnd: Date } {
+  for (const windowDays of [30, 60, 90]) {
+    const currentStart = subtractFromDate(now, windowDays, 'days')
+    const previousEnd = currentStart
+    const previousStart = subtractFromDate(currentStart, windowDays, 'days')
+
+    const currentCount = reviews.filter(r => {
+      const d = new Date(r.review_date)
+      return d >= currentStart && d <= now
+    }).length
+
+    const previousCount = reviews.filter(r => {
+      const d = new Date(r.review_date)
+      return d >= previousStart && d < previousEnd
+    }).length
+
+    if (currentCount > 0 && previousCount > 0) {
+      return { windowDays, currentStart, previousStart, previousEnd }
+    }
+  }
+
+  // Fallback: use 90 days even without comparison data
+  const currentStart = subtractFromDate(now, 90, 'days')
+  const previousEnd = currentStart
+  const previousStart = subtractFromDate(currentStart, 90, 'days')
+  return { windowDays: 90, currentStart, previousStart, previousEnd }
 }
 
 export async function POST(request: Request, { params }: { params: { teamId: string } }) {
@@ -70,6 +107,111 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 
     // Compute date ranges
     const now = new Date()
+
+    // Handle 'unified' — single unified report with adaptive window
+    if (periodWindow === 'unified') {
+      // Get location info if location-scoped
+      let locationName: string | null = null
+      if (locationId) {
+        const { data: loc, error: locError } = await serviceClient
+          .schema('app').from('locations').select('id, name, team_id')
+          .eq('id', locationId).eq('team_id', params.teamId).single()
+        if (locError || !loc) {
+          return NextResponse.json({ error: 'Location not found' }, { status: 404 })
+        }
+        locationName = loc.name
+      }
+
+      // Get team name
+      const { data: team } = await serviceClient
+        .schema('app').from('teams').select('name')
+        .eq('id', params.teamId).single()
+      const teamName = team?.name || null
+
+      // Fetch ALL reviews for the scope
+      let reviewQuery = serviceClient.schema('app').from('google_reviews')
+        .select('id, rating, comment, review_date, reply_status, reviewer_name')
+        .order('review_date', { ascending: false })
+
+      if (locationId) {
+        reviewQuery = reviewQuery.eq('location_id', locationId)
+      } else {
+        const { data: locs } = await serviceClient.schema('app').from('locations').select('id').eq('team_id', params.teamId)
+        const locIds = (locs || []).map(l => l.id)
+        if (locIds.length > 0) {
+          reviewQuery = reviewQuery.in('location_id', locIds)
+        } else {
+          return NextResponse.json({ insights: [] })
+        }
+      }
+
+      const { data: reviews } = await reviewQuery
+      const allReviews = (reviews || []).map((r: any) => ({
+        id: r.id, rating: r.rating, comment: r.comment,
+        review_date: r.review_date, reply_status: r.reply_status, reviewer_name: r.reviewer_name,
+      }))
+
+      // Compute adaptive window for recent trends
+      const { windowDays, currentStart, previousStart, previousEnd } = computeAdaptiveWindow(allReviews, now)
+
+      const recentReviews = allReviews.filter(r => {
+        const d = new Date(r.review_date)
+        return d >= currentStart && d <= now
+      })
+      const previousReviews = allReviews.filter(r => {
+        const d = new Date(r.review_date)
+        return d >= previousStart && d < previousEnd
+      })
+
+      const insightsData = await insightsRunUnified({
+        reviews: recentReviews,
+        previousReviews,
+        allReviews,
+        adaptiveWindowDays: windowDays,
+        periodStart: toDateStr(currentStart),
+        periodEnd: toDateStr(now),
+        previousPeriodStart: toDateStr(previousStart),
+        previousPeriodEnd: toDateStr(previousEnd),
+        scope: locationId ? 'location' : 'team',
+        locationName: locationName || undefined,
+        teamName: teamName || undefined,
+        periodWindow: 'unified',
+      })
+
+      const { data: insertedInsight, error } = await serviceClient
+        .schema('app')
+        .from('insights')
+        .insert({
+          team_id: locationId ? null : params.teamId,
+          location_id: locationId || null,
+          period_start: toDateStr(currentStart),
+          period_end: toDateStr(now),
+          period_window: 'unified',
+          kind: 'unified',
+          data: insightsData,
+          generated_by_user_id: user.id,
+          model: 'gpt-5-mini',
+        })
+        .select()
+        .single()
+
+      if (error || !insertedInsight) {
+        throw new Error(`Failed to save insights: ${error?.message}`)
+      }
+
+      // Increment reports_generated counter
+      const { data: latest } = await serviceClient
+        .schema('app').from('team_credit_balances')
+        .select('reports_generated')
+        .eq('team_id', params.teamId)
+        .single()
+      await serviceClient
+        .schema('app').from('team_credit_balances')
+        .update({ reports_generated: (latest?.reports_generated || 0) + 1 })
+        .eq('team_id', params.teamId)
+
+      return NextResponse.json({ insight: insertedInsight }, { status: 201 })
+    }
 
     // Handle 'all' — generate all 4 periods concurrently, costs 1 report credit
     if (periodWindow === 'all') {

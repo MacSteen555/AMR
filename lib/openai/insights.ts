@@ -6,6 +6,7 @@ const openai = new OpenAI({
 
 export type InsightScope = 'location' | 'team'
 export type PeriodWindow = '30d' | '90d' | '6m' | '1y'
+export type PeriodWindowOrUnified = PeriodWindow | 'unified'
 
 export interface InsightsInput {
   reviews: Array<{
@@ -31,7 +32,7 @@ export interface InsightsInput {
   locationName?: string | null
   teamName?: string | null
   scope?: InsightScope
-  periodWindow?: PeriodWindow
+  periodWindow?: PeriodWindowOrUnified
 }
 
 export interface StandardReportData {
@@ -754,7 +755,7 @@ export async function insightsRunUnified(input: InsightsInput & {
  */
 export async function insightsRun(input: InsightsInput): Promise<StandardReportData | AnnualReportData> {
   const scope = input.scope || (input.locationName ? 'location' : 'team')
-  const periodWindow = input.periodWindow || '6m'
+  const periodWindow: PeriodWindow = (input.periodWindow === 'unified' ? '6m' : input.periodWindow) || '6m'
   const systemPrompt = SYSTEM_PROMPTS[scope][periodWindow]
 
   const prompt = periodWindow === '1y'

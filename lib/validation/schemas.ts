@@ -68,7 +68,7 @@ export const updateCompetitorLocationsSchema = z.object({
 })
 
 export const runInsightsSchema = z.object({
-  period_window: z.enum(['30d', '90d', '6m', '1y', 'all']),
+  period_window: z.enum(['30d', '90d', '6m', '1y', 'all', 'unified']),
 })
 
 export const createCheckoutSchema = z.object({
