@@ -517,6 +517,236 @@ KEY INSTRUCTIONS:
   return prompt
 }
 
+// ─── Unified System Prompts ───────────────────────────────────────────────────
+
+const UNIFIED_SYSTEM_PROMPTS: Record<InsightScope, string> = {
+  location: `You are a sharp, data-driven business analyst who reviews Google Business Profile reviews for a single location. You produce a unified report with two parts: (1) Recent Trends - what changed in the most recent window vs the prior period, and (2) Big Picture - patterns across all reviews. ${VOICE_RULES}`,
+  team: `You are a sharp, data-driven business analyst who reviews Google Business Profile reviews across all locations for a multi-location business. You produce a unified report with two parts: (1) Recent Trends comparing locations and spotting what changed, and (2) Big Picture - brand-wide patterns, cross-location comparisons, and portfolio-level insights. ${VOICE_RULES}`,
+}
+
+// ─── Unified Prompt Builder ──────────────────────────────────────────────────
+
+function buildUnifiedPrompt(input: InsightsInput & {
+  allReviews: InsightsInput['reviews']
+  adaptiveWindowDays: number
+}): string {
+  const recentReviews = input.reviews
+  const prevReviews = input.previousReviews || []
+  const allReviews = input.allReviews
+
+  // Pre-compute stats
+  const recentStats = computeStats(recentReviews)
+  const prevStats = prevReviews.length > 0 ? computeStats(prevReviews) : null
+  const allTimeStats = computeStats(allReviews)
+
+  // Monthly breakdown from all reviews
+  const monthlyMap = new Map<string, ReviewEntry[]>()
+  for (const review of allReviews) {
+    const month = review.review_date.substring(0, 7)
+    if (!monthlyMap.has(month)) monthlyMap.set(month, [])
+    monthlyMap.get(month)!.push(review)
+  }
+
+  const monthlyStats = Array.from(monthlyMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, reviews]) => {
+      const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+      return { month, avgRating: parseFloat(avg.toFixed(2)), reviewCount: reviews.length }
+    })
+
+  let prompt = `${confidenceBlock(recentStats.count)}\n\n`
+
+  // Data header
+  prompt += `--- DATA ---\n`
+  if (input.locationName) prompt += `Location: ${input.locationName}\n`
+  if (input.teamName) prompt += `Business: ${input.teamName}\n`
+  prompt += `Adaptive window: ${input.adaptiveWindowDays} days\n`
+  prompt += `Recent period: ${input.periodStart} to ${input.periodEnd}\n`
+  if (input.previousPeriodStart && input.previousPeriodEnd) {
+    prompt += `Previous period: ${input.previousPeriodStart} to ${input.previousPeriodEnd}\n`
+  }
+  prompt += `Total reviews (all time): ${allReviews.length}\n\n`
+
+  // Recent period stats
+  prompt += `RECENT PERIOD STATS (trendStats must match exactly):\n`
+  prompt += `  Reviews: ${recentStats.count}\n`
+  prompt += `  Average rating: ${recentStats.avg.toFixed(2)}\n`
+  prompt += `  Distribution: [${[1, 2, 3, 4, 5].map(r => recentStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}]\n`
+  prompt += `  Response rate: ${recentStats.responseRate.toFixed(1)}%\n`
+  prompt += `  5-star percentage: ${recentStats.fiveStarPct.toFixed(1)}%\n\n`
+
+  if (prevStats) {
+    prompt += `PREVIOUS PERIOD STATS (trendStats must match exactly):\n`
+    prompt += `  Reviews: ${prevStats.count}\n`
+    prompt += `  Average rating: ${prevStats.avg.toFixed(2)}\n`
+    prompt += `  Distribution: [${[1, 2, 3, 4, 5].map(r => prevStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}]\n`
+    prompt += `  Response rate: ${prevStats.responseRate.toFixed(1)}%\n`
+    prompt += `  5-star percentage: ${prevStats.fiveStarPct.toFixed(1)}%\n\n`
+  }
+
+  // All-time stats
+  prompt += `ALL-TIME STATS (bigPictureStats must match exactly):\n`
+  prompt += `  Total reviews: ${allTimeStats.count}\n`
+  prompt += `  Average rating: ${allTimeStats.avg.toFixed(2)}\n`
+  prompt += `  5-star percentage: ${allTimeStats.fiveStarPct.toFixed(1)}%\n`
+  prompt += `  Response rate: ${allTimeStats.responseRate.toFixed(1)}%\n\n`
+
+  // Monthly breakdown
+  prompt += `MONTHLY BREAKDOWN:\n`
+  for (const m of monthlyStats) {
+    prompt += `  ${m.month}: ${m.reviewCount} reviews, avg ${m.avgRating}\n`
+  }
+  prompt += `\n`
+
+  // Reviews
+  prompt += formatReviews(recentReviews, 'RECENT PERIOD', input.periodStart, input.periodEnd)
+  prompt += `\n`
+
+  if (prevReviews.length > 0 && input.previousPeriodStart && input.previousPeriodEnd) {
+    prompt += formatReviews(prevReviews, 'PREVIOUS PERIOD', input.previousPeriodStart, input.previousPeriodEnd)
+    prompt += `\n`
+  }
+
+  // Older reviews not in recent or previous period (sample for big picture context)
+  const recentAndPrevIds = new Set([...recentReviews, ...prevReviews].map(r => r.id).filter(Boolean))
+  const olderReviews = allReviews.filter(r => !r.id || !recentAndPrevIds.has(r.id))
+  if (olderReviews.length > 0) {
+    const earliest = olderReviews.reduce((min, r) => r.review_date < min ? r.review_date : min, olderReviews[0].review_date)
+    const latest = olderReviews.reduce((max, r) => r.review_date > max ? r.review_date : max, olderReviews[0].review_date)
+    prompt += formatReviews(olderReviews, 'OLDER REVIEWS (for Big Picture)', earliest, latest)
+    prompt += `\n`
+  }
+
+  // JSON schema and instructions
+  prompt += `${REV_INSTRUCTIONS}
+
+Return a JSON object with this EXACT structure:
+{
+  "adaptiveWindowDays": ${input.adaptiveWindowDays},
+  "recentPeriodStart": "${input.periodStart}",
+  "recentPeriodEnd": "${input.periodEnd}",
+  "previousPeriodStart": ${input.previousPeriodStart ? `"${input.previousPeriodStart}"` : 'null'},
+  "previousPeriodEnd": ${input.previousPeriodEnd ? `"${input.previousPeriodEnd}"` : 'null'},
+
+  "snapshot": [{ "headline": "...", "description": "...", "delta": "+12% | 3x | new | null", "sentiment": "positive|negative|neutral" }],
+
+  "trendStats": {
+    "currentAvgRating": ${recentStats.avg.toFixed(2)},
+    "previousAvgRating": ${prevStats ? prevStats.avg.toFixed(2) : 'null'},
+    "currentReviewCount": ${recentStats.count},
+    "previousReviewCount": ${prevStats ? prevStats.count : 0},
+    "currentSentiment": <number 0-100>,
+    "previousSentiment": ${prevStats ? '<number 0-100>' : 'null'},
+    "currentResponseRate": ${parseFloat(recentStats.responseRate.toFixed(1))},
+    "previousResponseRate": ${prevStats ? parseFloat(prevStats.responseRate.toFixed(1)) : 'null'},
+    "currentFiveStarPct": ${parseFloat(recentStats.fiveStarPct.toFixed(1))},
+    "previousFiveStarPct": ${prevStats ? parseFloat(prevStats.fiveStarPct.toFixed(1)) : 'null'},
+    "currentDistribution": [${[1, 2, 3, 4, 5].map(r => recentStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}],
+    "previousDistribution": ${prevStats ? `[${[1, 2, 3, 4, 5].map(r => prevStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}]` : 'null'}
+  },
+
+  "weeklyVolume": [{ "weekLabel": "Mar 3-9", "reviewCount": N, "avgRating": N }],
+
+  "themes": [{ "theme": "...", "mentionCount": N, "sentiment": "positive|negative|mixed", "isNew": true|false, "topQuotes": ["...", "..."] }],
+
+  "bigPictureStats": {
+    "totalReviews": ${allTimeStats.count},
+    "averageRating": ${parseFloat(allTimeStats.avg.toFixed(2))},
+    "fiveStarPercentage": ${parseFloat(allTimeStats.fiveStarPct.toFixed(1))},
+    "responseRate": ${parseFloat(allTimeStats.responseRate.toFixed(1))}
+  },
+  "bigPictureNarrative": "3-4 tight sentences summarizing business identity with review refs inline",
+
+  "keyStrengths": [{ "theme": "...", "description": "...", "mentionCount": N, "exampleQuote": "..." }],
+  "keyWeaknesses": [{ "theme": "...", "description": "...", "mentionCount": N, "severity": "low|medium|high", "exampleQuote": "..." }],
+
+  "monthlyTimeline": [{ "month": "YYYY-MM", "avgRating": N, "reviewCount": N, "annotation": "string or null" }],
+  "highlights": [{ "title": "...", "description": "...", "quote": "string or null" }],
+  "lowlights": [{ "title": "...", "description": "...", "quote": "string or null" }],
+
+  "recommendations": [{ "title": "...", "description": "...", "impact": "low|medium|high", "effort": "low|medium|high", "category": "..." }],
+  "notableQuotes": [{ "quote": "...", "rating": N, "sentiment": "positive|negative", "theme": "..." }]
+}
+
+IMPORTANT INSTRUCTIONS:
+- snapshot: 3-5 punchy headline insights about the recent period. Each headline should be surprising, specific, or show a notable change. Link to specific reviews.
+- themes: Compare recent to previous period. Mark themes as "new" if they didn't appear in previous period.
+- weeklyVolume: Break recent period into weekly buckets for charting.
+- bigPictureNarrative: 3-4 tight sentences summarizing business identity with review refs inline.
+- monthlyTimeline: Include ALL months from the monthly breakdown. Only annotate 3-5 most notable months; set annotation to null for the rest.
+- recommendations: ONLY include if genuinely warranted by patterns. Must be specific and pattern-based (e.g. "negative reviews spike on weekends around [topic]"), NOT generic advice like "respond to more reviews." If not enough patterns, return empty array.
+- trendStats must EXACTLY match the precomputed stats above. Do not recalculate.
+- bigPictureStats must EXACTLY match the all-time stats above. Do not recalculate.
+- Use review dates to find temporal patterns (day-of-week, time-of-day, seasonal).
+- Reference 5-12 reviews across entire report using {{REV:id:display text}} format.
+- Every field must be grounded in actual review data. No generic advice. No filler.
+`
+
+  return prompt
+}
+
+// ─── Unified Insights Runner ─────────────────────────────────────────────────
+
+export async function insightsRunUnified(input: InsightsInput & {
+  allReviews: InsightsInput['reviews']
+  adaptiveWindowDays: number
+}): Promise<UnifiedReportData> {
+  const scope: InsightScope = input.locationName ? 'location' : 'team'
+  const systemPrompt = UNIFIED_SYSTEM_PROMPTS[scope]
+  const prompt = buildUnifiedPrompt(input)
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-5-mini',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: prompt },
+    ],
+    max_completion_tokens: 12000,
+    response_format: { type: 'json_object' },
+  })
+
+  const insightsText = completion.choices[0]?.message?.content?.trim()
+
+  if (!insightsText) {
+    throw new Error('Failed to generate unified insights')
+  }
+
+  try {
+    const parsed = JSON.parse(insightsText) as UnifiedReportData
+
+    // Scan the entire JSON for {{REV:uuid}} markers and build a lookup map
+    const allInputReviews = [...input.allReviews]
+    const reviewsById = new Map(
+      allInputReviews.filter(r => r.id).map(r => [r.id!, r])
+    )
+    const jsonStr = JSON.stringify(parsed)
+    const refPattern = /\{\{REV:([a-f0-9-]+)(?::[^}]+)?\}\}/g
+    const referencedIds = new Set<string>()
+    let match
+    while ((match = refPattern.exec(jsonStr)) !== null) {
+      referencedIds.add(match[1])
+    }
+
+    const referencedReviews: Record<string, { rating: number; comment: string | null; review_date: string; reviewer_name?: string | null }> = {}
+    for (const id of Array.from(referencedIds)) {
+      const r = reviewsById.get(id)
+      if (r) {
+        referencedReviews[id] = {
+          rating: r.rating,
+          comment: r.comment,
+          review_date: r.review_date,
+          reviewer_name: r.reviewer_name || null,
+        }
+      }
+    }
+
+    parsed.referencedReviews = referencedReviews
+    return parsed
+  } catch (error) {
+    throw new Error('Failed to parse unified insights JSON')
+  }
+}
+
 // ─── Main Insights Runner ─────────────────────────────────────────────────────
 
 /**
