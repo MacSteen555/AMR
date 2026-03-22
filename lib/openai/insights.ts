@@ -629,7 +629,7 @@ Return a JSON object with this EXACT structure:
   "previousPeriodStart": ${input.previousPeriodStart ? `"${input.previousPeriodStart}"` : 'null'},
   "previousPeriodEnd": ${input.previousPeriodEnd ? `"${input.previousPeriodEnd}"` : 'null'},
 
-  "snapshot": [{ "headline": "...", "description": "...", "delta": "+12% | 3x | new | null", "sentiment": "positive|negative|neutral" }],
+  "snapshot": [{ "headline": "...", "description": "...", "delta": "+12% or 3x (a SHORT numeric change indicator, or omit this field entirely if no meaningful comparison exists)", "sentiment": "positive|negative|neutral" }],
 
   "trendStats": {
     "currentAvgRating": ${recentStats.avg.toFixed(2)},
@@ -675,11 +675,17 @@ IMPORTANT INSTRUCTIONS:
 - weeklyVolume: Break recent period into weekly buckets for charting.
 - bigPictureNarrative: 3-4 tight sentences summarizing business identity with review refs inline.
 - monthlyTimeline: Include ALL months from the monthly breakdown. Only annotate 3-5 most notable months; set annotation to null for the rest.
-- recommendations: ONLY include if genuinely warranted by patterns. Must be specific and pattern-based (e.g. "negative reviews spike on weekends around [topic]"), NOT generic advice like "respond to more reviews." If not enough patterns, return empty array.
+- snapshot delta field: If there is a meaningful numeric comparison (e.g. "+12%", "3x", "-20%"), include it. If there is no prior period data or the comparison is not meaningful, OMIT the delta field entirely (do not include it in the JSON). Never output placeholder text like "n/a" or "null" as a delta value.
+- recommendations: This is the MOST IMPORTANT section. Each recommendation must be world-class consulting advice. Do NOT give surface-level suggestions like "respond to reviews" or "use reviewer language in marketing." Instead:
+  * Ground each recommendation in a specific pattern you observed (cite the data: dates, themes, reviewer names)
+  * Provide ACTIONABLE DETAIL: if you suggest copy, WRITE the actual copy. If you suggest a process change, describe the exact steps. If you suggest training, outline what the training covers.
+  * Each recommendation description should be 3-5 sentences minimum with concrete specifics.
+  * Think like a $500/hr business consultant who has deeply studied this company's reviews. What would they say that would make the owner go "wow, I never thought of that"?
+  * If there are not enough reviews or patterns to generate genuinely insightful recommendations, return an empty array. Never pad with generic advice.
 - trendStats must EXACTLY match the precomputed stats above. Do not recalculate.
 - bigPictureStats must EXACTLY match the all-time stats above. Do not recalculate.
 - Use review dates to find temporal patterns (day-of-week, time-of-day, seasonal).
-- Reference 5-12 reviews across entire report using {{REV:id:display text}} format.
+- Reference 5-12 reviews across entire report using {{REV:id:display text}} format. Every review you quote or reference MUST use the {{REV:id:display text}} format so it can be linked in the UI.
 - Every field must be grounded in actual review data. No generic advice. No filler.
 `
 

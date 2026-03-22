@@ -345,7 +345,7 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
           })
           if (best) setActiveSection(best)
         },
-        { threshold: [0, 0.25, 0.5, 0.75, 1], rootMargin: '-96px 0px -40% 0px' }
+        { threshold: [0, 0.1, 0.25, 0.5], rootMargin: '-96px 0px -20% 0px' }
       )
       observer.observe(el)
       observers.push(observer)
@@ -417,12 +417,9 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
         <div className="sticky top-24 space-y-1">
           {navSections.map((section) => (
             <div key={section.id}>
-              {/* Zone label before first item in zone */}
-              {section.id === 'snapshot' && (
-                <div className="text-xs font-bold uppercase tracking-widest text-teal-600 mb-2 mt-1">Recent Trends</div>
-              )}
+              {/* Zone label before Big Picture section */}
               {section.id === 'big-picture' && (
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-600 mb-2 mt-4">Big Picture</div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2 mt-4 border-t border-gray-200 pt-4">Big Picture</div>
               )}
               <button
                 onClick={() => scrollTo(section.id)}
@@ -461,9 +458,8 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
       {/* ── Main Content ── */}
       <div className="flex-1 min-w-0 space-y-12 pb-20 lg:pb-0">
 
-        {/* ═══ ZONE 1: Recent Trends ═══ */}
+        {/* ═══ Recent Trends ═══ */}
         <div>
-          <div className="text-xs font-bold uppercase tracking-widest text-teal-600 mb-6">Zone 1: Recent Trends</div>
 
           {/* ── Section 1: Snapshot ── */}
           <section
@@ -479,7 +475,7 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-bold text-gray-900">{card.headline}</span>
-                      {card.delta && (
+                      {card.delta && !card.delta.includes('n/a') && !card.delta.includes('null') && !card.delta.includes('small sample') && (
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           card.sentiment === 'positive' ? 'bg-emerald-50 text-emerald-700'
                           : card.sentiment === 'negative' ? 'bg-red-50 text-red-700'
@@ -575,8 +571,6 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
             <div className="space-y-2">
               {(data.themes || []).map((theme, i) => {
                 const expanded = expandedThemes.has(i)
-                const maxMentions = Math.max(...(data.themes || []).map((t) => t.mentionCount), 1)
-                const barPct = Math.round((theme.mentionCount / maxMentions) * 100)
                 return (
                   <div key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                     <button
@@ -588,18 +582,7 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                       {theme.isNew && (
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">new</span>
                       )}
-                      <div className="flex-1 mx-3">
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              theme.sentiment === 'positive' ? 'bg-emerald-400'
-                              : theme.sentiment === 'negative' ? 'bg-red-400'
-                              : 'bg-amber-400'
-                            }`}
-                            style={{ width: `${barPct}%` }}
-                          />
-                        </div>
-                      </div>
+                      <span className="flex-1" />
                       <span className="text-xs text-gray-500 whitespace-nowrap">{theme.mentionCount} mentions</span>
                       <ChevronDown expanded={expanded} />
                     </button>
