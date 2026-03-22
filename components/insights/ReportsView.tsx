@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiGet, apiPost } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { AIInsightsPanel } from '@/components/AIInsightsPanel'
+import UnifiedReportPanel from '@/components/insights/UnifiedReportPanel'
+import type { UnifiedReportData } from '@/lib/openai/insights'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,19 +28,14 @@ interface AIInsight {
   model: string
 }
 
-type PeriodKey = '30d' | '90d' | '6m' | '1y'
-
 interface ReportsViewProps {
   teamId: string
   locationId: string | null
   tier: string
-  period: PeriodKey
   onToast: (message: string, type: 'success' | 'error') => void
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const PERIOD_LABELS: Record<string, string> = { '30d': 'Last 30 Days', '90d': 'Last 90 Days', '6m': 'Last 6 Months', '1y': 'Year in Review' }
 
 function formatDate(iso: string): string {
   const [year, month, day] = iso.split('-').map(Number)
@@ -48,7 +45,7 @@ function formatDate(iso: string): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function ReportsView({ teamId, locationId, tier, period, onToast }: ReportsViewProps) {
+export function ReportsView({ teamId, locationId, tier, onToast }: ReportsViewProps) {
   const router = useRouter()
   const { teams, refresh: refreshAuth } = useAuth()
   const currentTeam = teams.find(t => t.id === teamId)
@@ -61,16 +58,37 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
   const [viewingReport, setViewingReport] = useState<AIInsight | null>(null)
   const [generating, setGenerating] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showHistory, setShowHistory] = useState(false)
+  const historyRef = useRef<HTMLDivElement>(null)
 
-  // Filter reports for the selected period, sorted newest first
-  const reportsForPeriod = useMemo(() => {
+  // Close history dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (historyRef.current && !historyRef.current.contains(e.target as Node)) {
+        setShowHistory(false)
+      }
+    }
+    if (showHistory) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showHistory])
+
+  // Filter reports into unified and legacy, sorted newest first
+  const unifiedReports = useMemo(() => {
     return allReports
-      .filter(r => r.period_window === period)
+      .filter(r => r.period_window === 'unified')
       .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
-  }, [allReports, period])
+  }, [allReports])
 
-  const latestReport = reportsForPeriod[0] || null
-  const priorReports = reportsForPeriod.slice(1)
+  const legacyReports = useMemo(() => {
+    return allReports
+      .filter(r => r.period_window !== 'unified')
+      .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
+  }, [allReports])
+
+  const latestReport = unifiedReports[0] || null
+  const priorReports = [...unifiedReports.slice(1), ...legacyReports]
 
   const fetchReports = async () => {
     try {
@@ -95,19 +113,14 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, locationId])
 
-  // Reset detail view when period changes
-  useEffect(() => {
-    setViewingReport(null)
-  }, [period])
-
-  // Generate reports for all 4 time frames concurrently (1 report credit)
+  // Generate unified report
   const handleGenerate = async () => {
     if (!canGenerate) return
     setGenerating(true)
     try {
       const locParam = locationId ? `?location=${locationId}` : ''
-      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, { period_window: 'all' })
-      onToast('Reports generated for all time frames!', 'success')
+      await apiPost(`/api/teams/${teamId}/insights/run${locParam}`, { period_window: 'unified' })
+      onToast('Report generated!', 'success')
       await fetchReports()
       await refreshAuth()
     } catch (err: any) {
@@ -115,6 +128,14 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
     } finally {
       setGenerating(false)
     }
+  }
+
+  // Helper: render a report with the appropriate panel
+  function renderReport(report: AIInsight) {
+    if (report.period_window === 'unified') {
+      return <UnifiedReportPanel data={report.data as unknown as UnifiedReportData} />
+    }
+    return <AIInsightsPanel insight={report} />
   }
 
   // ── Free tier upsell ──────────────────────────────────────────────────────
@@ -162,7 +183,7 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
         </button>
         <div className="flex items-center gap-3 mb-4">
           <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-[#F0FDFA] text-[#0D9B8A]">
-            {PERIOD_LABELS[viewingReport.period_window || ''] || viewingReport.period_window || 'custom'}
+            {viewingReport.period_window === 'unified' ? 'unified' : 'legacy'}
           </span>
           <span className="text-sm text-[#4B5563]">
             {formatDate(viewingReport.period_start)} — {formatDate(viewingReport.period_end)}
@@ -171,12 +192,12 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
             Generated {new Date(viewingReport.generated_at).toLocaleDateString()}
           </span>
         </div>
-        <AIInsightsPanel insight={viewingReport} />
+        {renderReport(viewingReport)}
       </div>
     )
   }
 
-  // ── Main view: latest report + generate + prior reports ────────────────────
+  // ── Main view: latest report + generate + history dropdown ─────────────────
 
   return (
     <div>
@@ -185,8 +206,8 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
         <div>
           <p className="text-sm text-[#4B5563]">
             {latestReport
-              ? <>Showing <span className="font-medium text-[#111827]">{PERIOD_LABELS[period]}</span> report</>
-              : <>No report for <span className="font-medium text-[#111827]">{PERIOD_LABELS[period]}</span> yet</>
+              ? <span className="font-medium text-[#111827]">Latest Report</span>
+              : <>No reports generated yet</>
             }
           </p>
         </div>
@@ -194,6 +215,62 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
           <span className="text-sm text-[#9CA3AF]">
             {reportsGenerated}/{reportLimit} reports this month
           </span>
+
+          {/* History dropdown */}
+          {priorReports.length > 0 && (
+            <div className="relative" ref={historyRef}>
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="px-4 py-2 text-sm font-medium text-[#4B5563] bg-white border border-[#E5E7EB] rounded-lg hover:border-[#0D9B8A]/30 hover:text-[#111827] transition-all"
+              >
+                History ({priorReports.length})
+              </button>
+              {showHistory && (
+                <div className="absolute right-0 top-full mt-1 w-80 bg-white border border-[#E5E7EB] rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {priorReports.map(report => (
+                    <button
+                      key={report.id}
+                      onClick={() => {
+                        setViewingReport(report)
+                        setShowHistory(false)
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-[#F9FAFB] border-b border-[#F3F4F6] last:border-b-0 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[#111827]">
+                          {formatDate(report.period_start)} — {formatDate(report.period_end)}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          report.period_window === 'unified'
+                            ? 'bg-[#F0FDFA] text-[#0D9B8A]'
+                            : 'bg-[#F3F4F6] text-[#9CA3AF]'
+                        }`}>
+                          {report.period_window === 'unified' ? 'unified' : 'legacy'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-[#9CA3AF]">
+                          Generated {new Date(report.generated_at).toLocaleDateString()}
+                        </span>
+                        {report.data?.overallSentiment != null && (
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                            report.data.overallSentiment >= 70
+                              ? 'bg-[#ECFDF5] text-[#059669]'
+                              : report.data.overallSentiment >= 40
+                              ? 'bg-[#FFFBEB] text-[#D97706]'
+                              : 'bg-[#FEF2F2] text-[#DC2626]'
+                          }`}>
+                            {report.data.overallSentiment}/100
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {!canGenerate && insightsEnabled ? (
             <button
               onClick={() => router.push(`/teams/${teamId}/billing`)}
@@ -244,13 +321,13 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
               </span>
             )}
           </div>
-          <AIInsightsPanel insight={latestReport} />
+          {renderReport(latestReport)}
         </div>
       ) : (
         <div className="bg-[#F0FDFA] rounded-xl border border-[#0D9B8A]/10 p-12 text-center">
           <h3 className="text-lg font-semibold text-[#111827] mb-1">No reports yet</h3>
           <p className="text-[#4B5563] text-sm mb-4">
-            Generate AI-powered reports for all time frames. Use the period selector to view each report.
+            Generate an AI-powered report with sentiment analysis, recommendations, and actionable insights.
           </p>
           <button
             onClick={handleGenerate}
@@ -260,46 +337,6 @@ export function ReportsView({ teamId, locationId, tier, period, onToast }: Repor
             Generate Report
           </button>
         </div>
-      )}
-
-      {/* Prior reports for this period */}
-      {priorReports.length > 0 && (
-        <details className="mt-8">
-          <summary className="cursor-pointer text-sm font-medium text-[#4B5563] hover:text-[#111827] transition-colors select-none">
-            {priorReports.length} prior report{priorReports.length !== 1 ? 's' : ''} for this period
-          </summary>
-          <div className="mt-3 flex flex-col gap-2">
-            {priorReports.map(report => (
-              <button
-                key={report.id}
-                onClick={() => setViewingReport(report)}
-                className="w-full text-left bg-white border border-[#E5E7EB] rounded-xl p-4 hover:border-[#0D9B8A]/30 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#111827]">
-                    {formatDate(report.period_start)} — {formatDate(report.period_end)}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    {report.data?.overallSentiment != null && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        report.data.overallSentiment >= 70
-                          ? 'bg-[#ECFDF5] text-[#059669]'
-                          : report.data.overallSentiment >= 40
-                          ? 'bg-[#FFFBEB] text-[#D97706]'
-                          : 'bg-[#FEF2F2] text-[#DC2626]'
-                      }`}>
-                        {report.data.overallSentiment}/100
-                      </span>
-                    )}
-                    <span className="text-xs text-[#9CA3AF]">
-                      {new Date(report.generated_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </details>
       )}
     </div>
   )

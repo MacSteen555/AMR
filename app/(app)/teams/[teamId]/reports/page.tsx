@@ -9,15 +9,6 @@ import { ReportsView } from '@/components/insights/ReportsView'
 
 // ─── Page Component ──────────────────────────────────────────────────────────
 
-type PeriodKey = '30d' | '90d' | '6m' | '1y'
-
-const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
-  { key: '30d', label: '30 days' },
-  { key: '90d', label: '90 days' },
-  { key: '6m',  label: '6 months' },
-  { key: '1y',  label: '1 year' },
-]
-
 function ReportsPageContent() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -45,7 +36,6 @@ function ReportsPageContent() {
 
   const isTeamView = !effectiveLocationId
 
-  const [period, setPeriod] = useState<PeriodKey>('30d')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   const handleToast = (message: string, type: 'success' | 'error') => {
@@ -62,29 +52,12 @@ function ReportsPageContent() {
           <h1 className="text-2xl font-bold text-[#111827]">{isTeamView ? 'Team Reports' : 'Location Reports'}</h1>
           <p className="text-sm text-[#9CA3AF] mt-1">AI-generated analysis of your reviews</p>
         </div>
-
-        <div className="flex bg-[#F3F4F6] rounded-lg p-1">
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setPeriod(opt.key)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                period === opt.key
-                  ? 'bg-white text-[#111827] shadow-sm'
-                  : 'text-[#4B5563] hover:text-[#111827]'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <ReportsView
         teamId={teamId}
         locationId={effectiveLocationId}
         tier={tier}
-        period={period}
         onToast={handleToast}
       />
     </div>
