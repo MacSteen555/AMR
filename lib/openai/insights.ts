@@ -103,22 +103,33 @@ export interface TrendStats {
   previousResponseRate: number | null
   currentFiveStarPct: number
   previousFiveStarPct: number | null
-  currentDistribution: number[]  // [1-star, 2-star, 3-star, 4-star, 5-star]
-  previousDistribution: number[] | null
+}
+
+export interface SubTheme {
+  name: string
+  mentionCount: number
+  sentiment: 'positive' | 'negative' | 'mixed'
+  exampleQuote?: string
 }
 
 export interface ThemeItem {
   theme: string
   mentionCount: number
+  allTimeMentionCount: number
   sentiment: 'positive' | 'negative' | 'mixed'
-  isNew: boolean                 // new this period vs recurring
-  topQuotes: string[]            // 2-3 review-referenced quotes
+  trendDirection: 'up' | 'down' | 'stable' | 'new'
+  trendDescription: string
+  avgRatingWhenMentioned: number
+  overallAvgRating: number
+  subThemes: SubTheme[]
+  topQuotes: string[]
+  narrative: string
 }
 
-export interface WeeklyVolume {
-  weekLabel: string              // e.g. "Mar 3-9"
-  reviewCount: number
-  avgRating: number
+export interface MonthlyTheme {
+  theme: string
+  mentionCount: number
+  sentiment: 'positive' | 'negative' | 'mixed'
 }
 
 export interface TimelineMonth {
@@ -126,6 +137,14 @@ export interface TimelineMonth {
   avgRating: number
   reviewCount: number
   annotation: string | null
+  dominantThemes: MonthlyTheme[]
+}
+
+export interface TimelineInsight {
+  title: string
+  description: string
+  type: 'theme_emerged' | 'theme_disappeared' | 'sentiment_shift' | 'rating_correlation' | 'trend'
+  monthsAffected: string[]
 }
 
 export interface HighlightCard {
@@ -168,7 +187,6 @@ export interface UnifiedReportData {
   // Zone 1: Recent Trends
   snapshot: SnapshotCard[]                    // Section 1
   trendStats: TrendStats                      // Section 2
-  weeklyVolume: WeeklyVolume[]                // Section 2 (chart data)
   themes: ThemeItem[]                         // Section 3
 
   // Zone 2: Big Picture
@@ -184,6 +202,7 @@ export interface UnifiedReportData {
   monthlyTimeline: TimelineMonth[]            // Section 6
   highlights: HighlightCard[]                 // Section 6
   lowlights: HighlightCard[]                  // Section 6
+  timelineInsights: TimelineInsight[]         // Section 6
   recommendations: RecommendationCard[]       // Section 7 (may be empty)
   notableQuotes: Array<{ quote: string; rating: number; sentiment: string; theme: string }>
 
@@ -249,7 +268,7 @@ WHEN NOT TO USE:
 
 CRITICAL: Do NOT write a quote in plain text and THEN repeat it inside a {{REV}} marker. The display text should be a short attribution phrase like "one cafe owner" or "a returning customer", NOT the quote itself. The quote should appear once in the sentence as normal text.
 
-Aim for 3-8 total references across ALL fields combined. Most paragraphs should have zero.
+Aim for 15-25 total references across ALL fields combined. Each snapshot card should cite 2-3 reviews. Each theme narrative should cite 1-2 reviews. Strengths and weaknesses should each cite at least 1 review.
 
 GOOD examples:
 - "{{REV:abc-123:One cafe owner}} reported that automation cut their review response time in half."
@@ -572,7 +591,6 @@ function buildUnifiedPrompt(input: InsightsInput & {
   prompt += `RECENT PERIOD STATS (trendStats must match exactly):\n`
   prompt += `  Reviews: ${recentStats.count}\n`
   prompt += `  Average rating: ${recentStats.avg.toFixed(2)}\n`
-  prompt += `  Distribution: [${[1, 2, 3, 4, 5].map(r => recentStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}]\n`
   prompt += `  Response rate: ${recentStats.responseRate.toFixed(1)}%\n`
   prompt += `  5-star percentage: ${recentStats.fiveStarPct.toFixed(1)}%\n\n`
 
@@ -580,7 +598,6 @@ function buildUnifiedPrompt(input: InsightsInput & {
     prompt += `PREVIOUS PERIOD STATS (trendStats must match exactly):\n`
     prompt += `  Reviews: ${prevStats.count}\n`
     prompt += `  Average rating: ${prevStats.avg.toFixed(2)}\n`
-    prompt += `  Distribution: [${[1, 2, 3, 4, 5].map(r => prevStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}]\n`
     prompt += `  Response rate: ${prevStats.responseRate.toFixed(1)}%\n`
     prompt += `  5-star percentage: ${prevStats.fiveStarPct.toFixed(1)}%\n\n`
   }
@@ -594,6 +611,7 @@ function buildUnifiedPrompt(input: InsightsInput & {
 
   // Monthly breakdown
   prompt += `MONTHLY BREAKDOWN:\n`
+  prompt += `(When generating monthlyTimeline, analyze the actual review text for each month to identify dominant themes and their sentiment.)\n`
   for (const m of monthlyStats) {
     prompt += `  ${m.month}: ${m.reviewCount} reviews, avg ${m.avgRating}\n`
   }
@@ -641,14 +659,22 @@ Return a JSON object with this EXACT structure:
     "currentResponseRate": ${parseFloat(recentStats.responseRate.toFixed(1))},
     "previousResponseRate": ${prevStats ? parseFloat(prevStats.responseRate.toFixed(1)) : 'null'},
     "currentFiveStarPct": ${parseFloat(recentStats.fiveStarPct.toFixed(1))},
-    "previousFiveStarPct": ${prevStats ? parseFloat(prevStats.fiveStarPct.toFixed(1)) : 'null'},
-    "currentDistribution": [${[1, 2, 3, 4, 5].map(r => recentStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}],
-    "previousDistribution": ${prevStats ? `[${[1, 2, 3, 4, 5].map(r => prevStats.distribution.find(d => d.rating === r)?.count ?? 0).join(', ')}]` : 'null'}
+    "previousFiveStarPct": ${prevStats ? parseFloat(prevStats.fiveStarPct.toFixed(1)) : 'null'}
   },
 
-  "weeklyVolume": [{ "weekLabel": "Mar 3-9", "reviewCount": N, "avgRating": N }],
-
-  "themes": [{ "theme": "...", "mentionCount": N, "sentiment": "positive|negative|mixed", "isNew": true|false, "topQuotes": ["...", "..."] }],
+  "themes": [{
+    "theme": "...",
+    "mentionCount": N,
+    "allTimeMentionCount": N,
+    "sentiment": "positive|negative|mixed",
+    "trendDirection": "up|down|stable|new",
+    "trendDescription": "Mentions up 40% vs prior period",
+    "avgRatingWhenMentioned": N,
+    "overallAvgRating": N,
+    "subThemes": [{ "name": "...", "mentionCount": N, "sentiment": "positive|negative|mixed", "exampleQuote": "..." }],
+    "topQuotes": ["...", "...", "..."],
+    "narrative": "2-3 sentences interpreting what this theme means for the business"
+  }],
 
   "bigPictureStats": {
     "totalReviews": ${allTimeStats.count},
@@ -661,7 +687,19 @@ Return a JSON object with this EXACT structure:
   "keyStrengths": [{ "theme": "...", "description": "...", "mentionCount": N, "exampleQuote": "..." }],
   "keyWeaknesses": [{ "theme": "...", "description": "...", "mentionCount": N, "severity": "low|medium|high", "exampleQuote": "..." }],
 
-  "monthlyTimeline": [{ "month": "YYYY-MM", "avgRating": N, "reviewCount": N, "annotation": "string or null" }],
+  "monthlyTimeline": [{
+    "month": "YYYY-MM",
+    "avgRating": N,
+    "reviewCount": N,
+    "annotation": "string or null",
+    "dominantThemes": [{ "theme": "...", "mentionCount": N, "sentiment": "positive|negative|mixed" }]
+  }],
+  "timelineInsights": [{
+    "title": "...",
+    "description": "2-3 sentence narrative with review refs",
+    "type": "theme_emerged|theme_disappeared|sentiment_shift|rating_correlation|trend",
+    "monthsAffected": ["YYYY-MM"]
+  }],
   "highlights": [{ "title": "...", "description": "...", "quote": "string or null" }],
   "lowlights": [{ "title": "...", "description": "...", "quote": "string or null" }],
 
@@ -670,22 +708,45 @@ Return a JSON object with this EXACT structure:
 }
 
 IMPORTANT INSTRUCTIONS:
-- snapshot: 3-5 punchy headline insights about the recent period. Each headline should be surprising, specific, or show a notable change. Link to specific reviews.
-- themes: Compare recent to previous period. Mark themes as "new" if they didn't appear in previous period.
-- weeklyVolume: Break recent period into weekly buckets for charting.
-- bigPictureNarrative: 3-4 tight sentences summarizing business identity with review refs inline.
-- monthlyTimeline: Include ALL months from the monthly breakdown. Only annotate 3-5 most notable months; set annotation to null for the rest.
-- snapshot delta field: If there is a meaningful numeric comparison (e.g. "+12%", "3x", "-20%"), include it. If there is no prior period data or the comparison is not meaningful, OMIT the delta field entirely (do not include it in the JSON). Never output placeholder text like "n/a" or "null" as a delta value.
-- recommendations: This is the MOST IMPORTANT section. Each recommendation must be world-class consulting advice. Do NOT give surface-level suggestions like "respond to reviews" or "use reviewer language in marketing." Instead:
-  * Ground each recommendation in a specific pattern you observed (cite the data: dates, themes, reviewer names)
-  * Provide ACTIONABLE DETAIL: if you suggest copy, WRITE the actual copy. If you suggest a process change, describe the exact steps. If you suggest training, outline what the training covers.
-  * Each recommendation description should be 3-5 sentences minimum with concrete specifics.
-  * Think like a $500/hr business consultant who has deeply studied this company's reviews. What would they say that would make the owner go "wow, I never thought of that"?
-  * If there are not enough reviews or patterns to generate genuinely insightful recommendations, return an empty array. Never pad with generic advice.
+
+SNAPSHOT (rename to "30 Day Snapshot"):
+- 3-5 punchy headline insights about the recent period.
+- Each card MUST compare the last 30 days against all-time patterns. What's different? What's consistent? What's surprising?
+- Each card MUST cite 2-3 specific reviews using {{REV:id:display text}} format. Ground every claim in customer proof.
+- If there is a meaningful numeric delta, include it. If not, OMIT the delta field entirely.
+
+THEMES (this is a KEY section — go deep):
+- Extract 8-12 themes from the reviews. Read every review carefully and identify recurring topics.
+- For each theme, identify 2-4 sub-themes (e.g., "Staff" → "Friendliness", "Knowledge", "Response time").
+- trendDirection: Compare recent period mentions to previous period. "new" if theme only appears in recent period.
+- trendDescription: Write a specific comparison like "Mentions up 40% vs prior period" or "Consistent across both periods."
+- avgRatingWhenMentioned: Calculate the average rating of reviews that mention this theme. Compare to overallAvgRating.
+- narrative: 2-3 sentences interpreting what this theme means for the business. What should the owner take away? Cite 1-2 reviews.
+- topQuotes: 3-5 review-referenced quotes. Use {{REV:id:display text}} format.
+- This section should WOW the user with how much you know about their business. More content is better. Go deep.
+
+STRENGTHS & WEAKNESSES:
+- Extract up to 7 strengths and up to 7 weaknesses. Dig deep — more is better.
+- Each must cite at least one specific review.
+- For weaknesses, severity should reflect how damaging the issue is to the business.
+
+TIMELINE:
+- monthlyTimeline: Include ALL months. For each month, list the top 3-5 dominant themes with mention counts and sentiment.
+- timelineInsights: 3-5 narrative observations about month-over-month patterns. Look for:
+  * Themes that emerged and persisted (or disappeared)
+  * Themes where sentiment shifted over time
+  * Correlations between theme emergence and rating changes
+  * Seasonal or temporal patterns
+- Each insight should cite specific months and, where possible, specific reviews.
+
+RECOMMENDATIONS:
+- World-class consulting advice. 3-5 sentences minimum per recommendation. Cite specific patterns and data.
+- If there are not enough reviews or patterns, return an empty array. Never pad with generic advice.
+
+GENERAL:
 - trendStats must EXACTLY match the precomputed stats above. Do not recalculate.
 - bigPictureStats must EXACTLY match the all-time stats above. Do not recalculate.
-- Use review dates to find temporal patterns (day-of-week, time-of-day, seasonal).
-- Reference 5-12 reviews across entire report using {{REV:id:display text}} format. Every review you quote or reference MUST use the {{REV:id:display text}} format so it can be linked in the UI.
+- Aim for 15-25 total review references across the entire report using {{REV:id:display text}} format.
 - Every field must be grounded in actual review data. No generic advice. No filler.
 `
 
@@ -708,7 +769,7 @@ export async function insightsRunUnified(input: InsightsInput & {
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt },
     ],
-    max_completion_tokens: 12000,
+    max_completion_tokens: 16000,
     response_format: { type: 'json_object' },
   })
 
