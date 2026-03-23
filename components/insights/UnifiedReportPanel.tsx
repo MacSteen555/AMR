@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart,
 } from 'recharts'
 import type { UnifiedReportData } from '@/lib/openai/insights'
 
@@ -303,8 +302,7 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
   // Build nav sections (conditional recommendations)
   const navSections: NavSection[] = useMemo(() => {
     const sections: NavSection[] = [
-      { id: 'snapshot', label: 'Snapshot', zone: 1 },
-      { id: 'trends', label: 'Trends', zone: 1 },
+      { id: 'snapshot', label: '30 Day Snapshot', zone: 1 },
       { id: 'themes', label: 'Themes', zone: 1 },
       { id: 'big-picture', label: 'Big Picture', zone: 2 },
       { id: 'strengths-weaknesses', label: 'Strengths & Weaknesses', zone: 2 },
@@ -398,18 +396,6 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
     { label: '5-Star %', value: `${ts.currentFiveStarPct}%`, prev: ts.previousFiveStarPct != null ? `${ts.previousFiveStarPct}%` : null },
   ]
 
-  // ── Distribution chart data ──
-  const distributionData = useMemo(() => {
-    return [5, 4, 3, 2, 1].map((star) => ({
-      star: `${star}★`,
-      current: ts.currentDistribution[star - 1] ?? 0,
-      previous: ts.previousDistribution ? ts.previousDistribution[star - 1] ?? 0 : 0,
-    }))
-  }, [ts])
-
-  // ── Weekly volume chart data ──
-  const weeklyData = data.weeklyVolume || []
-
   return (
     <div className="flex gap-8 relative">
       {/* ── Desktop Sticky Left Nav ── */}
@@ -467,7 +453,7 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
             id="snapshot"
             className="scroll-mt-28"
           >
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Snapshot</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">30 Day Snapshot</h3>
             <div className="space-y-3">
               {(data.snapshot || []).map((card, i) => (
                 <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 flex items-start gap-3">
@@ -494,13 +480,13 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
             </div>
           </section>
 
-          {/* ── Section 2: Trends ── */}
+          {/* ── Section 2: Themes ── */}
           <section
-            ref={(el) => { sectionRefs.current['trends'] = el }}
-            id="trends"
+            ref={(el) => { sectionRefs.current['themes'] = el }}
+            id="themes"
             className="scroll-mt-28 mt-10"
           >
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Trends</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Themes</h3>
 
             {/* Stat Cards Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
@@ -515,62 +501,15 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
               ))}
             </div>
 
-            {/* Rating Distribution Chart */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-              <h4 className="text-sm font-bold text-gray-900 mb-4">Rating Distribution</h4>
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={distributionData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="star" tick={{ fontSize: 12, fill: '#9ca3af' }} />
-                    <YAxis tick={{ fontSize: 12, fill: '#9ca3af' }} />
-                    <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }} />
-                    <Bar dataKey="current" fill="#0d9488" radius={[4, 4, 0, 0]} name="Current" />
-                    {ts.previousDistribution && (
-                      <Bar dataKey="previous" fill="#e2e8f0" radius={[4, 4, 0, 0]} name="Previous" />
-                    )}
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Weekly Volume Chart */}
-            {weeklyData.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-xl p-6">
-                <h4 className="text-sm font-bold text-gray-900 mb-4">Weekly Volume</h4>
-                <div className="h-56">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={weeklyData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="weekLabel" tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                      <YAxis yAxisId="count" tick={{ fontSize: 12, fill: '#9ca3af' }} orientation="left" />
-                      <YAxis yAxisId="rating" domain={[1, 5]} tick={{ fontSize: 12, fill: '#9ca3af' }} orientation="right" />
-                      <Tooltip
-                        contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '13px' }}
-                        formatter={(value: any, name: any) => [
-                          name === 'avgRating' ? Number(value).toFixed(2) : value,
-                          name === 'avgRating' ? 'Avg Rating' : 'Reviews',
-                        ]}
-                      />
-                      <Bar yAxisId="count" dataKey="reviewCount" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={20} name="reviewCount" />
-                      <Line yAxisId="rating" type="monotone" dataKey="avgRating" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3, fill: '#0d9488' }} name="avgRating" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* ── Section 3: Themes ── */}
-          <section
-            ref={(el) => { sectionRefs.current['themes'] = el }}
-            id="themes"
-            className="scroll-mt-28 mt-10"
-          >
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Themes</h3>
+            {/* Theme Cards */}
             <div className="space-y-2">
               {(data.themes || []).map((theme, i) => {
                 const expanded = expandedThemes.has(i)
+                const trendIcon = theme.trendDirection === 'up' ? '\u2191' : theme.trendDirection === 'down' ? '\u2193' : theme.trendDirection === 'new' ? '\u2726' : '\u2192'
+                const trendColor = theme.trendDirection === 'up' ? 'text-emerald-600' : theme.trendDirection === 'down' ? 'text-red-600' : theme.trendDirection === 'new' ? 'text-teal-600' : 'text-gray-500'
+                const ratingDiff = theme.avgRatingWhenMentioned - theme.overallAvgRating
+                const ratingColor = ratingDiff >= 0.2 ? 'bg-emerald-50 text-emerald-700' : ratingDiff <= -0.2 ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600'
+
                 return (
                   <div key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                     <button
@@ -578,21 +517,67 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                       className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <SentimentDot sentiment={theme.sentiment} />
-                      <span className="font-semibold text-gray-900 text-sm">{theme.theme}</span>
-                      {theme.isNew && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">new</span>
-                      )}
-                      <span className="flex-1" />
-                      <span className="text-xs text-gray-500 whitespace-nowrap">{theme.mentionCount} mentions</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-gray-900 text-sm">{theme.theme}</span>
+                          {theme.trendDirection === 'new' && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">new</span>
+                          )}
+                          <span className={`text-xs font-medium ${trendColor}`}>{trendIcon} {theme.trendDescription}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-xs text-gray-500">{theme.mentionCount} recent &middot; {theme.allTimeMentionCount} all-time</span>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ratingColor}`}>
+                            {theme.avgRatingWhenMentioned.toFixed(1)}&star; avg when mentioned
+                          </span>
+                        </div>
+                      </div>
                       <ChevronDown expanded={expanded} />
                     </button>
-                    {expanded && theme.topQuotes && theme.topQuotes.length > 0 && (
-                      <div className="px-5 pb-4 space-y-2">
-                        {theme.topQuotes.map((q, qi) => (
-                          <div key={qi} className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 leading-relaxed">
-                            {rt(q)}
+
+                    {expanded && (
+                      <div className="px-5 pb-5 space-y-4">
+                        {/* Narrative */}
+                        <div className="text-sm text-gray-700 leading-relaxed">
+                          {rt(theme.narrative)}
+                        </div>
+
+                        {/* Sub-themes */}
+                        {theme.subThemes && theme.subThemes.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Sub-themes</h5>
+                            <div className="space-y-2">
+                              {theme.subThemes.map((sub, si) => (
+                                <div key={si} className="flex items-start gap-2 bg-gray-50 rounded-lg p-3">
+                                  <SentimentDot sentiment={sub.sentiment} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-gray-900">{sub.name}</span>
+                                      <span className="text-xs text-gray-400">{sub.mentionCount} mentions</span>
+                                    </div>
+                                    {sub.exampleQuote && (
+                                      <div className="text-xs text-gray-500 italic mt-1 leading-relaxed">{rt(sub.exampleQuote)}</div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
+
+                        {/* Top Quotes */}
+                        {theme.topQuotes && theme.topQuotes.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Customer Quotes</h5>
+                            <div className="space-y-2">
+                              {theme.topQuotes.map((q, qi) => (
+                                <div key={qi} className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 leading-relaxed">
+                                  {rt(q)}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -607,8 +592,6 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
 
         {/* ═══ ZONE 2: Big Picture ═══ */}
         <div>
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-600 mb-6">Zone 2: Big Picture</div>
-
           {/* ── Section 4: Big Picture Overview ── */}
           <section
             ref={(el) => { sectionRefs.current['big-picture'] = el }}
@@ -743,17 +726,76 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                   </ResponsiveContainer>
                 </div>
 
-                {/* Annotated Months */}
-                {(data.monthlyTimeline || []).some((m) => m.annotation) && (
-                  <div className="mt-4 space-y-2">
-                    {(data.monthlyTimeline || []).filter((m) => m.annotation).map((m, i) => (
-                      <div key={i} className="flex items-start gap-2 text-sm">
-                        <span className="font-semibold text-teal-700 whitespace-nowrap">{fmtMonth(m.month)}</span>
-                        <span className="text-gray-600">{m.annotation}</span>
-                      </div>
-                    ))}
+                {/* Annotated Months with Dominant Themes */}
+                {(data.monthlyTimeline || []).some((m) => m.annotation || (m.dominantThemes && m.dominantThemes.length > 0)) && (
+                  <div className="mt-4 space-y-3">
+                    {(data.monthlyTimeline || [])
+                      .filter((m) => m.annotation || (m.dominantThemes && m.dominantThemes.length > 0))
+                      .slice(-6)
+                      .map((m, i) => (
+                        <div key={i} className="border-l-2 border-gray-200 pl-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-teal-700 text-sm whitespace-nowrap">{fmtMonth(m.month)}</span>
+                            <span className="text-xs text-gray-400">{m.reviewCount} reviews &middot; {m.avgRating.toFixed(1)}&star;</span>
+                          </div>
+                          {m.annotation && (
+                            <p className="text-sm text-gray-600 mt-0.5">{m.annotation}</p>
+                          )}
+                          {m.dominantThemes && m.dominantThemes.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {m.dominantThemes.map((t, ti) => (
+                                <span key={ti} className="inline-flex items-center gap-1 text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                                  <SentimentDot sentiment={t.sentiment} />
+                                  {t.theme} ({t.mentionCount})
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Timeline Insights */}
+            {data.timelineInsights && data.timelineInsights.length > 0 && (
+              <div className="space-y-3 mb-6">
+                <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Month-over-Month Insights</h4>
+                {data.timelineInsights.map((insight, i) => {
+                  const typeColors: Record<string, string> = {
+                    theme_emerged: 'bg-teal-50 text-teal-700 border-teal-200',
+                    theme_disappeared: 'bg-gray-50 text-gray-700 border-gray-200',
+                    sentiment_shift: 'bg-amber-50 text-amber-700 border-amber-200',
+                    rating_correlation: 'bg-blue-50 text-blue-700 border-blue-200',
+                    trend: 'bg-purple-50 text-purple-700 border-purple-200',
+                  }
+                  const typeLabels: Record<string, string> = {
+                    theme_emerged: 'Emerged',
+                    theme_disappeared: 'Disappeared',
+                    sentiment_shift: 'Sentiment Shift',
+                    rating_correlation: 'Rating Impact',
+                    trend: 'Trend',
+                  }
+                  const badgeClass = typeColors[insight.type] || 'bg-gray-50 text-gray-700 border-gray-200'
+
+                  return (
+                    <div key={i} className="bg-white border border-gray-200 rounded-xl p-5">
+                      <div className="flex items-start gap-3 mb-2">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border flex-shrink-0 ${badgeClass}`}>
+                          {typeLabels[insight.type] || insight.type}
+                        </span>
+                        <span className="font-semibold text-gray-900 text-sm">{insight.title}</span>
+                      </div>
+                      <div className="text-sm text-gray-600 leading-relaxed">{rt(insight.description)}</div>
+                      <div className="flex gap-1 mt-2">
+                        {insight.monthsAffected.map((m, mi) => (
+                          <span key={mi} className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{fmtMonth(m)}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
 
