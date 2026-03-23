@@ -507,7 +507,8 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                 const expanded = expandedThemes.has(i)
                 const trendIcon = theme.trendDirection === 'up' ? '\u2191' : theme.trendDirection === 'down' ? '\u2193' : theme.trendDirection === 'new' ? '\u2726' : '\u2192'
                 const trendColor = theme.trendDirection === 'up' ? 'text-emerald-600' : theme.trendDirection === 'down' ? 'text-red-600' : theme.trendDirection === 'new' ? 'text-teal-600' : 'text-gray-500'
-                const ratingDiff = theme.avgRatingWhenMentioned - theme.overallAvgRating
+                const hasRatingData = theme.avgRatingWhenMentioned != null && theme.overallAvgRating != null
+                const ratingDiff = hasRatingData ? theme.avgRatingWhenMentioned - theme.overallAvgRating : 0
                 const ratingColor = ratingDiff >= 0.2 ? 'bg-emerald-50 text-emerald-700' : ratingDiff <= -0.2 ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-600'
 
                 return (
@@ -523,13 +524,19 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                           {theme.trendDirection === 'new' && (
                             <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">new</span>
                           )}
-                          <span className={`text-xs font-medium ${trendColor}`}>{trendIcon} {theme.trendDescription}</span>
+                          {theme.trendDescription && (
+                            <span className={`text-xs font-medium ${trendColor}`}>{trendIcon} {theme.trendDescription}</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="text-xs text-gray-500">{theme.mentionCount} recent &middot; {theme.allTimeMentionCount} all-time</span>
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ratingColor}`}>
-                            {theme.avgRatingWhenMentioned.toFixed(1)}&star; avg when mentioned
+                          <span className="text-xs text-gray-500">
+                            {theme.mentionCount} recent{theme.allTimeMentionCount != null ? ` · ${theme.allTimeMentionCount} all-time` : ''}
                           </span>
+                          {hasRatingData && (
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ratingColor}`}>
+                              {theme.avgRatingWhenMentioned.toFixed(1)}★ avg when mentioned
+                            </span>
+                          )}
                         </div>
                       </div>
                       <ChevronDown expanded={expanded} />
@@ -538,9 +545,11 @@ export default function UnifiedReportPanel({ data }: { data: UnifiedReportData }
                     {expanded && (
                       <div className="px-5 pb-5 space-y-4">
                         {/* Narrative */}
-                        <div className="text-sm text-gray-700 leading-relaxed">
-                          {rt(theme.narrative)}
-                        </div>
+                        {theme.narrative && (
+                          <div className="text-sm text-gray-700 leading-relaxed">
+                            {rt(theme.narrative)}
+                          </div>
+                        )}
 
                         {/* Sub-themes */}
                         {theme.subThemes && theme.subThemes.length > 0 && (
