@@ -325,216 +325,84 @@ function ThreeStepSection() {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SECTION C: COMPETITOR MONITORING
+   SECTION C: AI FEATURES BRIDGE (links to /ai)
    ════════════════════════════════════════════════════════════════════ */
 
-const competitors = [
-  { name: 'Your Business', reviews: 312, rating: 4.8, highlight: true },
-  { name: 'Competitor A', reviews: 198, rating: 4.2, highlight: false },
-  { name: 'Competitor B', reviews: 156, rating: 3.9, highlight: false },
-  { name: 'Competitor C', reviews: 89, rating: 3.5, highlight: false },
-]
-
-const competitorFeatures = [
-  'Side-by-side competitor comparison',
-  'Competitor review sentiment tracking',
-  'AI-generated competitive reports',
-  'Identify competitor weaknesses',
-]
-
-function CompetitorSection() {
+function AIBridgeSection() {
   return (
     <section className="py-24 px-6 bg-gray-50">
-      <div className="max-w-6xl mx-auto">
-        <motion.div className="text-center mb-16" {...fadeInUp}>
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 mb-4">
+      <div className="max-w-4xl mx-auto text-center">
+        <motion.div {...fadeInUp}>
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 mb-6">
             <span className="w-2 h-2 rounded-full bg-teal-500" />
-            <span className="text-sm font-medium text-teal-700">Competitive Intel</span>
+            <span className="text-sm font-medium text-teal-700">Powered by AI</span>
           </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-            Know exactly where you stand
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-4">
+            More than just replies
           </h2>
+          <p className="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+            AutoMyReply&apos;s AI doesn&apos;t just write replies — it learns your brand voice, monitors
+            competitors, and turns hundreds of reviews into actionable business insights.
+          </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left: text + checklist */}
-          <motion.div {...fadeInUp}>
-            <p className="text-gray-600 text-lg leading-relaxed mb-8">
-              Monitor your competitors&apos; review performance in real time. Understand their
-              strengths and weaknesses so you can stay ahead in your market.
-            </p>
-            <ul className="space-y-4">
-              {competitorFeatures.map(feature => (
-                <li key={feature} className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                    <CheckIcon className="text-teal-600" />
-                  </div>
-                  <span className="text-gray-700 font-medium">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Right: competitive overview card */}
-          <motion.div
-            {...fadeInUp}
-            whileHover={{ y: -4 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-          >
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="font-bold text-gray-900">Competitive Overview</h4>
-                <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700">
-                  You&apos;re #1
-                </span>
+        <motion.div
+          className="grid sm:grid-cols-3 gap-6 mb-10"
+          initial="initial"
+          whileInView="whileInView"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={{ whileInView: { transition: { staggerChildren: 0.15 } } }}
+        >
+          {[
+            {
+              title: 'Brand Voice Learning',
+              desc: 'AI adapts to your tone and gets better with every edit you make.',
+              icon: (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+              ),
+            },
+            {
+              title: 'Competitor Monitoring',
+              desc: 'Track competitors\' reviews and see how you compare side-by-side.',
+              icon: (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              ),
+            },
+            {
+              title: 'AI Insights & Reports',
+              desc: 'Surface sentiment trends, recurring themes, and actionable recommendations.',
+              icon: (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              ),
+            },
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              variants={staggerItem}
+              className="group bg-white rounded-2xl p-6 border border-gray-100 hover:border-teal-200 hover:shadow-lg hover:shadow-teal-50 transition-all duration-300 cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {item.icon}
+                </svg>
               </div>
-              <motion.div
-                className="space-y-3"
-                initial="initial"
-                whileInView="whileInView"
-                viewport={{ once: true, amount: 0.3 }}
-                variants={{ whileInView: { transition: { staggerChildren: 0.12 } } }}
-              >
-                {competitors.map(c => (
-                  <motion.div
-                    key={c.name}
-                    variants={staggerItem}
-                    className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
-                      c.highlight ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50 border border-gray-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                        c.highlight ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-600'
-                      }`}>
-                        {c.name.charAt(0)}
-                      </div>
-                      <span className={`text-sm font-semibold ${c.highlight ? 'text-teal-800' : 'text-gray-700'}`}>
-                        {c.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <span className="text-gray-500">{c.reviews} reviews</span>
-                      <div className="flex items-center gap-1">
-                        <svg className={`w-4 h-4 ${c.highlight ? 'text-amber-400' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className={`font-semibold ${c.highlight ? 'text-teal-800' : 'text-gray-600'}`}>{c.rating}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Tier callout */}
-        <motion.p {...fadeInUp} className="text-center mt-12 text-sm text-gray-500">
-          <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white border border-gray-200 shadow-sm">
-            Track 1 competitor on Pro &middot; 5 on Business &middot; 20 on Enterprise
-          </span>
-        </motion.p>
-      </div>
-    </section>
-  )
-}
-
-/* ════════════════════════════════════════════════════════════════════
-   SECTION D: AI INSIGHTS & REPORTS
-   ════════════════════════════════════════════════════════════════════ */
-
-const sentimentBars = [
-  { label: 'Customer Service', value: 92, color: 'bg-emerald-500' },
-  { label: 'Wait Times', value: 64, color: 'bg-amber-500' },
-  { label: 'Food Quality', value: 88, color: 'bg-emerald-500' },
-  { label: 'Atmosphere', value: 95, color: 'bg-emerald-500' },
-  { label: 'Value for Money', value: 78, color: 'bg-teal-500' },
-]
-
-const insightFeatures = [
-  'Sentiment trend analysis over time',
-  'Recurring praise & complaint themes',
-  'Actionable improvement recommendations',
-  'Location-by-location comparison',
-]
-
-function InsightsSection() {
-  return (
-    <section className="py-24 px-6 bg-white">
-      <div className="max-w-6xl mx-auto">
-        <motion.div className="text-center mb-16" {...fadeInUp}>
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200 mb-4">
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
-            <span className="text-sm font-medium text-amber-700">AI Insights</span>
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-            Turn hundreds of reviews into actionable strategy
-          </h2>
+              <h4 className="font-semibold text-gray-900 mb-2">{item.title}</h4>
+              <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
+            </motion.div>
+          ))}
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left: sentiment card */}
-          <motion.div
-            {...fadeInUp}
-            whileHover={{ y: -4 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        <motion.div {...fadeInUp}>
+          <Link
+            href="/ai"
+            className="group inline-flex items-center gap-2 px-6 py-3 bg-white text-teal-700 rounded-xl text-sm font-semibold border-2 border-teal-200 hover:border-teal-400 hover:shadow-lg hover:shadow-teal-50 transition-all duration-300 cursor-pointer"
           >
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h4 className="font-bold text-gray-900">Sentiment Breakdown</h4>
-                <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">Last 30 days</span>
-              </div>
-              <div className="space-y-4">
-                {sentimentBars.map(bar => (
-                  <div key={bar.label}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium text-gray-700">{bar.label}</span>
-                      <span className="text-sm font-semibold text-gray-900">{bar.value}%</span>
-                    </div>
-                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <motion.div
-                        className={`h-full rounded-full ${bar.color}`}
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${bar.value}%` }}
-                        viewport={{ once: true, amount: 0.5 }}
-                        transition={{ duration: 1, ease: 'easeOut' as const, delay: 0.1 }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-6 text-xs text-gray-400 text-center">
-                Generated from 1,247 reviews
-              </p>
-            </div>
-          </motion.div>
-
-          {/* Right: text + checklist */}
-          <motion.div {...fadeInUp}>
-            <p className="text-gray-600 text-lg leading-relaxed mb-8">
-              Our AI reads every review, extracts key themes, and generates reports that
-              tell you exactly what customers love and what needs improvement.
-            </p>
-            <ul className="space-y-4">
-              {insightFeatures.map(feature => (
-                <li key={feature} className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <CheckIcon className="text-amber-600" />
-                  </div>
-                  <span className="text-gray-700 font-medium">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
-
-        {/* Tier callout */}
-        <motion.p {...fadeInUp} className="text-center mt-12 text-sm text-gray-500">
-          <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white border border-gray-200 shadow-sm">
-            3 reports/month on Pro &middot; 10 on Business &middot; 20 on Enterprise
-          </span>
-        </motion.p>
+            Explore our AI technology
+            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </Link>
+        </motion.div>
       </div>
     </section>
   )
@@ -723,9 +591,8 @@ export default function HowItWorksPage() {
     <main className="min-h-screen">
       <HeroSection />
       <ThreeStepSection />
-      <CompetitorSection />
-      <InsightsSection />
       <BeforeAfterSection />
+      <AIBridgeSection />
       <CtaSection />
     </main>
   )

@@ -48,6 +48,7 @@ export function Navbar({ showAnchorLinks = false }: NavbarProps) {
             <button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Features</button>
           )}
           <Link href="/how-it-works" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">How It Works</Link>
+          <Link href="/ai" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">AI</Link>
           <Link href="/pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">Pricing</Link>
           {showAnchorLinks && (
             <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">FAQ</button>
@@ -78,6 +79,7 @@ export function Navbar({ showAnchorLinks = false }: NavbarProps) {
             <button onClick={() => scrollTo('features')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Features</button>
           )}
           <Link href="/how-it-works" className="block text-sm text-gray-600 hover:text-gray-900 py-2">How It Works</Link>
+          <Link href="/ai" className="block text-sm text-gray-600 hover:text-gray-900 py-2">AI</Link>
           <Link href="/pricing" className="block text-sm text-gray-600 hover:text-gray-900 py-2">Pricing</Link>
           {showAnchorLinks && (
             <button onClick={() => scrollTo('faq')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">FAQ</button>
