@@ -297,6 +297,8 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8">
             <button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Features</button>
             <button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">Pricing</button>
+            <Link href="/insights" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">Insights</Link>
+            <Link href="/compete" className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">Competitive</Link>
             <button onClick={() => scrollTo('faq')} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium cursor-pointer">FAQ</button>
             <Link href={isLoggedIn ? "/dashboard" : "/login"} className="text-sm text-gray-500 hover:text-gray-900 transition-colors font-medium">{isLoggedIn ? "Dashboard" : "Log in"}</Link>
             <Link href={isLoggedIn ? "/dashboard" : "/login"} className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-200 transition-all duration-300">
@@ -320,6 +322,8 @@ export default function LandingPage() {
           <div className="md:hidden border-t border-gray-100 px-6 py-4 bg-white rounded-b-2xl space-y-3" style={{ animation: 'fadeSlideUp 0.3s ease-out' }}>
             <button onClick={() => scrollTo('features')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Features</button>
             <button onClick={() => scrollTo('pricing')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">Pricing</button>
+            <Link href="/insights" className="block text-sm text-gray-600 hover:text-gray-900 py-2">Insights</Link>
+            <Link href="/compete" className="block text-sm text-gray-600 hover:text-gray-900 py-2">Competitive</Link>
             <button onClick={() => scrollTo('faq')} className="block w-full text-left text-sm text-gray-600 hover:text-gray-900 py-2 cursor-pointer">FAQ</button>
             <Link href={isLoggedIn ? "/dashboard" : "/login"} className="block text-sm text-gray-600 hover:text-gray-900 py-2">{isLoggedIn ? "Dashboard" : "Log in"}</Link>
             <Link href={isLoggedIn ? "/dashboard" : "/login"} className="block w-full text-center px-5 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold">
@@ -985,7 +989,7 @@ export default function LandingPage() {
       {/* ════════════════ FOOTER ════════════════ */}
       <footer className="border-t border-gray-100 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 lg:gap-8">
             {/* Brand column */}
             <div className="lg:col-span-2">
               <div className="flex items-center gap-2 mb-4">
@@ -1014,6 +1018,15 @@ export default function LandingPage() {
                 <li><button onClick={() => scrollTo('features')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Features</button></li>
                 <li><button onClick={() => scrollTo('pricing')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Pricing</button></li>
                 <li><button onClick={() => scrollTo('demo')} className="text-sm text-gray-500 hover:text-teal-600 transition-colors cursor-pointer">Live Demo</button></li>
+              </ul>
+            </div>
+
+            {/* Methodology links */}
+            <div>
+              <h4 className="font-semibold text-gray-900 text-sm mb-4">Methodology</h4>
+              <ul className="space-y-3">
+                <li><Link href="/insights" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Insights Metrics</Link></li>
+                <li><Link href="/compete" className="text-sm text-gray-500 hover:text-teal-600 transition-colors">Competitive Metrics</Link></li>
               </ul>
             </div>
 

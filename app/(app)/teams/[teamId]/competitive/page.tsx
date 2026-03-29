@@ -600,6 +600,17 @@ export default function CompetitorMonitoringPage() {
                         Reviews synced and competitive reports generated every two weeks, automatically.
                     </p>
                 </div>
+                <a
+                    href="/compete"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-gray-500 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 transition-all duration-150 shrink-0"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    How it works
+                </a>
             </div>
 
             {/* Loading */}
