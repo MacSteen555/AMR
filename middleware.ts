@@ -9,9 +9,6 @@ const BYPASS_ROUTES = ['/api/stripe/webhook', '/api/cron/']
 // Strict tier: auth & onboarding (matched with startsWith)
 const STRICT_PREFIX_PATTERNS = ['/api/auth/', '/api/onboarding/']
 
-// Strict tier (endsWith matching)
-const STRICT_SUFFIX_PATTERNS = ['/invites']
-
 // Sync tier: review syncing & competitor scraping (matched with includes/endsWith)
 const SYNC_PATTERNS = ['/reviews/sync']
 
@@ -27,7 +24,6 @@ const CONTACT_PATTERNS = ['/api/contact', '/api/feature-request']
 function getTier(pathname: string, method: string) {
   if (method === 'POST' && CONTACT_PATTERNS.some((p) => pathname.startsWith(p))) return 'contact'
   if (STRICT_PREFIX_PATTERNS.some((p) => pathname.startsWith(p))) return 'strict'
-  if (method === 'POST' && STRICT_SUFFIX_PATTERNS.some((p) => pathname.endsWith(p))) return 'strict'
   if (SYNC_PATTERNS.some((p) => pathname.endsWith(p))) return 'sync'
   if (method === 'POST' && LARGE_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'large-ai'
   if (method === 'POST' && QUICK_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'quick-ai'
