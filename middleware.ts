@@ -9,6 +9,9 @@ const BYPASS_ROUTES = ['/api/stripe/webhook', '/api/cron/']
 // Strict tier: auth & onboarding (matched with startsWith)
 const STRICT_PREFIX_PATTERNS = ['/api/auth/', '/api/onboarding/']
 
+// Strict tier (endsWith matching)
+const STRICT_SUFFIX_PATTERNS = ['/invites']
+
 // Sync tier: review syncing & competitor scraping (matched with includes/endsWith)
 const SYNC_PATTERNS = ['/reviews/sync']
 
@@ -21,13 +24,10 @@ const LARGE_AI_PATTERNS = ['/bulk-generate', '/insights/run']
 // Contact/feedback emails: very strict to prevent spam
 const CONTACT_PATTERNS = ['/api/contact', '/api/feature-request']
 
-// Invite sending: prevent spam invites (matched with endsWith, POST only)
-const INVITE_PATTERNS = ['/invites']
-
 function getTier(pathname: string, method: string) {
   if (method === 'POST' && CONTACT_PATTERNS.some((p) => pathname.startsWith(p))) return 'contact'
-  if (method === 'POST' && INVITE_PATTERNS.some((p) => pathname.endsWith(p))) return 'invite'
   if (STRICT_PREFIX_PATTERNS.some((p) => pathname.startsWith(p))) return 'strict'
+  if (method === 'POST' && STRICT_SUFFIX_PATTERNS.some((p) => pathname.endsWith(p))) return 'strict'
   if (SYNC_PATTERNS.some((p) => pathname.endsWith(p))) return 'sync'
   if (method === 'POST' && LARGE_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'large-ai'
   if (method === 'POST' && QUICK_AI_PATTERNS.some((p) => pathname.endsWith(p))) return 'quick-ai'
@@ -37,7 +37,6 @@ function getTier(pathname: string, method: string) {
 
 const TIER_CONFIGS = {
   contact: { limit: 1, window: '60 s' as const, prefix: 'rl:contact' },
-  invite: { limit: 5, window: '60 s' as const, prefix: 'rl:invite' },
   strict: { limit: 5, window: '60 s' as const, prefix: 'rl:strict' },
   sync: { limit: 3, window: '60 s' as const, prefix: 'rl:sync' },
   'quick-ai': { limit: 40, window: '60 s' as const, prefix: 'rl:quick-ai' },
