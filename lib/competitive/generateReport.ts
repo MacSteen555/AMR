@@ -1,19 +1,12 @@
-import { competitiveRun, type PeriodWindow } from '@/lib/openai/insights'
-
-const TIMEFRAMES: Array<{ id: PeriodWindow; days?: number; months?: number; years?: number }> = [
-  { id: '30d', days: 30 },
-  { id: '90d', days: 90 },
-  { id: '6m', months: 6 },
-  { id: '1y', years: 1 },
-]
+import { unifiedCompetitiveRun } from '@/lib/openai/insights'
 
 /**
- * Generates a competitive report for a single competitor vs its linked locations.
+ * Generates a unified competitive report for a single competitor vs its linked locations.
  *
- * 1. Fetches owned location reviews from app.google_reviews (up to 400/loc, last 1 year)
- * 2. Fetches competitor reviews from app.competitor_reviews (up to 400, last 1 year)
+ * 1. Fetches owned location reviews from app.google_reviews (up to 400/loc, last 6 months)
+ * 2. Fetches competitor reviews from app.competitor_reviews (up to 400, last 6 months)
  * 3. Finds the most recent previous run for delta comparison
- * 4. Runs competitiveRun() for 4 timeframes (30d, 90d, 6m, 1y) concurrently
+ * 4. Runs unifiedCompetitiveRun() once with all reviews
  * 5. Inserts the result into app.competitive_runs
  */
 export async function generateCompetitorReport(
@@ -23,9 +16,9 @@ export async function generateCompetitorReport(
 ): Promise<{ id: string }> {
   const now = new Date()
   const endStr = now.toISOString().split('T')[0]
-  const oneYearAgo = new Date()
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
-  const maxStartStr = oneYearAgo.toISOString().split('T')[0]
+  const sixMonthsAgo = new Date()
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+  const startStr = sixMonthsAgo.toISOString().split('T')[0]
 
   // ── 1. Fetch owned location reviews ──────────────────────────────────────
   const { data: ownedLocations } = await serviceClient
@@ -42,7 +35,7 @@ export async function generateCompetitorReport(
         .from('google_reviews')
         .select('rating, comment, review_date, reviewer_name, reply_status')
         .eq('location_id', loc.id)
-        .gte('review_date', maxStartStr)
+        .gte('review_date', startStr)
         .lte('review_date', endStr)
         .order('review_date', { ascending: false })
         .limit(400)
@@ -66,7 +59,7 @@ export async function generateCompetitorReport(
     .from('competitor_reviews')
     .select('rating, comment, review_date, reviewer_name, owner_response')
     .eq('competitor_id', competitor.id)
-    .gte('review_date', maxStartStr)
+    .gte('review_date', startStr)
     .lte('review_date', endStr)
     .order('review_date', { ascending: false })
     .limit(400)
@@ -85,7 +78,6 @@ export async function generateCompetitorReport(
   ]
 
   // ── 3. Fetch previous run for delta comparison ─────────────────────────
-  let previousRunData: any = null
   const { data: prevRun } = await serviceClient
     .schema('app')
     .from('competitive_runs')
@@ -95,54 +87,28 @@ export async function generateCompetitorReport(
     .limit(1)
     .maybeSingle()
 
-  previousRunData = prevRun?.data || null
+  const previousRunData = prevRun?.data?.unified || null
 
-  // ── 4. Run competitive analysis for 4 timeframes concurrently ────────────
-  const analysisData: Record<string, any> = {}
+  const prevMetrics = previousRunData
+    ? {
+        competitivePositionScore: previousRunData.competitivePositionScore,
+        marketMomentum: previousRunData.marketMomentum,
+        ownedAverageRating: previousRunData.ownedAverageRating,
+        competitorAverageRating: previousRunData.competitorAverageRating,
+        threatAlerts: previousRunData.threatAlerts?.map((t: any) => t.title) || [],
+        topStrengths: previousRunData.competitiveStrengths?.map((s: any) => s.theme) || [],
+        topWeaknesses: previousRunData.competitiveWeaknesses?.map((w: any) => w.theme) || [],
+      }
+    : undefined
 
-  await Promise.all(
-    TIMEFRAMES.map(async (tf) => {
-      const start = new Date()
-      if (tf.days) start.setDate(start.getDate() - tf.days)
-      if (tf.months) start.setMonth(start.getMonth() - tf.months)
-      if (tf.years) start.setFullYear(start.getFullYear() - tf.years)
-      const startStr = start.toISOString().split('T')[0]
-
-      const filterReviews = (rawReviews: any[]) =>
-        rawReviews.filter((r) => r.date >= startStr).slice(0, 200)
-
-      const filteredOwned = ownedLocationReviews.map((loc) => ({
-        name: loc.name,
-        reviews: filterReviews(loc.reviews),
-      }))
-
-      const filteredComp = competitorReviews.map((comp) => ({
-        name: comp.name,
-        reviews: filterReviews(comp.reviews),
-      }))
-
-      const prevMetrics = previousRunData?.[tf.id]
-        ? {
-            competitivePositionScore: previousRunData[tf.id].competitivePositionScore,
-            marketMomentum: previousRunData[tf.id].marketMomentum,
-            ownedAverageRating: previousRunData[tf.id].ownedAverageRating,
-            competitorAverageRating: previousRunData[tf.id].competitorAverageRating,
-            threatAlerts: previousRunData[tf.id].threatAlerts?.map((t: any) => t.title) || [],
-            topStrengths: previousRunData[tf.id].competitiveStrengths?.map((s: any) => s.theme) || [],
-            topWeaknesses: previousRunData[tf.id].competitiveWeaknesses?.map((w: any) => w.theme) || [],
-          }
-        : undefined
-
-      analysisData[tf.id] = await competitiveRun({
-        ownedLocations: filteredOwned,
-        competitors: filteredComp,
-        periodStart: startStr,
-        periodEnd: endStr,
-        periodWindow: tf.id,
-        previousMetrics: prevMetrics,
-      })
-    })
-  )
+  // ── 4. Run unified competitive analysis ──────────────────────────────────
+  const result = await unifiedCompetitiveRun({
+    ownedLocations: ownedLocationReviews,
+    competitors: competitorReviews,
+    periodStart: startStr,
+    periodEnd: endStr,
+    previousMetrics: prevMetrics,
+  })
 
   // ── 5. Insert into competitive_runs ──────────────────────────────────────
   const { data: run, error } = await serviceClient
@@ -152,7 +118,7 @@ export async function generateCompetitorReport(
       team_id: competitor.team_id,
       owned_location_ids: locationIds,
       competitor_ids: [competitor.id],
-      data: analysisData,
+      data: { unified: result },
       model: 'gpt-5.2',
     })
     .select('id')

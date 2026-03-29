@@ -76,16 +76,16 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     for (const run of runs || []) {
       for (const cid of run.competitor_ids || []) {
         if (!latestRunMap[cid]) {
-          const d30 = run.data?.['30d']
+          const report = run.data?.unified
           latestRunMap[cid] = {
             created_at: run.created_at,
-            competitivePositionScore: d30?.competitivePositionScore,
-            marketMomentum: d30?.marketMomentum,
-            ownedAverageRating: d30?.ownedAverageRating,
-            competitorAverageRating: d30?.competitorAverageRating,
-            ratingGap: d30?.ratingGap,
-            threatCount: d30?.threatAlerts?.length,
-            opportunityCount: d30?.opportunities?.length,
+            competitivePositionScore: report?.competitivePositionScore,
+            marketMomentum: report?.marketMomentum,
+            ownedAverageRating: report?.ownedAverageRating,
+            competitorAverageRating: report?.competitorAverageRating,
+            ratingGap: report?.ratingGap,
+            threatCount: report?.threatAlerts?.length,
+            opportunityCount: report?.opportunities?.length,
           }
         }
       }
