@@ -134,6 +134,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const data = createCompetitorSchema.parse(body)
 
     const supabase = createSupabaseServerClient()
+    const serviceClient = createSupabaseServiceRoleClient()
 
     // 1. Check tier limits
     const tierInfo = await getTeamTier(params.teamId)
@@ -162,8 +163,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       )
     }
 
-    // 3. Validate location_ids belong to this team
-    const { data: validLocations } = await supabase
+    // 3. Validate location_ids belong to this team (use service client to bypass RLS)
+    const { data: validLocations } = await serviceClient
       .schema('app')
       .from('locations')
       .select('id')
