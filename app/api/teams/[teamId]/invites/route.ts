@@ -88,28 +88,56 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     const EXPIRY_DAYS = 7
     expiresAt.setDate(expiresAt.getDate() + EXPIRY_DAYS)
 
-    const { data: invite, error } = await supabase
+    // Upsert: if an invite already exists for this email+team (even expired/accepted), refresh it
+    const serviceClient = createSupabaseServiceRoleClient()
+
+    const { data: existing } = await serviceClient
       .schema('app')
       .from('team_invites')
-      .insert({
-        team_id: params.teamId,
-        invited_email: data.email,
-        role: data.role,
-        invited_by: admin.user_id,
-        token_hash: tokenHash,
-        expires_at: expiresAt.toISOString(),
-      })
-      .select()
+      .select('id')
+      .eq('team_id', params.teamId)
+      .eq('invited_email', data.email)
       .single()
 
+    let invite
+    let error
+
+    if (existing) {
+      // Update the existing invite with a fresh token and expiry
+      const result = await serviceClient
+        .schema('app')
+        .from('team_invites')
+        .update({
+          role: data.role,
+          invited_by: admin.user_id,
+          token_hash: tokenHash,
+          expires_at: expiresAt.toISOString(),
+          accepted_at: null,
+        })
+        .eq('id', existing.id)
+        .select()
+        .single()
+      invite = result.data
+      error = result.error
+    } else {
+      const result = await serviceClient
+        .schema('app')
+        .from('team_invites')
+        .insert({
+          team_id: params.teamId,
+          invited_email: data.email,
+          role: data.role,
+          invited_by: admin.user_id,
+          token_hash: tokenHash,
+          expires_at: expiresAt.toISOString(),
+        })
+        .select()
+        .single()
+      invite = result.data
+      error = result.error
+    }
+
     if (error || !invite) {
-      // Check for unique constraint (already invited)
-      if (error?.code === '23505') {
-        return NextResponse.json(
-          { error: 'This email has already been invited to this team' },
-          { status: 409 }
-        )
-      }
       throw new Error(`Failed to create invite: ${error?.message}`)
     }
 
