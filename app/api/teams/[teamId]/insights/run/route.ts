@@ -500,7 +500,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
 export async function GET(request: Request, { params }: { params: { teamId: string } }) {
   try {
     await requireTeamMember(params.teamId)
-    const supabase = createSupabaseServerClient()
+    const serviceClient = createSupabaseServiceRoleClient()
 
     const { searchParams } = new URL(request.url)
     const periodWindow = searchParams.get('period_window')
@@ -509,7 +509,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
 
     if (locationId) {
       // Location-scoped: query by location_id
-      let query = supabase
+      let query = serviceClient
         .schema('app')
         .from('insights')
         .select('*')
@@ -538,7 +538,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       const locationIds = (locations || []).map(l => l.id)
 
       // Team-wide insights
-      let teamQuery = supabase
+      let teamQuery = serviceClient
         .schema('app')
         .from('insights')
         .select('*')
@@ -555,7 +555,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
       // Per-location insights
       let locationInsights: any[] = []
       if (locationIds.length > 0) {
-        let locQuery = supabase
+        let locQuery = serviceClient
           .schema('app')
           .from('insights')
           .select('*')
@@ -574,7 +574,7 @@ export async function GET(request: Request, { params }: { params: { teamId: stri
     }
 
     // Default: team-wide only (location_id IS NULL)
-    let query = supabase
+    let query = serviceClient
       .schema('app')
       .from('insights')
       .select('*')
