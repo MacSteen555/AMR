@@ -346,8 +346,17 @@ function InlineAddCompetitor({ teamId, locations, onSuccess, atLimit }: {
 
     if (atLimit) {
         return (
-            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-                <p className="text-sm text-gray-400">You&apos;ve reached your competitor limit. Upgrade your plan to track more.</p>
+            <div className="rounded-2xl border border-teal-100 bg-gradient-to-r from-teal-50/80 to-emerald-50/50 p-6 text-center">
+                <p className="text-sm text-gray-700 font-medium mb-3">You&apos;ve reached your competitor limit.</p>
+                <a
+                    href={`/teams/${teamId}/billing`}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-200 transition-all duration-300"
+                >
+                    Upgrade to track more
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                </a>
             </div>
         )
     }

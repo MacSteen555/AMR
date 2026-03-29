@@ -144,8 +144,8 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       return NextResponse.json({ error: 'Please upgrade to PRO or higher to add competitors' }, { status: 403 })
     }
 
-    // 2. Count active competitors
-    const { count, error: countError } = await supabase
+    // 2. Count active competitors (use service client to bypass RLS)
+    const { count, error: countError } = await serviceClient
       .schema('app')
       .from('competitors')
       .select('*', { count: 'exact', head: true })
@@ -178,7 +178,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
     }
 
     // 4. Check for existing competitor (active or soft-deleted)
-    const { data: existing } = await supabase
+    const { data: existing } = await serviceClient
       .schema('app')
       .from('competitors')
       .select('*')
@@ -193,7 +193,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
         return NextResponse.json({ error: 'This competitor is already being tracked.' }, { status: 400 })
       }
 
-      const { data: updated, error } = await supabase
+      const { data: updated, error } = await serviceClient
         .schema('app')
         .from('competitors')
         .update({
@@ -218,7 +218,7 @@ export async function POST(request: Request, { params }: { params: { teamId: str
       }
       competitor = updated
     } else {
-      const { data: inserted, error } = await supabase
+      const { data: inserted, error } = await serviceClient
         .schema('app')
         .from('competitors')
         .insert({
