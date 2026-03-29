@@ -81,10 +81,9 @@ interface CompetitiveData {
 
 interface CompetitiveReportPanelProps {
   data: CompetitiveData
-  periodWindow: string
 }
 
-export function CompetitiveReportPanel({ data: d, periodWindow }: CompetitiveReportPanelProps) {
+export function CompetitiveReportPanel({ data: d }: CompetitiveReportPanelProps) {
   const posScore = d.competitivePositionScore ?? 50
   const momentum = d.marketMomentum ?? 0
   const ratingGap = d.ratingGap ?? 0

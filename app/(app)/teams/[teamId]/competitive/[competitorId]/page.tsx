@@ -59,17 +59,7 @@ interface CompetitorReview {
   likes: number | null
 }
 
-type Timeframe = '30d' | '90d' | '6m' | '1y'
 type MainTab = 'report' | 'reviews' | 'metrics'
-
-const TIMEFRAMES: Timeframe[] = ['30d', '90d', '6m', '1y']
-
-const TIMEFRAME_LABELS: Record<Timeframe, string> = {
-  '30d': '30 days',
-  '90d': '90 days',
-  '6m': '6 months',
-  '1y': '1 year',
-}
 
 const MAIN_TABS: { key: MainTab; label: string }[] = [
   { key: 'report', label: 'Report' },
@@ -159,32 +149,6 @@ function MainTabNav({
           }`}
         >
           {tab.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function TimeframeTabs({
-  active,
-  onChange,
-}: {
-  active: Timeframe
-  onChange: (t: Timeframe) => void
-}) {
-  return (
-    <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
-      {TIMEFRAMES.map((tf) => (
-        <button
-          key={tf}
-          onClick={() => onChange(tf)}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
-            active === tf
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {tf}
         </button>
       ))}
     </div>
@@ -537,16 +501,12 @@ function MetricsTab({
   runs,
   selectedRun,
   competitorId,
-  activeTimeframe,
-  onTimeframeChange,
 }: {
   runs: CompetitiveRun[]
   selectedRun: CompetitiveRun | null
   competitorId: string
-  activeTimeframe: Timeframe
-  onTimeframeChange: (t: Timeframe) => void
 }) {
-  const reportData = selectedRun?.data?.[activeTimeframe] || null
+  const reportData = selectedRun?.data?.unified || null
   const [trends, setTrends] = useState<TrendPoint[]>([])
   const [trendsLoading, setTrendsLoading] = useState(true)
 
@@ -578,28 +538,21 @@ function MetricsTab({
   // Position score over time from runs (one per report, still useful)
   const positionOverTime = useMemo(() => {
     const points = runs
-      .filter(r => r.data?.[activeTimeframe]?.competitivePositionScore != null)
+      .filter(r => r.data?.unified?.competitivePositionScore != null)
       .map(r => ({
         date: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        Score: r.data[activeTimeframe].competitivePositionScore,
+        Score: r.data.unified.competitivePositionScore,
       }))
       .reverse()
     return points.length >= 2 ? points : null
-  }, [runs, activeTimeframe])
+  }, [runs])
 
   if (!reportData && ratingTimeline.length === 0) {
     return (
-      <>
-        <div className="mb-6">
-          <TimeframeTabs active={activeTimeframe} onChange={onTimeframeChange} />
-        </div>
-        <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-8 text-center">
-          <p className="text-gray-500">
-            No data available for the <span className="font-medium text-gray-700">{TIMEFRAME_LABELS[activeTimeframe]}</span> window.
-          </p>
-          <p className="text-xs text-gray-400 mt-2">Try selecting a different timeframe above.</p>
-        </div>
-      </>
+      <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-8 text-center">
+        <p className="text-gray-500">No metrics data available yet.</p>
+        <p className="text-xs text-gray-400 mt-2">Metrics will appear after the first report is generated.</p>
+      </div>
     )
   }
 
@@ -631,10 +584,6 @@ function MetricsTab({
 
   return (
     <>
-      <div className="mb-6">
-        <TimeframeTabs active={activeTimeframe} onChange={onTimeframeChange} />
-      </div>
-
       {trendsLoading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {[1, 2].map(i => (
@@ -744,7 +693,6 @@ export default function CompetitorDetailPage() {
   const [competitor, setCompetitor] = useState<Competitor | null>(null)
   const [runs, setRuns] = useState<CompetitiveRun[]>([])
   const [selectedRun, setSelectedRun] = useState<CompetitiveRun | null>(null)
-  const [activeTimeframe, setActiveTimeframe] = useState<Timeframe>('30d')
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('report')
   const [loading, setLoading] = useState(true)
   const [removing, setRemoving] = useState(false)
@@ -797,9 +745,9 @@ export default function CompetitorDetailPage() {
     }
   }
 
-  const reportData = selectedRun?.data?.[activeTimeframe] || null
+  const reportData = selectedRun?.data?.unified || null
   const deltaComparison: DeltaComparison | null =
-    selectedRun?.data?.[activeTimeframe]?.deltaComparison || null
+    selectedRun?.data?.unified?.deltaComparison || null
 
   if (loading) {
     return (
@@ -896,20 +844,12 @@ export default function CompetitorDetailPage() {
           {/* Delta Comparison Banner */}
           {deltaComparison && <DeltaBanner delta={deltaComparison} />}
 
-          {/* Timeframe Tabs */}
-          <div className="mb-6">
-            <TimeframeTabs active={activeTimeframe} onChange={setActiveTimeframe} />
-          </div>
-
           {/* Report Content */}
           {reportData ? (
-            <CompetitiveReportPanel data={reportData} periodWindow={activeTimeframe} />
+            <CompetitiveReportPanel data={reportData} />
           ) : selectedRun ? (
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-8 text-center">
-              <p className="text-gray-500">
-                No data available for the <span className="font-medium text-gray-700">{TIMEFRAME_LABELS[activeTimeframe]}</span> window in this report.
-              </p>
-              <p className="text-xs text-gray-400 mt-2">Try selecting a different timeframe above.</p>
+              <p className="text-gray-500">Report data is not available for this run.</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-8 text-center">
@@ -940,8 +880,6 @@ export default function CompetitorDetailPage() {
           runs={runs}
           selectedRun={selectedRun}
           competitorId={competitorId}
-          activeTimeframe={activeTimeframe}
-          onTimeframeChange={setActiveTimeframe}
         />
       )}
 
