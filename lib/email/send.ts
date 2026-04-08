@@ -14,7 +14,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
     const { data, error } = await resend.emails.send({
         from: FROM_EMAIL,
         to,
-        subject,
+        subject: subject.replace(/[\r\n]+/g, ' '),
         html,
     })
 
