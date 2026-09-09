@@ -281,8 +281,18 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
 
+      <div className="fixed top-0 inset-x-0 z-50">
+        <div
+          role="status"
+          className="bg-amber-50 border-b border-amber-200/80 text-amber-950"
+        >
+          <p className="text-center text-sm font-medium px-4 py-2.5 leading-relaxed">
+            AutoMyReply is no longer under active development.
+          </p>
+        </div>
+
       {/* ════════════════ NAVBAR ════════════════ */}
-      <nav className={`fixed top-4 left-4 right-4 z-50 transition-all duration-500 rounded-2xl ${
+      <nav className={`mx-4 mt-3 transition-all duration-500 rounded-2xl ${
         scrolled
           ? 'bg-white/80 backdrop-blur-xl shadow-lg shadow-gray-200/40 border border-gray-200/60'
           : 'bg-white/0'
@@ -332,9 +342,10 @@ export default function LandingPage() {
           </div>
         )}
       </nav>
+      </div>
 
       {/* ════════════════ HERO ════════════════ */}
-      <section className="relative pt-36 pb-24 overflow-hidden mesh-gradient">
+      <section className="relative pt-44 pb-24 overflow-hidden mesh-gradient">
         <div className="absolute inset-0 dot-pattern opacity-40 pointer-events-none" />
 
         {/* Decorative orbs */}
@@ -344,10 +355,7 @@ export default function LandingPage() {
         <div className="relative max-w-5xl mx-auto px-6 text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-white/80 backdrop-blur-sm border border-teal-100 rounded-full mb-8 shadow-sm" style={{ animation: 'fadeSlideUp 0.6s ease-out' }}>
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-            </span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500" />
             <span className="text-sm font-medium text-teal-700">AI-Powered Review Management</span>
           </div>
 
