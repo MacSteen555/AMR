@@ -208,9 +208,9 @@ npm run dev
 | `POST` | `/api/locations/:id/reviews/sync` | Sync reviews from Google |
 | `GET` | `/api/locations/:id/reviews` | List location reviews |
 | `GET` | `/api/teams/:id/reviews` | List all team reviews |
-| `POST` | `/api/reviews/:id/draft` | Generate AI draft reply (1 credit) |
-| `PATCH` | `/api/reviews/:id/draft` | Edit draft |
-| `POST` | `/api/reviews/:id/post-reply` | Post reply to Google |
+| `POST` | `/api/reviews/:id/stream` | Stream AI draft reply (1 credit) |
+| `PATCH` | `/api/reviews/:id` | Edit draft / update reply status |
+| `POST` | `/api/reviews/:id/publish` | Post reply to Google |
 
 ### Insights & Competitive Analysis
 | Method | Route | Description |

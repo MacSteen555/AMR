@@ -3,6 +3,7 @@ import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { draftReplyStream } from '@/lib/openai/draft'
 import { resolveSignature } from '@/lib/draft-signature'
 import { spendCredits } from '@/lib/billing/credits'
+import { requireLocationAccess } from '@/lib/rbac'
 import { captureRouteError } from '@/lib/sentry'
 import crypto from 'crypto'
 
@@ -27,13 +28,26 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
       })
     }
 
+    await requireLocationAccess(review.location_id)
+
     const idempotencyKey = request.headers.get('Idempotency-Key') || crypto.randomUUID()
     const body = await request.json().catch(() => ({}))
     const previousDraft = body.previous_draft
     const mode = body.mode || 'generate'
 
-    if (mode === 'generate') {
-      // Spend 1 credit for generation before we stream
+    // Charge once per review. `mode` is client-controlled, so it must not decide billing.
+    const { data: priorCharge } = await serviceClient
+      .schema('app')
+      .from('team_credit_transactions')
+      .select('id')
+      .eq('team_id', review.locations?.team_id)
+      .eq('event_type', 'reply_generate')
+      .eq('reference_type', 'review')
+      .eq('reference_id', params.reviewId)
+      .limit(1)
+      .maybeSingle()
+
+    if (!priorCharge) {
       await spendCredits(
         review.locations?.team_id,
         user.id,
@@ -141,6 +155,12 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
     if (error.message.includes('Review limit reached') || error.message.includes('Requires')) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 402,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    if (error.message === 'No access to location' || error.message === 'Location not found') {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 403,
         headers: { 'Content-Type': 'application/json' },
       })
     }

@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/auth/session'
 import { createSupabaseServiceRoleClient } from '@/lib/supabase/server'
 import { updateReply } from '@/lib/google/gbp'
 import { captureRouteError } from '@/lib/sentry'
+import { requireLocationAccess } from '@/lib/rbac'
 
 export async function POST(request: Request, { params }: { params: { reviewId: string } }) {
     try {
@@ -18,6 +19,9 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
             .single()
 
         if (!review) return NextResponse.json({ error: 'Review not found' }, { status: 404 })
+
+        const { canManage } = await requireLocationAccess(review.location_id)
+        if (!canManage) return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
 
         // We expect a draft to exist, or the user sent a body with content?
         // Let's support body content override, else use draft.
@@ -56,6 +60,9 @@ export async function POST(request: Request, { params }: { params: { reviewId: s
 
         return NextResponse.json({ review: updated })
     } catch (error: any) {
+        if (error.message === 'No access to location' || error.message === 'Location not found') {
+            return NextResponse.json({ error: error.message }, { status: 403 })
+        }
         captureRouteError(error, { route: '/api/reviews/[reviewId]/publish' })
         return NextResponse.json({ error: error.message }, { status: 500 })
     }

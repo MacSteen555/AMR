@@ -13,7 +13,7 @@ const STRICT_PREFIX_PATTERNS = ['/api/auth/', '/api/onboarding/']
 const SYNC_PATTERNS = ['/reviews/sync']
 
 // Quick AI: single review generation (POST only)
-const QUICK_AI_PATTERNS = ['/generate', '/regenerate', '/stream']
+const QUICK_AI_PATTERNS = ['/stream']
 
 // Large AI: bulk/expensive operations (POST only)
 const LARGE_AI_PATTERNS = ['/bulk-generate', '/insights/run']
